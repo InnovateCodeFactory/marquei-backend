@@ -19,6 +19,24 @@
         "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
       }
     },
+    "messaging": {
+      "type": "application",
+      "root": "apps/messaging",
+      "entryFile": "main",
+      "sourceRoot": "apps/messaging/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/messaging/tsconfig.app.json"
+      }
+    },
+    "payment": {
+      "type": "application",
+      "root": "apps/payment",
+      "entryFile": "main",
+      "sourceRoot": "apps/payment/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/payment/tsconfig.app.json"
+      }
+    },
     "shared": {
       "type": "library",
       "root": "libs/shared",
