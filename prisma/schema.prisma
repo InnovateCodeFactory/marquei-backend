@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                        String               @id @default(cuid())
+  email                     String               @unique
+  password                  String
+  name                      String
+  user_type                 UserType
+  businesses                Business[]           @relation("BusinessOwners")
+  professional_profile      ProfessionalProfile?
+  professional_appointments Appointment[]        @relation("ProfessionalAppointments")
+  created_at                DateTime             @default(now())
+  updated_at                DateTime             @updatedAt
+  Customer                  Customer?
+
+  @@index([email], name: "idx_user_email")
+}
+
+model Business {
+  id            String                @id @default(cuid())
+  name          String
+  slug          String                @unique
+  description   String?
+  logo          String?
+  coverImage    String?
+  category      BusinessCategory
+  latitude      Float
+  longitude     Float
+  website       String?
+  instagram     String?
+  email         String?
+  isActive      Boolean               @default(true)
+  isVerified    Boolean               @default(false)
+  isFeatured    Boolean               @default(false)
+  rating        Float                 @default(0.0)
+  reviewsCount  Int                   @default(0)
+  averagePrice  Float                 @default(0.0) // preço médio dos serviços
+  phone         String?
+  ownerId       String
+  owner         User                  @relation("BusinessOwners", fields: [ownerId], references: [id])
+  professionals ProfessionalProfile[]
+  services      Service[]
+  created_at    DateTime              @default(now())
+  updated_at    DateTime              @updatedAt
+  Customer      Customer[]
+
+  @@index([slug], name: "idx_business_slug")
+  @@index([ownerId], name: "idx_business_owner")
+  @@index([category], name: "idx_business_category")
+}
+
+model Service {
+  id            String                @id @default(cuid())
+  name          String
+  duration      Int // Minutos
+  price         Float // preço padrão do serviço
+  businessId    String
+  business      Business              @relation(fields: [businessId], references: [id])
+  appointments  Appointment[]
+  professionals ProfessionalService[] // relação com a pivot
+
+  @@unique([name, businessId]) // evita duplicidade de serviços no mesmo negócio
+  @@index([name], name: "idx_service_name")
+  @@index([businessId], name: "idx_service_business")
+}
+
+model ProfessionalProfile {
+  id                        String                @id @default(cuid())
+  userId                    String                @unique
+  user                      User                  @relation(fields: [userId], references: [id])
+  business_id               String
+  business                  Business              @relation(fields: [business_id], references: [id])
+  services                  ProfessionalService[] // relação com a pivot
+  bio                       String?
+  phone                     String?
+  profile_image             String?
+  current_selected_business String? // slug do business para identificar no app
+  isActive                  Boolean               @default(true)
+  created_at                DateTime              @default(now())
+  updated_at                DateTime              @updatedAt
+  rating                    Float                 @default(0.0)
+  reviewsCount              Int                   @default(0)
+  averagePrice              Float                 @default(0.0) // preço médio dos serviços oferecidos
+  //availability Json?             // JSON com horários disponíveis (ex: {"Monday": ["09:00", "17:00"], "Tuesday": ["10:00", "18:00"]})
+
+  @@index([userId], name: "idx_professional_user")
+  @@index([business_id], name: "idx_professional_business")
+}
+
+model ProfessionalService {
+  id                      String  @id @default(cuid())
+  professional_profile_id String
+  service_id              String
+  custom_price            Float? // se diferente do padrão
+  active                  Boolean @default(true)
+  order                   Int? // para ordenação opcional
+
+  professional_profile ProfessionalProfile @relation(fields: [professional_profile_id], references: [id])
+  service              Service             @relation(fields: [service_id], references: [id])
+
+  @@unique([professional_profile_id, service_id]) // evita duplicidade
+  @@index([professional_profile_id], name: "idx_professional_service_profile")
+  @@index([service_id], name: "idx_professional_service_service")
+}
+
+model Appointment {
+  id              String            @id @default(cuid())
+  professional_id String
+  service_id      String
+  scheduled_at    DateTime
+  status          AppointmentStatus
+  notes           String?
+  customer        Customer          @relation(fields: [customerId], references: [id])
+
+  professional User    @relation("ProfessionalAppointments", fields: [professional_id], references: [id])
+  service      Service @relation(fields: [service_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  customerId String
+
+  @@index([professional_id], name: "idx_appointment_professional")
+  @@index([service_id], name: "idx_appointment_service")
+  @@index([scheduled_at], name: "idx_appointment_scheduled")
+}
+
+model Customer {
+  id         String   @id @default(cuid())
+  name       String
+  phone      String
+  email      String?
+  verified   Boolean  @default(false) // se tem ou não conta no app
+  userId     String?  @unique // opcional: se for cliente real registrado
+  user       User?    @relation(fields: [userId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+  Appointment Appointment[]
+
+  @@index([businessId], name: "idx_customer_business")
+  @@index([userId], name: "idx_customer_user")
+}
+
+enum UserType {
+  ADMIN
+  CUSTOMER
+  PROFESSIONAL
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELED
+  COMPLETED
+}
+
+enum BusinessCategory {
+  BARBERSHOP
+  BEAUTY_SALON
+  SPA
+  FITNESS
+  HEALTHCARE
+  EDUCATION
+  ENTERTAINMENT
+  RESTAURANT
+  RETAIL
+  OTHER
+}

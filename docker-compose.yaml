@@ -1,0 +1,30 @@
+services:
+  rabbitmq:
+    container_name: 'rabbitmq'
+    image: bitnami/rabbitmq:latest
+    environment:
+      - RABBITMQ_USERNAME=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASS}
+      - RABBITMQ_PORT_NUMBER=${RABBITMQ_PORT}
+      - RABBITMQ_MANAGEMENT_ALLOW_WEB_ACCESS=true
+    ports:
+      - '${RABBITMQ_PORT}:${RABBITMQ_PORT}'
+      - '${RABBITMQ_DASH_PORT}:${RABBITMQ_DASH_PORT}'
+    volumes:
+      - rabbitmq:/bitnami
+
+  redis:
+    container_name: 'redis'
+    image: bitnami/redis:latest
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASS}
+    ports:
+      - '${REDIS_PORT}:${REDIS_PORT}'
+    volumes:
+      - redis:/data
+
+volumes:
+  rabbitmq:
+    driver: local
+  redis:
+    driver: local
