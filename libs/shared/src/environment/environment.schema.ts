@@ -18,8 +18,11 @@ export type EnvSchemaType = {
   REDIS_PORT: number;
   REDIS_PASS: string;
 
-  STRIPE_SECRET_KEY?: string;
-  STRIPE_PUBLISHABLE_KEY?: string;
+  STRIPE_SECRET_KEY: string;
+  STRIPE_PUBLISHABLE_KEY: string;
+
+  APITALLY_API_KEY: string;
+  APITALLY_ENV: string;
 };
 
 export const envValidationSchema = Joi.object<EnvSchemaType>({
@@ -48,4 +51,7 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
 
   STRIPE_SECRET_KEY: Joi.string().required(),
   STRIPE_PUBLISHABLE_KEY: Joi.string().required(),
+
+  APITALLY_API_KEY: Joi.string().required(),
+  APITALLY_ENV: Joi.string().valid('dev', 'prod').required(),
 });

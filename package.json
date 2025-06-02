@@ -30,6 +30,7 @@
     "@scalar/nestjs-api-reference": "^0.5.1",
     "amqp-connection-manager": "^4.1.14",
     "amqplib": "^0.10.8",
+    "apitally": "^0.13.0",
     "axios": "^1.9.0",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
