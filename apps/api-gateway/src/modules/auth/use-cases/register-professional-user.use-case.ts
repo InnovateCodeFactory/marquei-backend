@@ -1,10 +1,21 @@
 import { PrismaService } from '@app/shared';
+import { DaysOfWeek } from '@app/shared/enum';
 import { HashingService } from '@app/shared/services';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { RegisterProfessionalUserDto } from '../dto/requests/register-professional-user';
 
 @Injectable()
 export class RegisterProfessionalUserUseCase {
+  private readonly daysOfWeek = [
+    DaysOfWeek.SUNDAY,
+    DaysOfWeek.MONDAY,
+    DaysOfWeek.TUESDAY,
+    DaysOfWeek.WEDNESDAY,
+    DaysOfWeek.THURSDAY,
+    DaysOfWeek.FRIDAY,
+    DaysOfWeek.SATURDAY,
+  ];
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly hashingService: HashingService,
@@ -31,13 +42,22 @@ export class RegisterProfessionalUserUseCase {
     if (existingBusiness)
       throw new BadRequestException('Business already exists with this name');
 
+    const openingHours = this.daysOfWeek.map((day, index) => {
+      const dayData = business.openingHours[index];
+      return {
+        day,
+        times: dayData.times,
+        closed: dayData.closed,
+      };
+    });
+
     const newBusiness = await this.prismaService.business.create({
       data: {
         slug,
         name: business.name,
         latitude: business.latitude,
         longitude: business.longitude,
-        opening_hours: JSON.stringify(business.openingHours),
+        opening_hours: JSON.stringify(openingHours),
         owner: {
           create: {
             email,
