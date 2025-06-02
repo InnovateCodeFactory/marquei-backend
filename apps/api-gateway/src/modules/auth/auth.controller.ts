@@ -4,7 +4,7 @@ import { Body, Controller, Post, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { LoginDto } from './dto/requests/login.dto';
-import { RegisterProfessionalUserDto } from './dto/requests/register-professional-user.dto';
+import { RegisterProfessionalUserDto } from './dto/requests/register-professional-user';
 import { LoginUseCase, RegisterProfessionalUserUseCase } from './use-cases';
 
 @Controller('auth')

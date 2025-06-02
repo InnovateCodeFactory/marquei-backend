@@ -1,10 +1,8 @@
+import { SharedModule } from '@app/shared';
 import { Module } from '@nestjs/common';
-import { PaymentController } from './payment.controller';
-import { PaymentService } from './payment.service';
+import { StripeModule } from './gateways/stripe/stripe.module';
 
 @Module({
-  imports: [],
-  controllers: [PaymentController],
-  providers: [PaymentService],
+  imports: [SharedModule, StripeModule],
 })
 export class PaymentModule {}

@@ -1,7 +1,7 @@
 import { PrismaService } from '@app/shared';
 import { HashingService } from '@app/shared/services';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { RegisterProfessionalUserDto } from '../dto/requests/register-professional-user.dto';
+import { RegisterProfessionalUserDto } from '../dto/requests/register-professional-user';
 
 @Injectable()
 export class RegisterProfessionalUserUseCase {
@@ -11,7 +11,8 @@ export class RegisterProfessionalUserUseCase {
   ) {}
 
   async execute(registerDto: RegisterProfessionalUserDto) {
-    const { name, email, password, business } = registerDto;
+    const { name, email, password, documentNumber, phone, business } =
+      registerDto;
 
     const slug = this.makeSlugFromName(business.name);
 
@@ -36,14 +37,21 @@ export class RegisterProfessionalUserUseCase {
         name: business.name,
         latitude: business.latitude,
         longitude: business.longitude,
-        category: 'BARBERSHOP',
+        opening_hours: JSON.stringify(business.openingHours),
         owner: {
           create: {
             email,
             name,
             password: await this.hashingService.hash(password),
             user_type: 'PROFESSIONAL',
+            document_number: documentNumber,
           },
+        },
+        BusinessCategory: {
+          connect: { id: business.category.id },
+        },
+        BusinessServiceType: {
+          connect: { id: business.placeType.id },
         },
       },
       select: {
@@ -65,9 +73,10 @@ export class RegisterProfessionalUserUseCase {
         business: {
           connect: { id: newBusiness.id },
         },
-        user: {
+        User: {
           connect: { id: newBusiness.owner.id },
         },
+        phone,
       },
     });
 

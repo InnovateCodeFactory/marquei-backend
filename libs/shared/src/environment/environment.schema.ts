@@ -17,6 +17,9 @@ export type EnvSchemaType = {
   REDIS_HOST: string;
   REDIS_PORT: number;
   REDIS_PASS: string;
+
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_PUBLISHABLE_KEY?: string;
 };
 
 export const envValidationSchema = Joi.object<EnvSchemaType>({
@@ -30,8 +33,8 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
   DATABASE_URL: Joi.string().uri().required(),
 
   REDIS_HOST: Joi.string().required(),
-  REDIS_PORT: Joi.number().default(6379).positive().integer().required(),
-  REDIS_PASS: Joi.string().default('').allow(''),
+  REDIS_PORT: Joi.number().positive().integer().required(),
+  REDIS_PASS: Joi.string().allow(''),
 
   RABBITMQ_DASH_PORT: Joi.number()
     .default(15672)
@@ -42,4 +45,7 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
   RABBITMQ_PASS: Joi.string().required(),
   RABBITMQ_PORT: Joi.number().positive().integer().required(),
   RABBITMQ_HOST: Joi.string().required(),
+
+  STRIPE_SECRET_KEY: Joi.string().required(),
+  STRIPE_PUBLISHABLE_KEY: Joi.string().required(),
 });

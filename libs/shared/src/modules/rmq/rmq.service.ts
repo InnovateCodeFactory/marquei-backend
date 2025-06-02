@@ -16,7 +16,6 @@ export class RmqService {
   }): Promise<void> {
     try {
       await this.amqpConnection.publish(RABBIT_EXCHANGE, routingKey, payload);
-      console.log(`Message published to ${routingKey}`);
     } catch (error) {
       console.error(`Error publishing message to ${routingKey}:`, error);
     }
