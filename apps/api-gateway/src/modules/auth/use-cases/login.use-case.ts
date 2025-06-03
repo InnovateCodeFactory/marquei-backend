@@ -1,6 +1,8 @@
 import { PrismaService } from '@app/shared';
+import { EnvSchemaType } from '@app/shared/environment';
 import { HashingService } from '@app/shared/services';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from '../dto/requests/login.dto';
 
@@ -10,6 +12,7 @@ export class LoginUseCase {
     private readonly prismaService: PrismaService,
     private readonly hashingService: HashingService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService<EnvSchemaType>,
   ) {}
 
   async execute(loginDto: LoginDto) {
@@ -29,9 +32,15 @@ export class LoginUseCase {
       throw new BadRequestException('Invalid credentials');
 
     return {
-      token: await this.jwtService.signAsync({
-        id: user.id,
-      }),
+      token: await this.jwtService.signAsync(
+        {
+          id: user.id,
+        },
+        {
+          secret: this.configService.get('JWT_SECRET'),
+          expiresIn: '7d',
+        },
+      ),
     };
   }
 }

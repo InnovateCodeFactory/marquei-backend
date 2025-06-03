@@ -1,4 +1,3 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -9,28 +8,18 @@ import {
 } from 'class-validator';
 import { OpeningHourDto } from './opening-hour.dto';
 
-class IdNameDto {
-  @ApiProperty()
-  @IsNotEmpty()
-  id: string;
-
-  @ApiProperty()
-  @IsString()
-  name: string;
-}
-
 export class BusinessDto {
   @IsString()
   @IsNotEmpty()
   name: string;
 
-  @ValidateNested()
-  @Type(() => IdNameDto)
-  category: IdNameDto;
+  @IsString()
+  @IsNotEmpty()
+  category: string;
 
-  @ValidateNested()
-  @Type(() => IdNameDto)
-  placeType: IdNameDto;
+  @IsString()
+  @IsNotEmpty()
+  placeType: string;
 
   @IsString()
   @IsNotEmpty()

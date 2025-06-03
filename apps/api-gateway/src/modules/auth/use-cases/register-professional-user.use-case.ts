@@ -68,10 +68,10 @@ export class RegisterProfessionalUserUseCase {
           },
         },
         BusinessCategory: {
-          connect: { id: business.category.id },
+          connect: { id: business.category },
         },
         BusinessServiceType: {
-          connect: { id: business.placeType.id },
+          connect: { id: business.placeType },
         },
       },
       select: {
