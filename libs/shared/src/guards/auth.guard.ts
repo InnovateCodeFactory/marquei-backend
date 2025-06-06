@@ -46,16 +46,16 @@ export class AuthGuard implements CanActivate {
         select: {
           user_type: true,
           id: true,
+          current_selected_business_slug: true,
         },
       });
 
       if (!user) {
         throw new NotFoundException('Usuário não encontrado');
       }
-      request.user = {
-        id: user.id,
-        user_type: user.user_type,
-      };
+      request.user = user;
+
+      return true;
     } catch (error) {
       throw new UnauthorizedException('Token inválido ou expirado');
     }

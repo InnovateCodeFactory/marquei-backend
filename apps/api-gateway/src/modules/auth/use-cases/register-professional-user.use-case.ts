@@ -21,6 +21,73 @@ export class RegisterProfessionalUserUseCase {
     private readonly hashingService: HashingService,
   ) {}
 
+  // async onModuleInit() {
+  //   await this.prismaService.businessCategory.createMany({
+  //     data: [
+  //       {
+  //         name: 'Barbearia',
+  //       },
+  //       {
+  //         name: 'Salão de beleza',
+  //       },
+  //       {
+  //         name: 'Estética',
+  //       },
+  //       {
+  //         name: 'Pilates',
+  //       },
+  //       {
+  //         name: 'Consultório',
+  //       },
+  //       {
+  //         name: 'Academia',
+  //       },
+  //       {
+  //         name: 'Estúdio de dança',
+  //       },
+  //       {
+  //         name: 'Estúdio de pilates',
+  //       },
+  //       {
+  //         name: 'Estúdio de yoga',
+  //       },
+  //       {
+  //         name: 'Estúdio de crossfit',
+  //       },
+  //       {
+  //         name: 'Estúdio de funcional',
+  //       },
+  //       {
+  //         name: 'Estúdio de musculação',
+  //       },
+  //     ],
+  //   });
+
+  //   console.log('Business categories initialized');
+
+  //   await this.prismaService.businessServiceType.createMany({
+  //     data: [
+  //       {
+  //         name: 'Presencial',
+  //       },
+  //       {
+  //         name: 'Domiciliar',
+  //       },
+  //       {
+  //         name: 'Online',
+  //       },
+  //       {
+  //         name: 'Presencial e domiciliar',
+  //       },
+  //       {
+  //         name: 'Presencial e online',
+  //       },
+  //     ],
+  //   });
+
+  //   console.log('Business service types initialized');
+  // }
+
   async execute(registerDto: RegisterProfessionalUserDto) {
     const { name, email, password, documentNumber, phone, business } =
       registerDto;

@@ -5,6 +5,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './modules/auth/auth.module';
 import { BusinessCategoryModule } from './modules/business-category/business-category.module';
 import { BusinessServiceTypeModule } from './modules/business-service-type/business-service-type.module';
+import { BusinessModule } from './modules/business/business.module';
+import { CustomersModule } from './modules/customers/customers.module';
 
 @Module({
   imports: [
@@ -12,6 +14,8 @@ import { BusinessServiceTypeModule } from './modules/business-service-type/busin
     AuthModule,
     BusinessServiceTypeModule,
     BusinessCategoryModule,
+    BusinessModule,
+    CustomersModule,
   ],
   providers: [
     {
