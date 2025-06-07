@@ -67,14 +67,14 @@ model Business {
 }
 
 model Service {
-  id            String                @id @default(cuid())
-  name          String
-  duration      Int // Minutos
-  price         Float // preço padrão do serviço
-  businessId    String
-  business      Business              @relation(fields: [businessId], references: [id])
-  appointments  Appointment[]
-  professionals ProfessionalService[] // relação com a pivot
+  id             String                @id @default(cuid())
+  name           String
+  duration       Int // Minutos
+  price_in_cents Int // preço padrão do serviço
+  businessId     String
+  business       Business              @relation(fields: [businessId], references: [id])
+  appointments   Appointment[]
+  professionals  ProfessionalService[] // relação com a pivot
 
   @@unique([name, businessId]) // evita duplicidade de serviços no mesmo negócio
   @@index([name], name: "idx_service_name")
