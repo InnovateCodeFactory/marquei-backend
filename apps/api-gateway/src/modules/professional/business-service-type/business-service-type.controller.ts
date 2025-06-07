@@ -5,7 +5,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { GetServiceTypesUseCase } from './use-cases';
 
-@Controller('business-service-type')
+@Controller('professional/business-service-type')
 @ApiTags('Business Service Type')
 export class BusinessServiceTypeController {
   constructor(

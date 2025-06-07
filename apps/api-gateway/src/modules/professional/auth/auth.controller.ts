@@ -7,7 +7,7 @@ import { LoginDto } from './dto/requests/login.dto';
 import { RegisterProfessionalUserDto } from './dto/requests/register-professional-user';
 import { LoginUseCase, RegisterProfessionalUserUseCase } from './use-cases';
 
-@Controller('auth')
+@Controller('professional/auth')
 @ApiTags('auth')
 export class AuthController {
   constructor(

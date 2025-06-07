@@ -7,7 +7,7 @@ import { Response } from 'express';
 import { CreateServiceDto } from './dto/requests/create-service.dto';
 import { CreateServiceUseCase, GetServicesUseCase } from './use-cases';
 
-@Controller('services')
+@Controller('professional/services')
 @ApiTags('Services')
 export class ServicesController {
   constructor(

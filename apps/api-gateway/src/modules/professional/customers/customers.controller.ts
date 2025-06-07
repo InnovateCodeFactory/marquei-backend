@@ -8,7 +8,7 @@ import { CreateCustomerDto } from './dto/requests/create-customer.dto';
 import { CreateCustomerUseCase } from './use-cases';
 import { FindCustomersUseCase } from './use-cases/find-customers.use-case';
 
-@Controller('customers')
+@Controller('professional/customers')
 @ApiTags('Customers')
 export class CustomersController {
   constructor(
@@ -19,7 +19,7 @@ export class CustomersController {
 
   @Post('create-customer')
   @ApiOperation({
-    description: 'Create a new customer',
+    summary: 'Create a new customer',
   })
   async createCustomer(
     @Body() body: CreateCustomerDto,
@@ -35,7 +35,7 @@ export class CustomersController {
 
   @Get('find-customers')
   @ApiOperation({
-    description: 'Find all customers for the current business',
+    summary: 'Find all customers for the current business',
   })
   async findCustomers(@Res() res: Response, @Req() req: AppRequest) {
     return await this.responseHandler.handle({
