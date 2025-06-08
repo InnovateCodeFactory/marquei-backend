@@ -1,11 +1,21 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { Body, Controller, Get, Post, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Post,
+  Query,
+  Res,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CreateServiceDto } from './dto/requests/create-service.dto';
+import { DeleteServiceDto } from './dto/requests/delete-service.dto';
 import { CreateServiceUseCase, GetServicesUseCase } from './use-cases';
+import { DeleteServiceUseCase } from './use-cases/delete-service.use-case';
 
 @Controller('professional/services')
 @ApiTags('Services')
@@ -14,6 +24,7 @@ export class ServicesController {
     private readonly responseHandlerService: ResponseHandlerService,
     private readonly createServiceUseCase: CreateServiceUseCase,
     private readonly getServicesUseCase: GetServicesUseCase,
+    private readonly deleteServiceUseCase: DeleteServiceUseCase,
   ) {}
 
   @Post('create-service')
@@ -44,6 +55,22 @@ export class ServicesController {
       method: () => this.getServicesUseCase.execute(currentUser),
       res,
       successStatus: 200,
+    });
+  }
+
+  @Delete('delete-service')
+  @ApiOperation({
+    summary: 'Delete a service',
+  })
+  async deleteService(
+    @Res() res: Response,
+    @Query() query: DeleteServiceDto,
+    @CurrentUserDecorator() currentUser: CurrentUser,
+  ) {
+    return await this.responseHandlerService.handle({
+      method: () => this.deleteServiceUseCase.execute(query, currentUser),
+      res,
+      successStatus: 204,
     });
   }
 }

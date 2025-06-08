@@ -20,7 +20,10 @@ export class CreateServiceUseCase {
 
     const serviceExists = await this.prismaService.service.findFirst({
       where: {
-        name,
+        name: {
+          equals: name,
+          mode: 'insensitive',
+        },
         business: {
           slug: current_selected_business_slug,
         },
