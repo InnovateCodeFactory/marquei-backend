@@ -25,6 +25,7 @@ export class LoginUseCase {
       select: {
         id: true,
         password: true,
+        current_selected_business_slug: true,
       },
     });
 
@@ -41,6 +42,9 @@ export class LoginUseCase {
           expiresIn: '7d',
         },
       ),
+      user: {
+        current_selected_business_slug: user.current_selected_business_slug,
+      },
     };
   }
 }

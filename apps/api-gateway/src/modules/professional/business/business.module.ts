@@ -1,10 +1,19 @@
 import { ResponseHandlerService } from '@app/shared/services';
 import { Module } from '@nestjs/common';
 import { BusinessController } from './business.controller';
-import { FindNearbyBusinessesUseCase } from './use-cases';
+import {
+  FindNearbyBusinessesUseCase,
+  GetBusinessByProfessionalUseCase,
+} from './use-cases';
+import { SelectCurrentBusinessUseCase } from './use-cases/select-current-business.use-case';
 
 @Module({
   controllers: [BusinessController],
-  providers: [ResponseHandlerService, FindNearbyBusinessesUseCase],
+  providers: [
+    ResponseHandlerService,
+    FindNearbyBusinessesUseCase,
+    GetBusinessByProfessionalUseCase,
+    SelectCurrentBusinessUseCase,
+  ],
 })
 export class BusinessModule {}
