@@ -5,6 +5,7 @@ import {
   FindNearbyBusinessesUseCase,
   GetBusinessByProfessionalUseCase,
 } from './use-cases';
+import { GetBusinessAvailableTimesUseCase } from './use-cases/get-business-available-times.use-case';
 import { SelectCurrentBusinessUseCase } from './use-cases/select-current-business.use-case';
 
 @Module({
@@ -14,6 +15,7 @@ import { SelectCurrentBusinessUseCase } from './use-cases/select-current-busines
     FindNearbyBusinessesUseCase,
     GetBusinessByProfessionalUseCase,
     SelectCurrentBusinessUseCase,
+    GetBusinessAvailableTimesUseCase,
   ],
 })
 export class BusinessModule {}
