@@ -21,6 +21,7 @@ export class GetBusinessAvailableTimesUseCase {
   constructor(private readonly prismaService: PrismaService) {}
 
   async execute(payload: GetBusinessAvailableTimesDto, user: CurrentUser) {
+    // TODO: Pegar por profissional também
     const { service_id, start_date } = payload;
     const { current_selected_business_slug } = user;
 

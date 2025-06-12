@@ -202,7 +202,7 @@ model Plan {
   id              String        @id @default(cuid())
   name            String
   description     String?
-  stripeProductId String        @unique // ID do produto no Stripe
+  stripeProductId String
   stripePriceId   String        @unique // ID do preço no Stripe (price_xxxxx)
   price_in_cents  Int
   billing_period  BillingPeriod @default(MONTHLY) // mensal, anual...

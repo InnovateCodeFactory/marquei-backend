@@ -5,6 +5,7 @@ import { BusinessServiceTypeModule } from './business-service-type/business-serv
 import { BusinessModule } from './business/business.module';
 import { CustomersModule } from './customers/customers.module';
 import { ServicesModule } from './services/services.module';
+import { PlansModule } from './plans/plans.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ServicesModule } from './services/services.module';
     BusinessModule,
     CustomersModule,
     ServicesModule,
+    PlansModule,
   ],
 })
 export class ProfessionalModule {}
