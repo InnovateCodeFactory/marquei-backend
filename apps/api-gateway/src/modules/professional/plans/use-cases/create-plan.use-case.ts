@@ -6,8 +6,8 @@ export class CreatePlanUseCase implements OnModuleInit {
   constructor(private readonly prismaService: PrismaService) {}
 
   async onModuleInit() {
-    await this.execute();
-    console.log('Stripe plans created successfully');
+    // await this.execute();
+    // console.log('Stripe plans created successfully');
   }
 
   async execute() {

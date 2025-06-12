@@ -47,6 +47,7 @@ model Business {
   rating                Float                  @default(0.0)
   reviews_count         Int                    @default(0)
   average_price         Float                  @default(0.0) // preço médio dos serviços
+  stripe_customer_id    String? // ID do cliente no Stripe, se aplicável
   phone                 String?
   ownerId               String
   owner                 User                   @relation("BusinessOwners", fields: [ownerId], references: [id])
