@@ -20,6 +20,7 @@ export type EnvSchemaType = {
 
   STRIPE_SECRET_KEY: string;
   STRIPE_PUBLISHABLE_KEY: string;
+  STRIPE_WEBHOOK_SECRET: string;
 
   APITALLY_API_KEY: string;
   APITALLY_ENV: string;
@@ -51,6 +52,7 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
 
   STRIPE_SECRET_KEY: Joi.string().required(),
   STRIPE_PUBLISHABLE_KEY: Joi.string().required(),
+  STRIPE_WEBHOOK_SECRET: Joi.string().required(),
 
   APITALLY_API_KEY: Joi.string().required(),
   APITALLY_ENV: Joi.string().valid('dev', 'prod').required(),

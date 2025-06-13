@@ -3,6 +3,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { useApitally } from 'apitally/nestjs';
+import * as express from 'express';
 import { AppModule } from './app.module';
 import { swagger } from './swagger';
 
@@ -18,6 +19,11 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
     }),
+  );
+
+  app.use(
+    '/api/webhooks/stripe',
+    express.raw({ type: 'application/json' }), // necessário para verificar a assinatura
   );
 
   const configService = app.get(ConfigService<EnvSchemaType>);

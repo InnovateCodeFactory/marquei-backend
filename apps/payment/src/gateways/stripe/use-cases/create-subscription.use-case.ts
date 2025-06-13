@@ -34,7 +34,10 @@ export class CreateSubscriptionUseCase {
       const subscription = await this.stripe.subscriptions.create({
         customer: stripe_customer_id,
         items: [{ price: price_id }],
-        expand: ['latest_invoice.payment_intent'],
+        expand: [
+          'latest_invoice.payment_intent',
+          'latest_invoice.lines.data.price',
+        ],
         payment_behavior: 'default_incomplete',
       });
 
