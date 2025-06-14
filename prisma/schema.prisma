@@ -11,61 +11,73 @@ datasource db {
 }
 
 model User {
-  id                             String                @id @default(cuid())
-  email                          String                @unique
-  password                       String
-  name                           String
-  document_number                String?
-  current_selected_business_slug String? // slug do business para identificar no app
-  user_type                      UserType
-  businesses                     Business[]            @relation("BusinessOwners")
-  professional_profile           ProfessionalProfile[]
-  professional_appointments      Appointment[]         @relation("ProfessionalAppointments")
-  created_at                     DateTime              @default(now())
-  updated_at                     DateTime              @updatedAt
-  Customer                       Customer?
+  id                        String                    @id @default(cuid())
+  email                     String                    @unique
+  password                  String
+  name                      String
+  document_number           String?
+  user_type                 UserType
+  businesses                Business[]                @relation("BusinessOwners")
+  professional_profile      ProfessionalProfile[]
+  professional_appointments Appointment[]             @relation("ProfessionalAppointments")
+  created_at                DateTime                  @default(now())
+  updated_at                DateTime                  @updatedAt
+  Customer                  Customer?
+  CurrentSelectedBusiness   CurrentSelectedBusiness[]
 
   @@index([email], name: "idx_user_email")
 }
 
 model Business {
-  id                    String                 @id @default(cuid())
-  name                  String
-  slug                  String                 @unique
-  description           String?
-  logo                  String?
-  coverImage            String?
-  latitude              Float // Latitude para localização
-  longitude             Float // Longitude para localização
-  opening_hours         Json
-  website               String?
-  instagram             String?
-  email                 String?
-  is_active             Boolean                @default(true)
-  is_verified           Boolean                @default(false)
-  is_featured           Boolean                @default(false)
-  rating                Float                  @default(0.0)
-  reviews_count         Int                    @default(0)
-  average_price         Float                  @default(0.0) // preço médio dos serviços
-  stripe_customer_id    String? // ID do cliente no Stripe, se aplicável
-  phone                 String?
-  ownerId               String
-  owner                 User                   @relation("BusinessOwners", fields: [ownerId], references: [id])
-  professionals         ProfessionalProfile[]
-  services              Service[]
-  created_at            DateTime               @default(now())
-  updated_at            DateTime               @updatedAt
-  Customer              Customer[]
-  BusinessCategory      BusinessCategory?      @relation(fields: [businessCategoryId], references: [id])
-  businessCategoryId    String?
-  BusinessServiceType   BusinessServiceType?   @relation(fields: [businessServiceTypeId], references: [id])
-  businessServiceTypeId String?
-  BusinessSubscription  BusinessSubscription[]
+  id                      String                    @id @default(cuid())
+  name                    String
+  slug                    String                    @unique
+  description             String?
+  logo                    String?
+  coverImage              String?
+  latitude                Float // Latitude para localização
+  longitude               Float // Longitude para localização
+  opening_hours           Json
+  website                 String?
+  instagram               String?
+  email                   String?
+  is_active               Boolean                   @default(true)
+  is_verified             Boolean                   @default(false)
+  is_featured             Boolean                   @default(false)
+  rating                  Float                     @default(0.0)
+  reviews_count           Int                       @default(0)
+  average_price           Float                     @default(0.0) // preço médio dos serviços
+  stripe_customer_id      String? // ID do cliente no Stripe, se aplicável
+  phone                   String?
+  ownerId                 String
+  owner                   User                      @relation("BusinessOwners", fields: [ownerId], references: [id])
+  professionals           ProfessionalProfile[]
+  services                Service[]
+  created_at              DateTime                  @default(now())
+  updated_at              DateTime                  @updatedAt
+  Customer                Customer[]
+  BusinessCategory        BusinessCategory?         @relation(fields: [businessCategoryId], references: [id])
+  businessCategoryId      String?
+  BusinessServiceType     BusinessServiceType?      @relation(fields: [businessServiceTypeId], references: [id])
+  businessServiceTypeId   String?
+  BusinessSubscription    BusinessSubscription[]
+  CurrentSelectedBusiness CurrentSelectedBusiness[]
 
   @@index([slug], name: "idx_business_slug")
   @@index([ownerId], name: "idx_business_owner")
   @@index([businessCategoryId], name: "idx_business_category")
   @@index([businessServiceTypeId], name: "idx_business_service_type")
+}
+
+model CurrentSelectedBusiness {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  businessId String
+  user       User     @relation(fields: [userId], references: [id])
+  business   Business @relation(fields: [businessId], references: [id])
+
+  @@index([userId], name: "idx_current_selected_business_user")
+  @@index([businessId], name: "idx_current_selected_business_business")
 }
 
 model Service {

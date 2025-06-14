@@ -19,21 +19,15 @@ export class CreateSetupIntentUseCase {
     queue: STRIPE_SETUP_INTENT_QUEUE,
     routingKey: STRIPE_SETUP_INTENT_QUEUE,
   })
-  async execute({
-    business_id,
-    stripe_customer_id,
-  }: {
-    stripe_customer_id: string;
-    business_id: string;
-  }) {
+  async execute(body: { stripe_customer_id: string; business_id: string }) {
+    const { business_id, stripe_customer_id } = body;
     try {
+      // Verificar por que ele pagou direto ao inves de so salvar o cartão
       const setupIntent = await this.stripeService.setupIntents.create({
         usage: 'off_session',
         metadata: { business_id },
         customer: stripe_customer_id,
       });
-
-      this.logger.debug(setupIntent);
 
       return {
         client_secret: setupIntent.client_secret,

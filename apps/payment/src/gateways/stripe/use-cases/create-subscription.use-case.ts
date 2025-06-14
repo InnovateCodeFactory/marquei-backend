@@ -34,55 +34,19 @@ export class CreateSubscriptionUseCase {
         throw new Error('Price ID and Stripe Customer ID are required');
       }
 
-      const [paymentMethods, product] = await Promise.all([
-        await this.stripe.paymentMethods.list({
-          customer: stripe_customer_id,
-          type: 'card',
-        }),
-        await this.prismaService.plan.findFirst({
-          where: {
-            stripePriceId: price_id,
-          },
-          select: {
-            price_in_cents: true,
-            billing_period: true,
-          },
-        }),
-      ]);
-
-      const savedPaymentMethod = paymentMethods.data?.[0]; // pega o mais recente
-
-      if (!savedPaymentMethod) {
-        throw new Error('Cliente não tem cartão salvo');
-      }
-
-      const paymentIntent = await this.stripe.paymentIntents.create({
-        amount: product.price_in_cents,
-        currency: 'brl',
+      const session = await this.stripe.checkout.sessions.create({
+        line_items: [{ price: price_id, quantity: 1 }],
+        mode: 'subscription',
         customer: stripe_customer_id,
-        payment_method: savedPaymentMethod.id,
-        confirm: true,
-        off_session: true, // se o cliente não estiver presente
-        ...(product?.billing_period === 'YEARLY' && {
-          payment_method_options: {
-            card: {
-              installments: {
-                enabled: true,
-                plan: {
-                  count: 12, // ou o número de parcelas que você quiser fixar
-                  interval: 'month',
-                  type: 'fixed_count',
-                },
-              },
-            },
-          },
-        }),
+        metadata: { business_id },
+        success_url: 'http://192.168.15.84:3000/api/webhooks/stripe/success',
+        cancel_url: 'exp://192.168.15.84:8081/--/cancel',
       });
 
-      const { client_secret } = paymentIntent;
+      this.logger.debug(session);
 
       return {
-        client_secret,
+        url: session.url,
       };
     } catch (error) {
       this.logger.error('Error creating subscription', error);

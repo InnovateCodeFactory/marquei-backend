@@ -41,19 +41,30 @@ export class AuthGuard implements CanActivate {
         throw new UnauthorizedException('Token inválido ou expirado');
       }
       const userId = payload.id;
-      const user = await this.prismaService.user.findUnique({
-        where: { id: userId },
-        select: {
-          user_type: true,
-          id: true,
-          current_selected_business_slug: true,
-        },
+      const user = await this.redisService.getCurrentUserFromRequest({
+        userId,
       });
 
       if (!user) {
         throw new NotFoundException('Usuário não encontrado');
       }
-      request.user = user;
+
+      console.log(JSON.stringify(user));
+      const currentBusiness = user.CurrentSelectedBusiness?.[0]?.business;
+      // Verificar o plano atual de assinatura com data de fim errada
+      request.user = {
+        id: user.id,
+        user_type: user.user_type,
+        current_selected_business_slug: currentBusiness?.slug || null,
+        current_selected_business_id: currentBusiness?.id || null,
+        current_business_subscription_status:
+          currentBusiness?.BusinessSubscription?.[0]?.status || null,
+        current_business_subscription_plan_name:
+          currentBusiness?.BusinessSubscription?.[0]?.plan?.name || null,
+        current_business_subscription_plan_billing_period:
+          currentBusiness?.BusinessSubscription?.[0]?.plan?.billing_period ||
+          null,
+      };
 
       return true;
     } catch (error) {

@@ -53,7 +53,7 @@ export class SubscribeToPlanUseCase {
 
     const business = isTheUserOwner;
 
-    const subscription: { client_secret: string } | null =
+    const subscription: { url: string } | null =
       await this.rmqService.requestFromQueue({
         routingKey: CREATE_STRIPE_SUBSCRIPTION_QUEUE,
         payload: {
@@ -68,9 +68,9 @@ export class SubscribeToPlanUseCase {
         'Erro ao criar assinatura. Tente novamente mais tarde.',
       );
 
-    const { client_secret } = subscription;
+    const { url } = subscription;
     return {
-      client_secret,
+      url,
     };
   }
 }

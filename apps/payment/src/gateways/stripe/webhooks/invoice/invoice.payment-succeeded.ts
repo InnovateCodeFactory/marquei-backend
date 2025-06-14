@@ -45,11 +45,13 @@ export class InvoicePaymentSucceeded {
     });
 
     const billingReason = invoice.billing_reason;
-    const businessId = invoice.customer as string;
+    const stripe_customer_id = invoice.customer as string;
     const stripeInvoiceId = invoice.id;
 
     const plan = await this.getPlanFromInvoice(invoice);
-    const businessSubscription = await this.findActiveSubscription(businessId);
+    const businessSubscription = await this.findActiveSubscription({
+      stripe_customer_id,
+    });
 
     const commonData = this.mapInvoiceToPayment(invoice, stripeInvoiceId);
 
@@ -57,13 +59,13 @@ export class InvoicePaymentSucceeded {
 
     switch (billingReason) {
       case 'subscription_create':
-        return this.handleSubscriptionCreate(
-          businessId,
+        return this.handleSubscriptionCreate({
+          stripeCustomerId: stripe_customer_id,
           businessSubscription,
           plan,
           invoice,
           commonData,
-        );
+        });
 
       case 'subscription_cycle':
       case 'subscription_threshold':
@@ -84,20 +86,31 @@ export class InvoicePaymentSucceeded {
     }
   }
 
-  private async handleSubscriptionCreate(
-    businessId: string,
-    businessSubscription: any,
-    plan: Plan,
-    invoice: Stripe.Invoice,
-    commonData: Partial<Payment> | any,
-  ) {
+  private async handleSubscriptionCreate({
+    stripeCustomerId,
+    businessSubscription,
+    plan,
+    invoice,
+    commonData,
+  }: {
+    stripeCustomerId: string;
+    businessSubscription: any;
+    plan: Plan;
+    invoice: Stripe.Invoice;
+    commonData: Partial<Payment> | any;
+  }) {
     if (businessSubscription) return;
+
+    const business = await this.prisma.business.findFirst({
+      where: { stripe_customer_id: stripeCustomerId },
+      select: { id: true },
+    });
 
     await this.prisma.businessSubscription.create({
       data: {
-        business: { connect: { id: businessId } },
+        business: { connect: { id: business.id } },
         plan: { connect: { id: plan.id } },
-        stripeCustomerId: businessId,
+        stripeCustomerId,
         status: 'ACTIVE',
         current_period_start: new Date(invoice.period_start * 1000),
         current_period_end: new Date(invoice.period_end * 1000),
@@ -166,10 +179,14 @@ export class InvoicePaymentSucceeded {
     };
   }
 
-  private async findActiveSubscription(businessId: string) {
+  private async findActiveSubscription({
+    stripe_customer_id,
+  }: {
+    stripe_customer_id: string;
+  }) {
     return this.prisma.businessSubscription.findFirst({
       where: {
-        businessId,
+        business: { stripe_customer_id },
         status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] },
       },
     });
