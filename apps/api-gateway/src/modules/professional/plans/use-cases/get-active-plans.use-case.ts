@@ -37,10 +37,13 @@ export class GetActivePlansUseCase {
 
         acc[key].options.push({
           value:
-            new Price(plan.price_in_cents).toCurrency() +
-            (plan.billing_period === 'YEARLY' ? '/Mês' : ''),
+            new Price(
+              plan.billing_period === 'YEARLY'
+                ? plan.price_in_cents / 12
+                : plan.price_in_cents,
+            ).toCurrency() + (plan.billing_period === 'YEARLY' ? '/Mês' : ''),
           label: this.getPlanBillingPeriod(plan.billing_period),
-          oldValue: new Price(plan.price_in_cents + 100).toCurrency(), // ajuste se tiver valor anterior
+          oldValue: new Price(plan.price_in_cents + 1000).toCurrency(), // ajuste se tiver valor anterior
           stripe_price_id: plan.stripePriceId,
           destactLabel:
             plan.billing_period === 'YEARLY' ? 'Recomendado' : undefined,
