@@ -6,6 +6,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { SubscribeToPlanDto } from './dto/requests/subscribe-to-plan.dto';
 import { GetActivePlansUseCase } from './use-cases/get-active-plans.use-case';
+import { CreateSetupIntentUseCase } from './use-cases/setup-intent.use-case';
 import { SubscribeToPlanUseCase } from './use-cases/subscripe-to-plan.use-case';
 
 @Controller('professional/plans')
@@ -15,6 +16,7 @@ export class PlansController {
     private readonly responseHandler: ResponseHandlerService,
     private readonly getActivePlansUseCase: GetActivePlansUseCase,
     private readonly subscribeToPlanUseCase: SubscribeToPlanUseCase,
+    private readonly createSetupIntentUseCase: CreateSetupIntentUseCase,
   ) {}
 
   @Get('get-active-plans')
@@ -42,6 +44,20 @@ export class PlansController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.subscribeToPlanUseCase.execute(payload, currentUser),
+      res,
+    });
+  }
+
+  @Get('setup-intent')
+  @ApiOperation({
+    summary: 'Setup Intent',
+  })
+  async setupIntent(
+    @CurrentUserDecorator() currentUser: CurrentUser,
+    @Res() res: Response,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.createSetupIntentUseCase.execute(currentUser),
       res,
     });
   }

@@ -14,3 +14,4 @@ export const STRIPE_INVOICE_WEBHOOK_QUEUE =
   'payment.stripe_invoice_webhook_queue';
 export const STRIPE_CUSTOMER_SUBSCRIPTION_QUEUE =
   'payment.stripe_customer_subscription_queue';
+export const STRIPE_SETUP_INTENT_QUEUE = 'payment.stripe_setup_intent_queue';
