@@ -25,13 +25,33 @@ export class GetActivePlansUseCase {
       },
     });
 
-    return plans?.map((plan) => ({
-      name: plan.name,
-      price: new Price(plan.price_in_cents).toCurrency(),
-      billing_period: plan.billing_period,
-      billing_period_formatted: this.getPlanBillingPeriod(plan.billing_period),
-      stripe_price_id: plan.stripePriceId,
-    }));
+    const grouped = plans.reduce(
+      (acc, plan) => {
+        const key = plan.name;
+        if (!acc[key]) {
+          acc[key] = {
+            plan: plan.name,
+            options: [],
+          };
+        }
+
+        acc[key].options.push({
+          value:
+            new Price(plan.price_in_cents).toCurrency() +
+            (plan.billing_period === 'YEARLY' ? '/Mês' : ''),
+          label: this.getPlanBillingPeriod(plan.billing_period),
+          oldValue: new Price(plan.price_in_cents + 100).toCurrency(), // ajuste se tiver valor anterior
+          stripe_price_id: plan.stripePriceId,
+          destactLabel:
+            plan.billing_period === 'YEARLY' ? 'Recomendado' : undefined,
+        });
+
+        return acc;
+      },
+      {} as Record<string, { plan: string; options: any[] }>,
+    );
+
+    return Object.values(grouped);
   }
 
   private getPlanBillingPeriod(billingPeriod: string): string {
