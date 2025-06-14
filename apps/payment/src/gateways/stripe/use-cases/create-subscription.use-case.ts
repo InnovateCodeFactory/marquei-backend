@@ -19,15 +19,13 @@ export class CreateSubscriptionUseCase {
     queue: CREATE_STRIPE_SUBSCRIPTION_QUEUE,
     routingKey: CREATE_STRIPE_SUBSCRIPTION_QUEUE,
   })
-  async execute({
-    price_id,
-    stripe_customer_id,
-    business_id,
-  }: {
+  async execute(data: {
     price_id: string;
     stripe_customer_id: string;
     business_id: string;
   }) {
+    const { price_id, stripe_customer_id, business_id } = data;
+
     try {
       if (!price_id || !stripe_customer_id) {
         throw new Error('Price ID and Stripe Customer ID are required');
@@ -49,6 +47,7 @@ export class CreateSubscriptionUseCase {
       const invoice = subscription.latest_invoice as Stripe.Invoice & {
         payment_intent?: Stripe.PaymentIntent;
       };
+      console.log(JSON.stringify(invoice, null, 2));
 
       const clientSecret = invoice.payment_intent?.client_secret;
 
