@@ -1,3 +1,4 @@
+import { PrismaService } from '@app/shared';
 import { CREATE_STRIPE_SUBSCRIPTION_QUEUE } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
 import { RabbitRPC } from '@golevelup/nestjs-rabbitmq';
@@ -12,6 +13,8 @@ export class CreateSubscriptionUseCase {
   constructor(
     @Inject(STRIPE_PAYMENT_GATEWAY)
     private readonly stripe: Stripe,
+
+    private readonly prismaService: PrismaService,
   ) {}
 
   @RabbitRPC({
@@ -31,27 +34,26 @@ export class CreateSubscriptionUseCase {
         throw new Error('Price ID and Stripe Customer ID are required');
       }
 
-      const subscription = await this.stripe.subscriptions.create({
-        customer: stripe_customer_id,
-        items: [{ price: price_id }],
-        metadata: {
-          business_id,
+      const product = await this.prismaService.plan.findFirst({
+        where: {
+          stripePriceId: price_id,
         },
-        expand: [
-          'latest_invoice.payment_intent',
-          'latest_invoice.lines.data.price',
-        ],
-        payment_behavior: 'default_incomplete',
+        select: {
+          price_in_cents: true,
+        },
       });
 
-      const invoice = subscription.latest_invoice as Stripe.Invoice & {
-        payment_intent?: Stripe.PaymentIntent;
+      const paymentIntent = await this.stripe.paymentIntents.create({
+        amount: product.price_in_cents,
+        currency: 'brl',
+        customer: stripe_customer_id,
+      });
+
+      const { client_secret } = paymentIntent;
+
+      return {
+        client_secret,
       };
-      console.log(JSON.stringify(invoice, null, 2));
-
-      const clientSecret = invoice.payment_intent?.client_secret;
-
-      return { clientSecret };
     } catch (error) {
       this.logger.error('Error creating subscription', error);
       return null;
