@@ -8,7 +8,7 @@ import { SubscribeToPlanDto } from './dto/requests/subscribe-to-plan.dto';
 import { GetActivePlansUseCase } from './use-cases/get-active-plans.use-case';
 import { SubscribeToPlanUseCase } from './use-cases/subscripe-to-plan.use-case';
 
-@Controller('plans')
+@Controller('professional/plans')
 @ApiTags('Plans')
 export class PlansController {
   constructor(
