@@ -22,9 +22,11 @@ export class CreateSubscriptionUseCase {
   async execute({
     price_id,
     stripe_customer_id,
+    business_id,
   }: {
     price_id: string;
     stripe_customer_id: string;
+    business_id: string;
   }) {
     try {
       if (!price_id || !stripe_customer_id) {
@@ -34,6 +36,9 @@ export class CreateSubscriptionUseCase {
       const subscription = await this.stripe.subscriptions.create({
         customer: stripe_customer_id,
         items: [{ price: price_id }],
+        metadata: {
+          business_id,
+        },
         expand: [
           'latest_invoice.payment_intent',
           'latest_invoice.lines.data.price',

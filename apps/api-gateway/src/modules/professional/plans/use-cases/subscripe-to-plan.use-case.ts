@@ -59,6 +59,7 @@ export class SubscribeToPlanUseCase {
         payload: {
           price_id: payload.price_id,
           stripe_customer_id: business.stripe_customer_id,
+          business_id: business.id,
         },
       });
 

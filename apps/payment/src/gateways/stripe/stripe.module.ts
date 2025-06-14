@@ -4,7 +4,6 @@ import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { STRIPE_PAYMENT_GATEWAY } from './stripe.constants';
 import { CreateCustomerUseCase } from './use-cases/create-customer.use-case';
-import { CreatePaymentUseCase } from './use-cases/create-payment.use-case';
 import { InvoicePaymentSucceeded } from './webhooks/invoice/invoice.payment-succeeded';
 import { InvoiceWebhook } from './webhooks/invoice/invoice.webhook';
 import { StripeWebhookHandler } from './webhooks/stripe-webhook-handler';
@@ -21,7 +20,6 @@ import { StripeWebhookHandler } from './webhooks/stripe-webhook-handler';
       },
       inject: [ConfigService],
     },
-    CreatePaymentUseCase,
     CreateCustomerUseCase,
     StripeWebhookHandler,
     InvoiceWebhook,
