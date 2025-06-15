@@ -2,7 +2,6 @@ import { EnvSchemaType } from '@app/shared/environment';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { useApitally } from 'apitally/nestjs';
 import * as express from 'express';
 import { AppModule } from './app.module';
 import { swagger } from './swagger';
@@ -28,13 +27,6 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService<EnvSchemaType>);
   const logger = new Logger('Main');
-  const apitallyKey = configService.getOrThrow('APITALLY_API_KEY');
-  const apitallyEnv = configService.getOrThrow('APITALLY_ENV');
-
-  useApitally(app, {
-    clientId: apitallyKey,
-    env: apitallyEnv,
-  });
 
   swagger(app);
 

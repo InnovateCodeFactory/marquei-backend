@@ -49,9 +49,7 @@ export class AuthGuard implements CanActivate {
         throw new NotFoundException('Usuário não encontrado');
       }
 
-      console.log(JSON.stringify(user));
       const currentBusiness = user.CurrentSelectedBusiness?.[0]?.business;
-      // Verificar o plano atual de assinatura com data de fim errada
       request.user = {
         id: user.id,
         user_type: user.user_type,

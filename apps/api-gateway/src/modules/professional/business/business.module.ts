@@ -4,6 +4,7 @@ import { BusinessController } from './business.controller';
 import {
   FindNearbyBusinessesUseCase,
   GetBusinessByProfessionalUseCase,
+  GetCurrentSubscriptionUseCase,
 } from './use-cases';
 import { GetBusinessAvailableTimesUseCase } from './use-cases/get-business-available-times.use-case';
 import { SelectCurrentBusinessUseCase } from './use-cases/select-current-business.use-case';
@@ -16,6 +17,7 @@ import { SelectCurrentBusinessUseCase } from './use-cases/select-current-busines
     GetBusinessByProfessionalUseCase,
     SelectCurrentBusinessUseCase,
     GetBusinessAvailableTimesUseCase,
+    GetCurrentSubscriptionUseCase,
   ],
 })
 export class BusinessModule {}

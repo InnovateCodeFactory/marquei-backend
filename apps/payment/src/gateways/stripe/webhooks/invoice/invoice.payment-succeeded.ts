@@ -106,14 +106,16 @@ export class InvoicePaymentSucceeded {
       select: { id: true },
     });
 
+    const period = invoice.lines.data[0].period;
+
     await this.prisma.businessSubscription.create({
       data: {
         business: { connect: { id: business.id } },
         plan: { connect: { id: plan.id } },
         stripeCustomerId,
         status: 'ACTIVE',
-        current_period_start: new Date(invoice.period_start * 1000),
-        current_period_end: new Date(invoice.period_end * 1000),
+        current_period_start: new Date(period.start * 1000),
+        current_period_end: new Date(period.end * 1000),
         Payment: { create: commonData },
         subscription_histories: {
           create: {

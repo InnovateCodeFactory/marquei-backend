@@ -311,6 +311,7 @@ enum AppointmentStatus {
 enum BillingPeriod {
   MONTHLY
   YEARLY
+  FREE_TRIAL
 }
 
 enum SubscriptionStatus {

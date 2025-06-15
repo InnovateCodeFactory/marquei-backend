@@ -1,3 +1,5 @@
+import { formatDate as formatDateFns } from 'date-fns';
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -14,4 +16,8 @@ export function getInitials(name: string): string {
     .map((n) => n.charAt(0).toUpperCase())
     .join('')
     .substring(0, 2);
+}
+
+export function formatDate(date: Date, format?: string): string {
+  return formatDateFns(date, format || 'dd/MM/yyyy');
 }

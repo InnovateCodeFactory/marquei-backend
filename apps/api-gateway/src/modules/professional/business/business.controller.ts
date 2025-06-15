@@ -6,7 +6,10 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { GetBusinessAvailableTimesDto } from './dto/requests/get-business-available-times.dto';
 import { SelectCurrentBusinessDto } from './dto/requests/select-current-business.dto';
-import { GetBusinessByProfessionalUseCase } from './use-cases';
+import {
+  GetBusinessByProfessionalUseCase,
+  GetCurrentSubscriptionUseCase,
+} from './use-cases';
 import { GetBusinessAvailableTimesUseCase } from './use-cases/get-business-available-times.use-case';
 import { SelectCurrentBusinessUseCase } from './use-cases/select-current-business.use-case';
 
@@ -18,6 +21,7 @@ export class BusinessController {
     private readonly getBusinessByProfessionalUseCase: GetBusinessByProfessionalUseCase,
     private readonly selectCurrentBusinessUseCase: SelectCurrentBusinessUseCase,
     private readonly getBusinessAvailableTimesUseCase: GetBusinessAvailableTimesUseCase,
+    private readonly getCurrentSubscriptionUseCase: GetCurrentSubscriptionUseCase,
   ) {}
 
   @Get('get-business-by-professional')
@@ -68,6 +72,22 @@ export class BusinessController {
     return await this.responseHandler.handle({
       method: () =>
         this.getBusinessAvailableTimesUseCase.execute(query, currentUser),
+      res,
+    });
+  }
+
+  @Get('get-current-subscription')
+  @ApiOperation({
+    summary: 'Get current subscription',
+    description:
+      'This endpoint retrieves the current subscription details for the selected business.',
+  })
+  async getCurrentSubscription(
+    @Res() res: Response,
+    @CurrentUserDecorator() currentUser: CurrentUser,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.getCurrentSubscriptionUseCase.execute(currentUser),
       res,
     });
   }
