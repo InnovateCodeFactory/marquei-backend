@@ -3,10 +3,12 @@ import { STRIPE_WEBHOOK_HANDLER_QUEUE } from '@app/shared/modules/rmq/constants'
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { ResponseHandlerService } from '@app/shared/services';
 import { Controller, Get, Post, Req, Res } from '@nestjs/common';
+import { ApiExcludeController } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 
 @Controller('webhooks')
 @IsPublic()
+@ApiExcludeController()
 export class WebhooksController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

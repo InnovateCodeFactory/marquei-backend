@@ -11,19 +11,18 @@ datasource db {
 }
 
 model User {
-  id                        String                    @id @default(cuid())
-  email                     String                    @unique
-  password                  String
-  name                      String
-  document_number           String?
-  user_type                 UserType
-  businesses                Business[]                @relation("BusinessOwners")
-  professional_profile      ProfessionalProfile[]
-  professional_appointments Appointment[]             @relation("ProfessionalAppointments")
-  created_at                DateTime                  @default(now())
-  updated_at                DateTime                  @updatedAt
-  Customer                  Customer?
-  CurrentSelectedBusiness   CurrentSelectedBusiness[]
+  id                      String                    @id @default(cuid())
+  email                   String                    @unique
+  password                String
+  name                    String
+  document_number         String?
+  user_type               UserType
+  businesses              Business[]                @relation("BusinessOwners")
+  professional_profile    ProfessionalProfile[]
+  created_at              DateTime                  @default(now())
+  updated_at              DateTime                  @updatedAt
+  Customer                Customer?
+  CurrentSelectedBusiness CurrentSelectedBusiness[]
 
   @@index([email], name: "idx_user_email")
 }
@@ -115,6 +114,7 @@ model ProfessionalProfile {
   User                User?               @relation(fields: [userId], references: [id])
   userId              String?
   in_app_notification InAppNotification[]
+  Appointment         Appointment[]
 
   @@index([business_id], name: "idx_professional_business")
   @@index([userId], name: "idx_professional_user")
@@ -137,24 +137,23 @@ model ProfessionalService {
 }
 
 model Appointment {
-  id              String            @id @default(cuid())
-  professional_id String
-  service_id      String
-  scheduled_at    DateTime
-  status          AppointmentStatus
-  notes           String?
-  customer        Customer          @relation(fields: [customerId], references: [id])
+  id           String            @id @default(cuid())
+  service_id   String
+  scheduled_at DateTime
+  status       AppointmentStatus
+  notes        String?
+  customer     Customer          @relation(fields: [customerId], references: [id])
 
-  professional User    @relation("ProfessionalAppointments", fields: [professional_id], references: [id])
-  service      Service @relation(fields: [service_id], references: [id])
+  professional ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
+  service      Service             @relation(fields: [service_id], references: [id])
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  customerId String
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  customerId            String
+  professionalProfileId String
 
-  @@index([professional_id], name: "idx_appointment_professional")
   @@index([service_id], name: "idx_appointment_service")
-  @@index([scheduled_at], name: "idx_appointment_scheduled")
+  @@index([professionalProfileId, scheduled_at], name: "idx_professional_date")
 }
 
 model Customer {

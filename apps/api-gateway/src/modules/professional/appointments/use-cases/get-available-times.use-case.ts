@@ -1,6 +1,6 @@
 import { PrismaService } from '@app/shared';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   addDays,
   addMinutes,
@@ -12,17 +12,14 @@ import {
   parseISO,
   startOfDay,
 } from 'date-fns';
-import { GetBusinessAvailableTimesDto } from '../dto/requests/get-business-available-times.dto';
+import { GetAvailableTimesDto } from '../dto/requests/get-available-times.dto';
 
 @Injectable()
-export class GetBusinessAvailableTimesUseCase {
-  private readonly logger = new Logger(GetBusinessAvailableTimesUseCase.name);
-
+export class GetAvailableTimesUseCase {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async execute(payload: GetBusinessAvailableTimesDto, user: CurrentUser) {
-    // TODO: Pegar por profissional também
-    const { service_id, start_date } = payload;
+  async execute(payload: GetAvailableTimesDto, user: CurrentUser) {
+    const { service_id, start_date, professional_id } = payload;
     const { current_selected_business_slug } = user;
 
     const service = await this.prismaService.service.findUnique({
@@ -44,12 +41,11 @@ export class GetBusinessAvailableTimesUseCase {
     }[] = [];
 
     if (typeof business.opening_hours === 'string') {
-      // Parse manual se for string
       openingHours = JSON.parse(business.opening_hours);
     } else {
-      // Já é objeto JSON
       openingHours = business.opening_hours as typeof openingHours;
     }
+
     const days = [];
 
     for (let i = 0; i < 3; i++) {
@@ -65,6 +61,10 @@ export class GetBusinessAvailableTimesUseCase {
       }
 
       const slots: string[] = [];
+      const now = new Date();
+      const isToday =
+        format(currentDate, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
+
       for (const time of dayConfig.times) {
         let startTime = new Date(`${dateStr}T${time.startTime}`);
         const endTime = new Date(`${dateStr}T${time.endTime}`);
@@ -73,14 +73,16 @@ export class GetBusinessAvailableTimesUseCase {
           isBefore(addMinutes(startTime, service.duration), endTime) ||
           isEqual(addMinutes(startTime, service.duration), endTime)
         ) {
-          slots.push(format(startTime, 'HH:mm'));
+          if (!isToday || isBefore(now, startTime)) {
+            slots.push(format(startTime, 'HH:mm'));
+          }
           startTime = addMinutes(startTime, service.duration);
         }
       }
 
       const appointments = await this.prismaService.appointment.findMany({
         where: {
-          service: { businessId: business.id },
+          professionalProfileId: professional_id,
           scheduled_at: {
             gte: startOfDay(currentDate),
             lte: endOfDay(currentDate),
@@ -93,16 +95,27 @@ export class GetBusinessAvailableTimesUseCase {
       });
 
       const busyRanges = appointments.map((appt) => {
-        const start = new Date(appt.scheduled_at);
+        const rawDate = appt.scheduled_at;
+
+        // Força a criação local manual — NÃO UTC
+        const [year, month, day, hour, minute, second] = rawDate
+          .toISOString()
+          .split(/[-T:.Z]/)
+          .map(Number);
+
+        const localDate = new Date(year, month - 1, day, hour, minute, second); // local time
+
+        const start = localDate;
         const end = addMinutes(start, appt.service.duration);
         return { start, end };
       });
 
       const availableSlots = slots.filter((slot) => {
-        const start = new Date(`${dateStr}T${slot}`);
+        const start = new Date(`${dateStr}T${slot}`); // ← sem Z
         const end = addMinutes(start, service.duration);
+
         return !busyRanges.some((busy) =>
-          areIntervalsOverlapping({ start, end }, busy, { inclusive: true }),
+          areIntervalsOverlapping({ start, end }, busy, { inclusive: false }),
         );
       });
 

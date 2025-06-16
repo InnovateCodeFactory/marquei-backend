@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsISO8601, IsNotEmpty, IsString } from 'class-validator';
 
-export class GetBusinessAvailableTimesDto {
+export class GetAvailableTimesDto {
   @IsString()
   @IsNotEmpty()
   @ApiProperty({
@@ -9,6 +9,14 @@ export class GetBusinessAvailableTimesDto {
     example: '12345',
   })
   service_id: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'The ID of the professional providing the service.',
+    example: '67890',
+  })
+  professional_id: string;
 
   @IsISO8601()
   @IsNotEmpty()

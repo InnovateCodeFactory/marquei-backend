@@ -1,16 +1,15 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { Body, Controller, Get, Post, Query, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
-import { GetBusinessAvailableTimesDto } from './dto/requests/get-business-available-times.dto';
 import { SelectCurrentBusinessDto } from './dto/requests/select-current-business.dto';
 import {
   GetBusinessByProfessionalUseCase,
   GetCurrentSubscriptionUseCase,
+  GetProfessionalsUseCase,
 } from './use-cases';
-import { GetBusinessAvailableTimesUseCase } from './use-cases/get-business-available-times.use-case';
 import { SelectCurrentBusinessUseCase } from './use-cases/select-current-business.use-case';
 
 @Controller('professional/business')
@@ -20,8 +19,8 @@ export class BusinessController {
     private readonly responseHandler: ResponseHandlerService,
     private readonly getBusinessByProfessionalUseCase: GetBusinessByProfessionalUseCase,
     private readonly selectCurrentBusinessUseCase: SelectCurrentBusinessUseCase,
-    private readonly getBusinessAvailableTimesUseCase: GetBusinessAvailableTimesUseCase,
     private readonly getCurrentSubscriptionUseCase: GetCurrentSubscriptionUseCase,
+    private readonly getProfessionalsUseCase: GetProfessionalsUseCase,
   ) {}
 
   @Get('get-business-by-professional')
@@ -58,24 +57,6 @@ export class BusinessController {
     });
   }
 
-  @Get('get-business-available-times')
-  @ApiOperation({
-    summary: 'Get business available times',
-    description:
-      'This endpoint retrieves the available times for a specific service in the business.',
-  })
-  async getBusinessAvailableTimes(
-    @Res() res: Response,
-    @CurrentUserDecorator() currentUser: CurrentUser,
-    @Query() query: GetBusinessAvailableTimesDto,
-  ) {
-    return await this.responseHandler.handle({
-      method: () =>
-        this.getBusinessAvailableTimesUseCase.execute(query, currentUser),
-      res,
-    });
-  }
-
   @Get('get-current-subscription')
   @ApiOperation({
     summary: 'Get current subscription',
@@ -88,6 +69,22 @@ export class BusinessController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.getCurrentSubscriptionUseCase.execute(currentUser),
+      res,
+    });
+  }
+
+  @Get('get-professionals')
+  @ApiOperation({
+    summary: 'Get professionals',
+    description:
+      'This endpoint retrieves a list of professionals associated with the currently selected business.',
+  })
+  async getProfessionals(
+    @Res() res: Response,
+    @CurrentUserDecorator() currentUser: CurrentUser,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.getProfessionalsUseCase.execute(currentUser),
       res,
     });
   }
