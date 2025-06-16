@@ -8,6 +8,7 @@ import { CreateAppointmentDto } from './dto/requests/create-appointment.dto';
 import { GetAvailableTimesDto } from './dto/requests/get-available-times.dto';
 import {
   CreateAppointmentUseCase,
+  GetAppointmentsUseCase,
   GetAvailableTimesUseCase,
 } from './use-cases';
 
@@ -18,6 +19,7 @@ export class AppointmentsController {
     private readonly responseHandler: ResponseHandlerService,
     private readonly getAvailableTimesUseCase: GetAvailableTimesUseCase,
     private readonly createAppointmentUseCase: CreateAppointmentUseCase,
+    private readonly getAppointmentsUseCase: GetAppointmentsUseCase,
   ) {}
 
   @Get('get-available-times')
@@ -50,6 +52,22 @@ export class AppointmentsController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.createAppointmentUseCase.execute(body, user),
+      res,
+    });
+  }
+
+  @Get('get-appointments')
+  @ApiOperation({
+    summary: 'Retrieve appointments for the current professional',
+    description:
+      'Fetches all appointments for the current professional profile, filtered by status.',
+  })
+  async getAppointments(
+    @Res() res: Response,
+    @CurrentUserDecorator() user: CurrentUser,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.getAppointmentsUseCase.execute(user),
       res,
     });
   }

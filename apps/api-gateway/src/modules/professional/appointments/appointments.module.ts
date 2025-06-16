@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { AppointmentsController } from './appointments.controller';
 import {
   CreateAppointmentUseCase,
+  GetAppointmentsUseCase,
   GetAvailableTimesUseCase,
 } from './use-cases';
 
@@ -12,6 +13,7 @@ import {
     ResponseHandlerService,
     GetAvailableTimesUseCase,
     CreateAppointmentUseCase,
+    GetAppointmentsUseCase,
   ],
 })
 export class AppointmentsModule {}
