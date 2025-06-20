@@ -20,7 +20,7 @@ export class GetProfessionalsUseCase {
         },
         select: {
           id: true,
-          isActive: true,
+          status: true,
           phone: true,
           profile_image: true,
           User: {
@@ -38,12 +38,11 @@ export class GetProfessionalsUseCase {
       professionals?.map((professional) => ({
         professional_profile_id: professional.id,
         avatar:
-          professional.profile_image ||
-          'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+          professional.profile_image || 'https://github.com/alanagabriele.png',
         name: professional.User.name?.split(' ')[0],
         phone: professional.phone,
         first_access: professional.User.first_access,
-        is_active: professional.isActive,
+        status: professional.status,
         user_id: professional.User.id,
       })) || []
     );
