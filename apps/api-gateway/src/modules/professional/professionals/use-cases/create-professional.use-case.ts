@@ -58,6 +58,7 @@ export class CreateProfessionalUseCase {
               temporary_password,
               password: await this.hashingService.hash(temporary_password),
               user_type: 'PROFESSIONAL',
+              first_access: true,
             },
           },
         },

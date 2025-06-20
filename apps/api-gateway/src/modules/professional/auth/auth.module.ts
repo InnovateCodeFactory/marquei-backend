@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
 import { LoginUseCase, RegisterProfessionalUserUseCase } from './use-cases';
+import { FirstAccessUseCase } from './use-cases/first-access.use-case';
 
 @Module({
   controllers: [AuthController],
@@ -12,6 +13,7 @@ import { LoginUseCase, RegisterProfessionalUserUseCase } from './use-cases';
     JwtService,
     LoginUseCase,
     RegisterProfessionalUserUseCase,
+    FirstAccessUseCase,
   ],
 })
 export class AuthModule {}
