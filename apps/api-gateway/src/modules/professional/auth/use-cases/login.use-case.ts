@@ -25,6 +25,7 @@ export class LoginUseCase {
       select: {
         id: true,
         password: true,
+        first_access: true,
         CurrentSelectedBusiness: {
           select: {
             business: {
@@ -51,8 +52,11 @@ export class LoginUseCase {
         },
       ),
       user: {
-        current_selected_business_slug:
-          user.CurrentSelectedBusiness?.[0]?.business?.slug || null,
+        ...(user.CurrentSelectedBusiness?.[0]?.business?.slug && {
+          current_selected_business_slug:
+            user.CurrentSelectedBusiness[0].business.slug,
+        }),
+        first_access: user.first_access,
       },
     };
   }
