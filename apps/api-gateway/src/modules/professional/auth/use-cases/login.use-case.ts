@@ -30,6 +30,7 @@ export class LoginUseCase {
             business: {
               select: {
                 slug: true,
+                ownerId: true,
               },
             },
           },
@@ -38,7 +39,7 @@ export class LoginUseCase {
     });
 
     if (!user || !(await this.hashingService.compare(password, user?.password)))
-      throw new BadRequestException('Invalid credentials');
+      throw new BadRequestException('Credenciais inválidas');
 
     return {
       token: await this.jwtService.signAsync(
@@ -53,6 +54,8 @@ export class LoginUseCase {
       user: {
         current_selected_business_slug:
           user.CurrentSelectedBusiness?.[0]?.business?.slug || null,
+        is_the_owner:
+          user.CurrentSelectedBusiness?.[0]?.business?.ownerId === user.id,
       },
     };
   }

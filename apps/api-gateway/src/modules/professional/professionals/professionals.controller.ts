@@ -4,6 +4,7 @@ import { CurrentUser } from '@app/shared/types/app-request';
 import { Body, Controller, Get, Post, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { CreateProfessionalDto } from './dto/requests/create-professional.dto';
 import {
   CreateProfessionalUseCase,
   GetProfessionalsUseCase,
@@ -43,7 +44,7 @@ export class ProfessionalsController {
   async createProfessional(
     @Res() res: Response,
     @CurrentUserDecorator() currentUser: CurrentUser,
-    @Body() body: any,
+    @Body() body: CreateProfessionalDto,
   ) {
     return await this.responseHandler.handle({
       method: () => this.createProfessionalUseCase.execute(body, currentUser),

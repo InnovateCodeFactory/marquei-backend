@@ -1,4 +1,4 @@
-import { ResponseHandlerService } from '@app/shared/services';
+import { HashingService, ResponseHandlerService } from '@app/shared/services';
 import { Module } from '@nestjs/common';
 import { ProfessionalsController } from './professionals.controller';
 import {
@@ -10,6 +10,7 @@ import {
   controllers: [ProfessionalsController],
   providers: [
     ResponseHandlerService,
+    HashingService,
     GetProfessionalsUseCase,
     CreateProfessionalUseCase,
   ],

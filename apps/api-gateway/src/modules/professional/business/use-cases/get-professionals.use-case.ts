@@ -16,7 +16,7 @@ export class GetProfessionalsUseCase {
       {
         where: {
           business_id: currentUser.current_selected_business_id,
-          isActive: true,
+          status: 'ACTIVE',
         },
         select: {
           id: true,
