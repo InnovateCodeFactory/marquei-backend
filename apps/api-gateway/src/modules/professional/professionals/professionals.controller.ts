@@ -1,10 +1,13 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { Controller, Get, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
-import { GetProfessionalsUseCase } from './use-cases';
+import {
+  CreateProfessionalUseCase,
+  GetProfessionalsUseCase,
+} from './use-cases';
 
 @Controller('professional/professionals')
 @ApiTags('professionals')
@@ -12,6 +15,7 @@ export class ProfessionalsController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,
     private readonly getProfessionalsUseCase: GetProfessionalsUseCase,
+    private readonly createProfessionalUseCase: CreateProfessionalUseCase,
   ) {}
 
   @Get('get-professionals')
@@ -26,6 +30,23 @@ export class ProfessionalsController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.getProfessionalsUseCase.execute(currentUser),
+      res,
+    });
+  }
+
+  @Post('create-professional')
+  @ApiOperation({
+    summary: 'Create a new professional',
+    description:
+      'Create a new professional for the selected business. The professional will be active by default.',
+  })
+  async createProfessional(
+    @Res() res: Response,
+    @CurrentUserDecorator() currentUser: CurrentUser,
+    @Body() body: any,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.createProfessionalUseCase.execute(body, currentUser),
       res,
     });
   }

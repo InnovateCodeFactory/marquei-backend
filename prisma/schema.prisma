@@ -106,7 +106,7 @@ model ProfessionalProfile {
   phone         String?
   profile_image String?
 
-  isActive            Boolean             @default(true)
+  status              ProfessionalStatus  @default(ACTIVE) // status do profissional
   created_at          DateTime            @default(now())
   updated_at          DateTime            @updatedAt
   rating              Float               @default(0.0)
@@ -336,4 +336,10 @@ enum PaymentStatus {
   PAID
   FAILED
   PENDING
+}
+
+enum ProfessionalStatus {
+  ACTIVE
+  INACTIVE
+  PENDING_VERIFICATION
 }
