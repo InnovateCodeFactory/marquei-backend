@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Response } from 'express';
 import { ErrorResponseDto } from '../dto/error-response.dto';
 import { SuccessResponseDto } from '../dto/success-response.dto';
 
 @Injectable()
 export class ResponseHandlerService {
+  private readonly logger = new Logger(ResponseHandlerService.name);
+
   async handle({
     method,
     res,
@@ -22,6 +24,7 @@ export class ResponseHandlerService {
         .status(successStatus || 200)
         .json(new SuccessResponseDto({ data, message: successMessage }));
     } catch (error) {
+      this.logger.error(error);
       res.status(error.status || 500).json(
         new ErrorResponseDto({
           message: error.message || 'Internal server error',

@@ -155,17 +155,20 @@ export class RegisterProfessionalUserUseCase {
       throw new BadRequestException('Failed to create business');
     }
 
-    await this.prismaService.professionalProfile.create({
-      data: {
-        business: {
-          connect: { id: newBusiness.id },
+    await Promise.all([
+      this.prismaService.professionalProfile.create({
+        data: {
+          business: {
+            connect: { id: newBusiness.id },
+          },
+          User: {
+            connect: { id: newBusiness.owner.id },
+          },
+          phone,
         },
-        User: {
-          connect: { id: newBusiness.owner.id },
-        },
-        phone,
-      },
-    });
+      }),
+      // Enviar ao rmq para criar o customerId no Stripe, criar um plan gratuito associando ao business e enviar mensagem de boas-vindas
+    ]);
 
     return null;
   }

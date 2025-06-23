@@ -20,6 +20,29 @@ export class CreateProfessionalUseCase {
     if (!user.current_selected_business_id)
       throw new UnauthorizedException('Você não tem uma empresa selecionada');
 
+    // const activeSub = await this.prisma.businessSubscription.findFirst({
+    //   where: { businessId, status: 'ACTIVE' },
+    //   include: { plan: { include: { benefits: true } } },
+    // });
+
+    // const profLimitBenefit = activeSub?.plan.benefits.find(
+    //   (b) => b.key === 'PROFESSIONALS',
+    // );
+
+    // const limit =
+    //   profLimitBenefit?.intValue ??
+    //   (profLimitBenefit?.stringValue === 'Ilimitado' ? Infinity : 0);
+
+    // const currentCount = await this.prisma.professionalProfile.count({
+    //   where: { business_id: businessId },
+    // });
+
+    // if (currentCount >= limit) {
+    //   throw new ForbiddenException(
+    //     'Limite de profissionais do seu plano atingido.',
+    //   );
+    // }
+
     const userAlreadyExists =
       await this.prismaService.professionalProfile.findFirst({
         where: {

@@ -221,14 +221,32 @@ model Plan {
   price_in_cents  Int
   billing_period  BillingPeriod @default(MONTHLY) // mensal, anual...
   is_active       Boolean       @default(true)
+  showing_order   Int? // para ordenação na exibição
 
   businesses BusinessSubscription[]
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+  PlanBenefit PlanBenefit[]
 
   @@index([stripeProductId])
   @@index([stripePriceId])
+}
+
+model PlanBenefit {
+  id          String     @id @default(cuid())
+  planId      String
+  key         BenefitKey
+  order       Int? // ajuda a manter a ordem de exibição
+  stringValue String? // “Starter”, “Avançado”, “Ilimitado”…
+  intValue    Int? // 1, 5, 10…
+  boolValue   Boolean? // ✓ / ✗
+  created_at  DateTime   @default(now())
+
+  plan Plan @relation(fields: [planId], references: [id])
+
+  @@unique([planId, key]) // um único valor por chave em cada plano
+  @@index([planId])
 }
 
 model BusinessSubscription {
@@ -342,4 +360,13 @@ enum ProfessionalStatus {
   ACTIVE
   INACTIVE
   PENDING_VERIFICATION
+}
+
+enum BenefitKey {
+  PROFESSIONALS // Nº de profissionais que podem ser criados
+  REMINDER_CHANNELS // Canais de lembrete (APP, WPP, E-mail)
+  CONFIRMATION_ENABLED // Confirmação automática de agendamento
+  WAITING_LIST_ENABLED // Lista de espera habilitada?
+  REVIEW_REQUEST_ENABLED // Enviar pedido de avaliação após atendimento?
+  APP_POSITION // Posição do negócio no app de clientes
 }

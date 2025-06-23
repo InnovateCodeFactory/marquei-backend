@@ -13,16 +13,28 @@ export class GetActivePlansUseCase {
         'Você não possui uma empresa selecionada',
       );
 
+    // TODO: Não agrupar mais. Apenas retornar os planos normalmente já que agora só há um preço por plano, mas mantendo a estrutura de retorno ao frontend.
+    // TODO: Alterar o recomendado para o plano premium
+
     const plans = await this.prismaService.plan.findMany({
-      where: {
-        is_active: true,
-      },
+      where: { is_active: true },
       select: {
+        id: true,
         name: true,
         price_in_cents: true,
         billing_period: true,
         stripePriceId: true,
+        PlanBenefit: {
+          orderBy: { order: 'asc' },
+          select: {
+            key: true,
+            stringValue: true,
+            intValue: true,
+            boolValue: true,
+          },
+        },
       },
+      orderBy: { showing_order: 'asc' },
     });
 
     const grouped = plans.reduce(
@@ -32,9 +44,20 @@ export class GetActivePlansUseCase {
           acc[key] = {
             plan: plan.name,
             options: [],
+            benefits: [],
           };
         }
 
+        if (
+          acc[key].benefits.length === 0 &&
+          plan.PlanBenefit &&
+          plan.PlanBenefit.length > 0
+        ) {
+          acc[key].benefits = plan.PlanBenefit.map((b) => ({
+            key: b.key,
+            value: b.stringValue ?? b.intValue ?? (b.boolValue ? '✓' : '-'),
+          }));
+        }
         acc[key].options.push({
           value:
             new Price(
@@ -51,10 +74,21 @@ export class GetActivePlansUseCase {
 
         return acc;
       },
-      {} as Record<string, { plan: string; options: any[] }>,
+      {} as Record<
+        string,
+        {
+          plan: string;
+          options: any[];
+          benefits: { key: string; value: number | string }[];
+        }
+      >,
     );
 
-    return Object.values(grouped);
+    const returningPlans = Object.values(grouped);
+
+    console.log(JSON.stringify(returningPlans, null, 2));
+
+    return returningPlans;
   }
 
   private getPlanBillingPeriod(billingPeriod: string): string {
