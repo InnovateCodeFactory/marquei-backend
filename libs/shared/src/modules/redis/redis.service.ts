@@ -63,6 +63,15 @@ export class RedisService {
                 slug: true,
                 id: true,
                 BusinessSubscription: {
+                  orderBy: {
+                    created_at: 'desc',
+                  },
+                  take: 1,
+                  where: {
+                    status: {
+                      in: ['ACTIVE', 'PAST_DUE', 'UNPAID'],
+                    },
+                  },
                   select: {
                     status: true,
                     plan: {

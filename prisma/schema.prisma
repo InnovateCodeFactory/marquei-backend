@@ -253,7 +253,7 @@ model BusinessSubscription {
   id                   String             @id @default(cuid())
   businessId           String
   planId               String
-  stripeCustomerId     String             @unique // customer_id do Stripe
+  stripeCustomerId     String
   stripeSubscriptionId String? // subscription_id do Stripe
   status               SubscriptionStatus @default(ACTIVE)
   current_period_start DateTime?

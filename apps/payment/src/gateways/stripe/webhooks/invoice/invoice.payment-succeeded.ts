@@ -99,20 +99,38 @@ export class InvoicePaymentSucceeded {
     invoice: Stripe.Invoice;
     commonData: Partial<Payment> | any;
   }) {
-    if (businessSubscription) return;
+    const period = invoice.lines.data[0].period;
 
     const business = await this.prisma.business.findFirst({
       where: { stripe_customer_id: stripeCustomerId },
       select: { id: true },
     });
 
-    const period = invoice.lines.data[0].period;
+    // se já existe um plano anterior (ex: free trial), cancela ele antes
+    if (businessSubscription) {
+      await this.prisma.businessSubscription.update({
+        where: { id: businessSubscription.id },
+        data: {
+          status: 'CANCELED',
+          subscription_histories: {
+            create: {
+              action: 'CANCELED',
+              previousPlanId: businessSubscription.planId,
+              reason: 'Upgrade para novo plano pago',
+            },
+          },
+        },
+      });
+    }
 
+    // cria nova assinatura paga
     await this.prisma.businessSubscription.create({
       data: {
         business: { connect: { id: business.id } },
         plan: { connect: { id: plan.id } },
         stripeCustomerId,
+        stripeSubscriptionId: invoice.parent.subscription_details
+          .subscription as string,
         status: 'ACTIVE',
         current_period_start: new Date(period.start * 1000),
         current_period_end: new Date(period.end * 1000),
@@ -138,6 +156,9 @@ export class InvoicePaymentSucceeded {
     const updates: any = {
       current_period_start: new Date(invoice.period_start * 1000),
       current_period_end: new Date(invoice.period_end * 1000),
+      stripeSubscriptionId: invoice.parent.subscription_details
+        .subscription as string,
+      status: 'ACTIVE',
       Payment: { create: commonData },
     };
 
@@ -154,18 +175,17 @@ export class InvoicePaymentSucceeded {
       updates.plan = { connect: { id: plan.id } };
     }
 
+    updates.subscription_histories = { create: historyData };
+
     await this.prisma.businessSubscription.update({
       where: { id: businessSubscription.id },
-      data: {
-        ...updates,
-        subscription_histories: { create: historyData },
-      },
+      data: updates,
     });
   }
 
   private async handleManualInvoice(invoice: Stripe.Invoice) {
     this.logger.log(`Manual invoice received. Invoice ID: ${invoice.id}`);
-    // Pode salvar em outra tabela ou emitir notificação
+    // pode salvar em outra tabela ou emitir notificação
   }
 
   private mapInvoiceToPayment(

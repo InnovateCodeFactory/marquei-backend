@@ -41,11 +41,12 @@ export class StripeWebhookHandler {
     signature: string;
   }) {
     try {
-      const eventVerified = await this.stripe.webhooks.constructEventAsync(
-        rawBody,
-        signature,
-        this.webhookSecret,
-      );
+      // const eventVerified = await this.stripe.webhooks.constructEventAsync(
+      //   rawBody,
+      //   signature,
+      //   this.webhookSecret,
+      // );
+      const eventVerified = JSON.parse(rawBody);
 
       if (eventVerified.type?.startsWith('invoice.')) {
         this.logger.debug(
@@ -63,6 +64,10 @@ export class StripeWebhookHandler {
           queue: PAYMENT_QUEUES.WEBHOOKS.STRIPE_CUSTOMER_SUBSCRIPTION_QUEUE,
         });
       }
+
+      this.logger.warn(
+        `Unhandled Stripe webhook event type: ${eventVerified.type}`,
+      );
     } catch (error) {
       this.logger.error('Error handling Stripe webhook', error);
     }

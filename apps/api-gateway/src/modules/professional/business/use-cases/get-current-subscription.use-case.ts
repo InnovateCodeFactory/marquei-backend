@@ -15,24 +15,27 @@ export class GetCurrentSubscriptionUseCase {
     if (!currentUser?.current_selected_business_id)
       throw new BadRequestException('No business selected');
 
-    const currentPlan = await this.prismaService.businessSubscription.findFirst(
-      {
-        where: {
-          businessId: currentUser.current_selected_business_id,
-        },
-        select: {
-          current_period_end: true,
-          status: true,
-          plan: {
-            select: {
-              billing_period: true,
-              name: true,
-              price_in_cents: true,
-            },
+    const plans = await this.prismaService.businessSubscription.findMany({
+      where: {
+        businessId: currentUser.current_selected_business_id,
+        status: { in: ['ACTIVE', 'UNPAID', 'PAST_DUE'] },
+      },
+      orderBy: { created_at: 'desc' },
+      take: 1,
+      select: {
+        current_period_end: true,
+        status: true,
+        plan: {
+          select: {
+            billing_period: true,
+            name: true,
+            price_in_cents: true,
           },
         },
       },
-    );
+    });
+
+    const currentPlan = plans[0];
 
     if (!currentPlan)
       throw new NotFoundException(
