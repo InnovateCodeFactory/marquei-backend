@@ -1,4 +1,4 @@
-import { STRIPE_SETUP_INTENT_QUEUE } from '@app/shared/modules/rmq/constants';
+import { PAYMENT_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
 import { RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
@@ -16,8 +16,8 @@ export class CreateSetupIntentUseCase {
 
   @RabbitRPC({
     exchange: RABBIT_EXCHANGE,
-    queue: STRIPE_SETUP_INTENT_QUEUE,
-    routingKey: STRIPE_SETUP_INTENT_QUEUE,
+    queue: PAYMENT_QUEUES.USE_CASES.STRIPE_SETUP_INTENT_QUEUE,
+    routingKey: PAYMENT_QUEUES.USE_CASES.STRIPE_SETUP_INTENT_QUEUE,
   })
   async execute(body: { stripe_customer_id: string; business_id: string }) {
     const { business_id, stripe_customer_id } = body;

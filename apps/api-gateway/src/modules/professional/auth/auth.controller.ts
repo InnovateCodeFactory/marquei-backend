@@ -42,7 +42,6 @@ export class AuthController {
     @Body() body: FirstAccessDto,
     @CurrentUserDecorator() currentUser: CurrentUser,
   ) {
-    console.log(currentUser);
     return this.responseHandler.handle({
       method: () => this.firstAccessUseCase.execute(body, currentUser.id),
       res,

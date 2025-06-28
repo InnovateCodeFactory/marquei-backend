@@ -1,5 +1,5 @@
 import { PrismaService } from '@app/shared';
-import { STRIPE_SETUP_INTENT_QUEUE } from '@app/shared/modules/rmq/constants';
+import { PAYMENT_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
@@ -36,7 +36,7 @@ export class CreateSetupIntentUseCase {
     const business = isTheUserOwner;
 
     const setupIntent = await this.rmqService.requestFromQueue({
-      routingKey: STRIPE_SETUP_INTENT_QUEUE,
+      routingKey: PAYMENT_QUEUES.USE_CASES.STRIPE_SETUP_INTENT_QUEUE,
       payload: {
         stripe_customer_id: business.stripe_customer_id,
         business_id: business.id,

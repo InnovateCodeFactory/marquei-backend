@@ -1,4 +1,5 @@
-import { formatDate as formatDateFns } from 'date-fns';
+import { formatDate as formatDateFns, formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
@@ -19,7 +20,11 @@ export function getInitials(name: string): string {
 }
 
 export function formatDate(date: Date, format?: string): string {
-  return formatDateFns(date, format || 'dd/MM/yyyy');
+  return formatDateFns(date, format || 'dd/MM/yyyy', { locale: ptBR });
+}
+
+export function formatDateDistanceToNow(date: Date): string {
+  return formatDistanceToNow(date, { locale: ptBR, addSuffix: true });
 }
 
 export function generateRandomString(length: number): string {

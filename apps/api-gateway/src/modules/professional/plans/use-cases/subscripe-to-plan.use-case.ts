@@ -1,5 +1,5 @@
 import { PrismaService } from '@app/shared';
-import { CREATE_STRIPE_SUBSCRIPTION_QUEUE } from '@app/shared/modules/rmq/constants';
+import { PAYMENT_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { CurrentUser } from '@app/shared/types/app-request';
 import {
@@ -55,7 +55,7 @@ export class SubscribeToPlanUseCase {
 
     const subscription: { url: string } | null =
       await this.rmqService.requestFromQueue({
-        routingKey: CREATE_STRIPE_SUBSCRIPTION_QUEUE,
+        routingKey: PAYMENT_QUEUES.USE_CASES.CREATE_STRIPE_SUBSCRIPTION_QUEUE,
         payload: {
           price_id: payload.price_id,
           stripe_customer_id: business.stripe_customer_id,

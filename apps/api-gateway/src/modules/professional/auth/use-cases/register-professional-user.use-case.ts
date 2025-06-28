@@ -1,5 +1,11 @@
 import { PrismaService } from '@app/shared';
+import { WelcomeMessageDto } from '@app/shared/dto/messaging/in-app-notifications';
 import { DaysOfWeek } from '@app/shared/enum';
+import {
+  MESSAGING_QUEUES,
+  PAYMENT_QUEUES,
+} from '@app/shared/modules/rmq/constants';
+import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { HashingService } from '@app/shared/services';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { RegisterProfessionalUserDto } from '../dto/requests/register-professional-user';
@@ -19,6 +25,7 @@ export class RegisterProfessionalUserUseCase {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly hashingService: HashingService,
+    private readonly rmqService: RmqService,
   ) {}
 
   // async onModuleInit() {
@@ -105,9 +112,9 @@ export class RegisterProfessionalUserUseCase {
       }),
     ]);
 
-    if (existingUser) throw new BadRequestException('Email already in use');
+    if (existingUser) throw new BadRequestException('Email já está em uso');
     if (existingBusiness)
-      throw new BadRequestException('Business already exists with this name');
+      throw new BadRequestException('Negócio já cadastrado com esse nome');
 
     const openingHours = this.daysOfWeek.map((day, index) => {
       const dayData = business.openingHours[index];
@@ -155,8 +162,8 @@ export class RegisterProfessionalUserUseCase {
       throw new BadRequestException('Failed to create business');
     }
 
-    await Promise.all([
-      this.prismaService.professionalProfile.create({
+    const professionalProfile =
+      await this.prismaService.professionalProfile.create({
         data: {
           business: {
             connect: { id: newBusiness.id },
@@ -166,11 +173,34 @@ export class RegisterProfessionalUserUseCase {
           },
           phone,
         },
+        select: {
+          id: true,
+        },
+      });
+
+    await Promise.all([
+      this.rmqService.publishToQueue({
+        routingKey: MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.WELCOME_QUEUE,
+        payload: new WelcomeMessageDto({
+          message: `Olá ${this.getFirstName(name)}, seja bem-vindo(a) ao Marquei! Estamos felizes em tê-lo(a) conosco. Agora você pode gerenciar seu negócio de forma mais eficiente e oferecer uma experiência incrível aos seus clientes. Explore as funcionalidades da plataforma e aproveite ao máximo!`,
+          professionalProfileId: professionalProfile.id,
+          title: 'Bem-vindo(a) ao Marquei!',
+        }),
       }),
-      // Enviar ao rmq para criar o customerId no Stripe, criar um plan gratuito associando ao business e enviar mensagem de boas-vindas
+      this.rmqService.publishToQueue({
+        routingKey: PAYMENT_QUEUES.USE_CASES.CREATE_STRIPE_CUSTOMER_QUEUE,
+        payload: {
+          businessId: newBusiness.id,
+        },
+      }),
     ]);
 
     return null;
+  }
+
+  private getFirstName(name: string): string {
+    const names = name.split(' ');
+    return names.length > 0 ? names?.[0] : '';
   }
 
   private makeSlugFromName(name: string): string {

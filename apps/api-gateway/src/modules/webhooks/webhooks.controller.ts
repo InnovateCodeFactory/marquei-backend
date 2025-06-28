@@ -1,5 +1,5 @@
 import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
-import { STRIPE_WEBHOOK_HANDLER_QUEUE } from '@app/shared/modules/rmq/constants';
+import { PAYMENT_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { ResponseHandlerService } from '@app/shared/services';
 import { Controller, Get, Post, Req, Res } from '@nestjs/common';
@@ -28,7 +28,7 @@ export class WebhooksController {
             rawBody: payload.toString('utf8'), // envia como string
             signature,
           },
-          routingKey: STRIPE_WEBHOOK_HANDLER_QUEUE,
+          routingKey: PAYMENT_QUEUES.WEBHOOKS.STRIPE_WEBHOOK_HANDLER_QUEUE,
         }),
       res,
     });

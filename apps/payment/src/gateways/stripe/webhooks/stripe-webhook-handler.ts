@@ -1,9 +1,6 @@
 import { EnvSchemaType } from '@app/shared/environment';
-import {
-  STRIPE_CUSTOMER_SUBSCRIPTION_QUEUE,
-  STRIPE_INVOICE_WEBHOOK_QUEUE,
-  STRIPE_WEBHOOK_HANDLER_QUEUE,
-} from '@app/shared/modules/rmq/constants';
+
+import { PAYMENT_QUEUES } from '@app/shared/modules/rmq/constants';
 import {
   RABBIT_EXCHANGE,
   RmqService,
@@ -29,9 +26,11 @@ export class StripeWebhookHandler {
     this.webhookSecret = this.configService.getOrThrow('STRIPE_WEBHOOK_SECRET');
   }
 
+  // TODO: Fazer uma lógica para buscar o webhook por alguma chave única dele e verificar se já foi processado
+  // para evitar processar o mesmo webhook mais de uma vez.
   @RabbitSubscribe({
-    routingKey: STRIPE_WEBHOOK_HANDLER_QUEUE,
-    queue: STRIPE_WEBHOOK_HANDLER_QUEUE,
+    routingKey: PAYMENT_QUEUES.WEBHOOKS.STRIPE_WEBHOOK_HANDLER_QUEUE,
+    queue: PAYMENT_QUEUES.WEBHOOKS.STRIPE_WEBHOOK_HANDLER_QUEUE,
     exchange: RABBIT_EXCHANGE,
   })
   async execute({
@@ -54,14 +53,14 @@ export class StripeWebhookHandler {
         );
         await this.handleEvent({
           event: eventVerified,
-          queue: STRIPE_INVOICE_WEBHOOK_QUEUE,
+          queue: PAYMENT_QUEUES.WEBHOOKS.STRIPE_INVOICE_WEBHOOK_QUEUE,
         });
       }
 
       if (eventVerified.type?.startsWith('customer.subscription.')) {
         await this.handleEvent({
           event: eventVerified,
-          queue: STRIPE_CUSTOMER_SUBSCRIPTION_QUEUE,
+          queue: PAYMENT_QUEUES.WEBHOOKS.STRIPE_CUSTOMER_SUBSCRIPTION_QUEUE,
         });
       }
     } catch (error) {

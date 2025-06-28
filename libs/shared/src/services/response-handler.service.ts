@@ -24,7 +24,6 @@ export class ResponseHandlerService {
         .status(successStatus || 200)
         .json(new SuccessResponseDto({ data, message: successMessage }));
     } catch (error) {
-      this.logger.error(error);
       res.status(error.status || 500).json(
         new ErrorResponseDto({
           message: error.message || 'Internal server error',

@@ -1,5 +1,5 @@
 import { PrismaService } from '@app/shared';
-import { CREATE_STRIPE_SUBSCRIPTION_QUEUE } from '@app/shared/modules/rmq/constants';
+import { PAYMENT_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
 import { RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
@@ -19,8 +19,8 @@ export class CreateSubscriptionUseCase {
 
   @RabbitRPC({
     exchange: RABBIT_EXCHANGE,
-    queue: CREATE_STRIPE_SUBSCRIPTION_QUEUE,
-    routingKey: CREATE_STRIPE_SUBSCRIPTION_QUEUE,
+    queue: PAYMENT_QUEUES.USE_CASES.CREATE_STRIPE_SUBSCRIPTION_QUEUE,
+    routingKey: PAYMENT_QUEUES.USE_CASES.CREATE_STRIPE_SUBSCRIPTION_QUEUE,
   })
   async execute(data: {
     price_id: string;

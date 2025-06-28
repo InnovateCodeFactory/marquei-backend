@@ -1,4 +1,4 @@
-import { STRIPE_INVOICE_WEBHOOK_QUEUE } from '@app/shared/modules/rmq/constants';
+import { PAYMENT_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger } from '@nestjs/common';
@@ -13,8 +13,8 @@ export class InvoiceWebhook {
   ) {}
 
   @RabbitSubscribe({
-    routingKey: STRIPE_INVOICE_WEBHOOK_QUEUE,
-    queue: STRIPE_INVOICE_WEBHOOK_QUEUE,
+    routingKey: PAYMENT_QUEUES.WEBHOOKS.STRIPE_INVOICE_WEBHOOK_QUEUE,
+    queue: PAYMENT_QUEUES.WEBHOOKS.STRIPE_INVOICE_WEBHOOK_QUEUE,
     exchange: RABBIT_EXCHANGE,
   })
   async execute(payload: Stripe.Event) {

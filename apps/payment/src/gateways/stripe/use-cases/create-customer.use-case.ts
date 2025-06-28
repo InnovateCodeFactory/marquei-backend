@@ -1,5 +1,5 @@
 import { PrismaService } from '@app/shared';
-import { CREATE_STRIPE_CUSTOMER_QUEUE } from '@app/shared/modules/rmq/constants';
+import { PAYMENT_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
@@ -19,8 +19,8 @@ export class CreateCustomerUseCase {
 
   @RabbitSubscribe({
     exchange: RABBIT_EXCHANGE,
-    queue: CREATE_STRIPE_CUSTOMER_QUEUE,
-    routingKey: CREATE_STRIPE_CUSTOMER_QUEUE,
+    queue: PAYMENT_QUEUES.USE_CASES.CREATE_STRIPE_CUSTOMER_QUEUE,
+    routingKey: PAYMENT_QUEUES.USE_CASES.CREATE_STRIPE_CUSTOMER_QUEUE,
   })
   async execute({ businessId }: { businessId: string }) {
     try {
@@ -39,12 +39,39 @@ export class CreateCustomerUseCase {
         },
       });
 
-      await this.prismaService.business.update({
-        where: { id: businessId },
-        data: {
-          stripe_customer_id: stripeCustomer.id,
+      const freePlan = await this.prismaService.plan.findFirst({
+        where: {
+          billing_period: 'FREE_TRIAL',
+        },
+        select: {
+          id: true,
         },
       });
+
+      await Promise.all([
+        this.prismaService.business.update({
+          where: { id: businessId },
+          data: {
+            stripe_customer_id: stripeCustomer.id,
+          },
+        }),
+        this.prismaService.businessSubscription.create({
+          data: {
+            business: {
+              connect: { id: businessId },
+            },
+            stripeCustomerId: stripeCustomer.id,
+            status: 'ACTIVE',
+            plan: {
+              connect: { id: freePlan.id },
+            },
+            current_period_start: new Date(),
+            current_period_end: new Date(
+              Date.now() + 14 * 24 * 60 * 60 * 1000, // 14 days
+            ),
+          },
+        }),
+      ]);
 
       this.logger.debug(
         `Stripe customer created for businessId ${businessId}: ${stripeCustomer.id}`,
