@@ -32,6 +32,7 @@ export class LoginUseCase {
               select: {
                 slug: true,
                 ownerId: true,
+                name: true,
               },
             },
           },
@@ -58,6 +59,8 @@ export class LoginUseCase {
         ...(user.CurrentSelectedBusiness?.[0]?.business?.slug && {
           current_selected_business_slug:
             user.CurrentSelectedBusiness[0].business.slug,
+          current_selected_business_name:
+            user.CurrentSelectedBusiness[0].business.name,
         }),
         first_access: user.first_access,
       },

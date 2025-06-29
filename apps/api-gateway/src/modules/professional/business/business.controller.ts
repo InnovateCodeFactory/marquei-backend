@@ -9,6 +9,7 @@ import {
   GetBusinessByProfessionalUseCase,
   GetCurrentSubscriptionUseCase,
   GetProfessionalsUseCase,
+  GetProfilePresentationUseCase,
 } from './use-cases';
 import { SelectCurrentBusinessUseCase } from './use-cases/select-current-business.use-case';
 
@@ -21,6 +22,7 @@ export class BusinessController {
     private readonly selectCurrentBusinessUseCase: SelectCurrentBusinessUseCase,
     private readonly getCurrentSubscriptionUseCase: GetCurrentSubscriptionUseCase,
     private readonly getProfessionalsUseCase: GetProfessionalsUseCase,
+    private readonly getProfilePresentationUseCase: GetProfilePresentationUseCase,
   ) {}
 
   @Get('get-business-by-professional')
@@ -85,6 +87,22 @@ export class BusinessController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.getProfessionalsUseCase.execute(currentUser),
+      res,
+    });
+  }
+
+  @Get('get-profile-presentation')
+  @ApiOperation({
+    summary: 'Get profile presentation',
+    description:
+      'This endpoint retrieves the profile presentation details for the currently selected business.',
+  })
+  async getProfilePresentation(
+    @Res() res: Response,
+    @CurrentUserDecorator() currentUser: CurrentUser,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.getProfilePresentationUseCase.execute(currentUser),
       res,
     });
   }
