@@ -32,8 +32,8 @@ async function main() {
         planId: pro.id,
         key: BenefitKey.PROFESSIONALS,
         order: 1,
-        stringValue: 'Até 3',
-        intValue: 3,
+        stringValue: 'Até 2',
+        intValue: 2,
       },
       {
         planId: premium.id,

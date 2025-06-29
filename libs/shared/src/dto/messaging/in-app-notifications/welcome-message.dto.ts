@@ -13,11 +13,19 @@ export class WelcomeMessageDto {
   @IsNotEmpty()
   professionalProfileId: string;
 
-  constructor(props: {
-    title: string;
-    message: string;
+  constructor({
+    professionalName,
+    professionalProfileId,
+  }: {
+    professionalName: string;
     professionalProfileId: string;
   }) {
-    Object.assign(this, props);
+    this.title = 'Bem-vindo(a) ao Marquei!';
+    this.message = `Olá ${this.getFirstName(professionalName)}, seja bem-vindo(a) ao Marquei! Estamos felizes em tê-lo(a) conosco. Agora você pode gerenciar seu negócio de forma mais eficiente e oferecer uma experiência incrível aos seus clientes. Explore as funcionalidades da plataforma e aproveite ao máximo!`;
+    this.professionalProfileId = professionalProfileId;
+  }
+
+  private getFirstName(name: string): string {
+    return name?.split(' ')?.[0] || '';
   }
 }

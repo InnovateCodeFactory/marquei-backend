@@ -182,9 +182,8 @@ export class RegisterProfessionalUserUseCase {
       this.rmqService.publishToQueue({
         routingKey: MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.WELCOME_QUEUE,
         payload: new WelcomeMessageDto({
-          message: `Olá ${this.getFirstName(name)}, seja bem-vindo(a) ao Marquei! Estamos felizes em tê-lo(a) conosco. Agora você pode gerenciar seu negócio de forma mais eficiente e oferecer uma experiência incrível aos seus clientes. Explore as funcionalidades da plataforma e aproveite ao máximo!`,
+          professionalName: name,
           professionalProfileId: professionalProfile.id,
-          title: 'Bem-vindo(a) ao Marquei!',
         }),
       }),
       this.rmqService.publishToQueue({

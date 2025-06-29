@@ -38,6 +38,9 @@ importers:
       '@prisma/client':
         specifier: ^6.8.2
         version: 6.8.2(typescript@5.8.3)
+      '@prisma/extension-read-replicas':
+        specifier: ^0.4.1
+        version: 0.4.1(@prisma/client@6.8.2(typescript@5.8.3))
       '@scalar/nestjs-api-reference':
         specifier: ^0.5.1
         version: 0.5.1
@@ -842,6 +845,11 @@ packages:
         optional: true
       typescript:
         optional: true
+
+  '@prisma/extension-read-replicas@0.4.1':
+    resolution: {integrity: sha512-mCMDloqUKUwx2o5uedTs1FHX3Nxdt1GdRMoeyp1JggjiwOALmIYWhxfIN08M2BZ0w8SKwvJqicJZMjkQYkkijw==}
+    peerDependencies:
+      '@prisma/client': ^6.5.0
 
   '@scalar/nestjs-api-reference@0.5.1':
     resolution: {integrity: sha512-MgXzvGSnmwCYaXG3Kh+LHqUSTpQtaXHcRDPYpstm1xtW6J4rpnLQOzKdr78zOYlA5NGTtG5tt/5SXz69c1deFQ==}
@@ -4202,6 +4210,10 @@ snapshots:
   '@prisma/client@6.8.2(typescript@5.8.3)':
     optionalDependencies:
       typescript: 5.8.3
+
+  '@prisma/extension-read-replicas@0.4.1(@prisma/client@6.8.2(typescript@5.8.3))':
+    dependencies:
+      '@prisma/client': 6.8.2(typescript@5.8.3)
 
   '@scalar/nestjs-api-reference@0.5.1':
     dependencies:
