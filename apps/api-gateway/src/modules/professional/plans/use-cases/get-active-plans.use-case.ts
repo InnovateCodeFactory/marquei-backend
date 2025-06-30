@@ -86,8 +86,6 @@ export class GetActivePlansUseCase {
 
     const returningPlans = Object.values(grouped);
 
-    console.log(JSON.stringify(returningPlans, null, 2));
-
     return returningPlans;
   }
 
