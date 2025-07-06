@@ -37,6 +37,8 @@ export class CreateCustomerUseCase {
         name: payload.name,
         phone: payload.phone,
         ...(payload.email && { email: payload.email }),
+        ...(payload.birthdate && { birthdate: payload.birthdate }),
+        ...(payload.notes && { notes: payload.notes }),
         business: {
           connect: {
             slug: current_selected_business_slug,

@@ -24,4 +24,20 @@ export class CreateCustomerDto {
     description: 'The email address of the customer',
   })
   email?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'The birthdate of the customer in ISO format',
+    example: '1990-01-01',
+  })
+  birthdate?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'Additional notes about the customer',
+    example: 'Preferred contact method is email',
+  })
+  notes?: string;
 }
