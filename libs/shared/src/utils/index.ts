@@ -74,9 +74,16 @@ export function formatAppointmentStatus(status: string): string {
   }
 }
 
-export function formatTimeInMinutesToHoursAndMinutes(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
+export function formatDuration(
+  durationInMinutes: number,
+  formattingStyle: 'short' | 'medium' = 'short',
+): string {
+  const hours = Math.floor(durationInMinutes / 60);
+  const minutes = durationInMinutes % 60;
+  const hoursLabel = 'h';
+  const minutesLabel = formattingStyle === 'short' ? 'm' : 'min';
 
-  return `${hours}h ${remainingMinutes}m`;
+  if (hours > 0) return `${hours}${hoursLabel} ${minutes}${minutesLabel}`;
+
+  return `${minutes}${minutesLabel}`;
 }

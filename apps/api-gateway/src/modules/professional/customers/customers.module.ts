@@ -1,7 +1,11 @@
 import { ResponseHandlerService } from '@app/shared/services';
 import { Module } from '@nestjs/common';
 import { CustomersController } from './customers.controller';
-import { CreateCustomerUseCase } from './use-cases';
+import {
+  CreateCustomerUseCase,
+  GetCustomerAppointmentsUseCase,
+  GetCustomerDetailsUseCase,
+} from './use-cases';
 import { FindCustomersUseCase } from './use-cases/find-customers.use-case';
 
 @Module({
@@ -10,6 +14,8 @@ import { FindCustomersUseCase } from './use-cases/find-customers.use-case';
     ResponseHandlerService,
     CreateCustomerUseCase,
     FindCustomersUseCase,
+    GetCustomerDetailsUseCase,
+    GetCustomerAppointmentsUseCase,
   ],
 })
 export class CustomersModule {}

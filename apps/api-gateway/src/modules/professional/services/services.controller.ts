@@ -14,6 +14,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CreateServiceDto } from './dto/requests/create-service.dto';
 import { DeleteServiceDto } from './dto/requests/delete-service.dto';
+import { GetServicesDto } from './dto/requests/get-services.dto';
 import { CreateServiceUseCase, GetServicesUseCase } from './use-cases';
 import { DeleteServiceUseCase } from './use-cases/delete-service.use-case';
 
@@ -50,9 +51,10 @@ export class ServicesController {
   async getServices(
     @Res() res: Response,
     @CurrentUserDecorator() currentUser: CurrentUser,
+    @Query() query: GetServicesDto = {},
   ) {
     return await this.responseHandlerService.handle({
-      method: () => this.getServicesUseCase.execute(currentUser),
+      method: () => this.getServicesUseCase.execute(currentUser, query),
       res,
       successStatus: 200,
     });

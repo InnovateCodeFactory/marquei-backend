@@ -4,6 +4,7 @@ import { InAppNotificationsController } from './in-app-notifications.controller'
 import {
   GetNotificationsUseCase,
   HasUnreadNotificationsUseCase,
+  MarkAllInAppNotificationsAsReadUseCase,
 } from './use-cases';
 
 @Module({
@@ -12,6 +13,7 @@ import {
     ResponseHandlerService,
     HasUnreadNotificationsUseCase,
     GetNotificationsUseCase,
+    MarkAllInAppNotificationsAsReadUseCase,
   ],
 })
 export class InAppNotificationsModule {}

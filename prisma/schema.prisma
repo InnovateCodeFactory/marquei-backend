@@ -164,6 +164,8 @@ model Customer {
   phone      String
   email      String?
   verified   Boolean  @default(false) // se tem ou não conta no app
+  birthdate  String? // opcional, data de nascimento (1990-01-01)
+  notes      String? // notas internas sobre o cliente
   userId     String?  @unique // opcional: se for cliente real registrado
   user       User?    @relation(fields: [userId], references: [id])
   businessId String

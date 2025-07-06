@@ -112,7 +112,7 @@ export class CreateProfessionalUseCase {
     });
 
     // Enviar mensagem no whatsapp ao profissional com a senha temporária
-    // Criar notificação para o profissional in_app de boas-vindas
+    // Criar notificação para o profissional in_app de boas-vindas - OK
     // Enviar email ao profissional com a senha temporária
     await Promise.all([
       this.rmqService.publishToQueue({

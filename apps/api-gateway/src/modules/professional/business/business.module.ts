@@ -6,6 +6,7 @@ import {
   GetBusinessByProfessionalUseCase,
   GetCurrentSubscriptionUseCase,
   GetProfessionalsUseCase,
+  GetProfilePresentationUseCase,
 } from './use-cases';
 import { SelectCurrentBusinessUseCase } from './use-cases/select-current-business.use-case';
 
@@ -18,6 +19,7 @@ import { SelectCurrentBusinessUseCase } from './use-cases/select-current-busines
     SelectCurrentBusinessUseCase,
     GetCurrentSubscriptionUseCase,
     GetProfessionalsUseCase,
+    GetProfilePresentationUseCase,
   ],
 })
 export class BusinessModule {}
