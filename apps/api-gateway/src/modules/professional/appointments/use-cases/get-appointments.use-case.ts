@@ -1,5 +1,12 @@
 import { PrismaService } from '@app/shared';
 import { CurrentUser } from '@app/shared/types/app-request';
+import {
+  formatAppointmentStatus,
+  formatCurrency,
+  formatDateTimeWithWeekday,
+  formatPhoneNumber,
+  formatTimeInMinutesToHoursAndMinutes,
+} from '@app/shared/utils';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { addHours } from 'date-fns';
 
@@ -37,11 +44,11 @@ export class GetAppointmentsUseCase {
         },
       },
       select: {
+        id: true,
         customer: {
           select: {
             id: true,
             name: true,
-            verified: true,
             phone: true,
           },
         },
@@ -69,11 +76,11 @@ export class GetAppointmentsUseCase {
     });
 
     const formattedAppointments = appointments.map((appointment) => ({
+      id: appointment.id,
       customer: {
         id: appointment.customer.id,
         name: appointment.customer.name,
-        verified: appointment.customer.verified,
-        phone: appointment.customer.phone,
+        phone: formatPhoneNumber(appointment.customer.phone),
       },
       notes: appointment.notes,
       professional: {
@@ -87,15 +94,28 @@ export class GetAppointmentsUseCase {
         ),
         3,
       ),
+      start_date_formatted: formatDateTimeWithWeekday(
+        addHours(appointment.scheduled_at, 3),
+      ),
+      end_date_formatted: formatDateTimeWithWeekday(
+        addHours(
+          new Date(
+            appointment.scheduled_at.getTime() +
+              appointment.service.duration * 60 * 1000, // duration in minutes
+          ),
+          3,
+        ),
+      ),
       service: {
         id: appointment.service.id,
         name: appointment.service.name,
-        duration: appointment.service.duration,
-        price_in_cents: appointment.service.price_in_cents,
+        duration: formatTimeInMinutesToHoursAndMinutes(
+          appointment.service.duration,
+        ),
+        price_in_formatted: formatCurrency(appointment.service.price_in_cents),
       },
-      status: appointment.status,
+      status: formatAppointmentStatus(appointment.status),
     }));
-
     return formattedAppointments;
   }
 }
