@@ -9,6 +9,7 @@ import { GetCustomerDetailsDto } from './dto/requests/get-customer-details.dto';
 import {
   CreateCustomerUseCase,
   FindCustomersUseCase,
+  GetCustomerAppointmentsUseCase,
   GetCustomerDetailsUseCase,
 } from './use-cases';
 
@@ -20,6 +21,7 @@ export class CustomersController {
     private readonly createCustomerUseCase: CreateCustomerUseCase,
     private readonly findCustomersUseCase: FindCustomersUseCase,
     private readonly getCustomerDetailsUseCase: GetCustomerDetailsUseCase,
+    private readonly getCustomerAppointmentsUseCase: GetCustomerAppointmentsUseCase,
   ) {}
 
   @Post('create-customer')
@@ -61,6 +63,23 @@ export class CustomersController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.getCustomerDetailsUseCase.execute(query, currentUser),
+      res,
+      successStatus: 200,
+    });
+  }
+
+  @Get('appointments')
+  @ApiOperation({
+    summary: 'Get customer appointments by customer ID',
+  })
+  async getCustomerAppointments(
+    @Query() query: GetCustomerDetailsDto,
+    @Res() res: Response,
+    @CurrentUserDecorator() currentUser: CurrentUser,
+  ) {
+    return await this.responseHandler.handle({
+      method: () =>
+        this.getCustomerAppointmentsUseCase.execute(query, currentUser),
       res,
       successStatus: 200,
     });

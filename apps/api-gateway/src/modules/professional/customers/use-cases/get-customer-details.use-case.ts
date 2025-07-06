@@ -34,7 +34,11 @@ export class GetCustomerDetailsUseCase {
     if (!customer) throw new NotFoundException('Cliente não encontrado');
 
     const obj = {
-      ...customer,
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+      verified: customer.verified,
+      appointments_count: customer._count.Appointment.toString(),
       created_at: formatDate(customer.created_at, "dd 'de' MMM'.' 'de' yyyy"),
     };
 

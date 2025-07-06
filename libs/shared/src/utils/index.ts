@@ -36,3 +36,17 @@ export function generateRandomString(length: number): string {
   }
   return result;
 }
+
+export function formatDuration(
+  durationInMinutes: number,
+  formattingStyle: 'short' | 'medium' = 'short',
+): string {
+  const hours = Math.floor(durationInMinutes / 60);
+  const minutes = durationInMinutes % 60;
+  const hoursLabel = 'h';
+  const minutesLabel = formattingStyle === 'short' ? 'm' : 'min';
+
+  if (hours > 0) return `${hours}${hoursLabel} ${minutes}${minutesLabel}`;
+
+  return `${minutes}${minutesLabel}`;
+}
