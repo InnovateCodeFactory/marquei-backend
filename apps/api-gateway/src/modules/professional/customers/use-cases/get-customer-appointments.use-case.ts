@@ -1,6 +1,6 @@
 import { PrismaService } from '@app/shared';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { formatDate } from '@app/shared/utils';
+import { formatDate, getTwoNames } from '@app/shared/utils';
 import { Price } from '@app/shared/value-objects';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { addHours, addMinutes } from 'date-fns';
@@ -74,17 +74,11 @@ export class GetCustomerAppointmentsUseCase {
           price: new Price(appointment.service.price_in_cents).toCurrency(),
         },
         professional: {
-          name: this.getTwoNames(appointment.professional.User.name),
+          name: getTwoNames(appointment.professional.User.name),
         },
       };
     });
 
     return arr;
-  }
-
-  private getTwoNames(name: string): string {
-    const names = name.split(' ');
-    if (names.length === 1) return names[0];
-    return `${names[0]} ${names[1]}`;
   }
 }
