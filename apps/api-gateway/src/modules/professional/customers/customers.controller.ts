@@ -5,6 +5,7 @@ import { Body, Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CreateCustomerDto } from './dto/requests/create-customer.dto';
+import { FindCustomersDto } from './dto/requests/find-customers.dto';
 import { GetCustomerDetailsDto } from './dto/requests/get-customer-details.dto';
 import {
   CreateCustomerUseCase,
@@ -44,9 +45,13 @@ export class CustomersController {
   @ApiOperation({
     summary: 'Find all customers for the current business',
   })
-  async findCustomers(@Res() res: Response, @Req() req: AppRequest) {
+  async findCustomers(
+    @Res() res: Response,
+    @Req() req: AppRequest,
+    @Query() query: FindCustomersDto,
+  ) {
     return await this.responseHandler.handle({
-      method: () => this.findCustomersUseCase.execute(req.user),
+      method: () => this.findCustomersUseCase.execute(query, req.user),
       res,
       successStatus: 200,
     });
