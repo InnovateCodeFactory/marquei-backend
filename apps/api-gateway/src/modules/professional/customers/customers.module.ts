@@ -1,6 +1,7 @@
 import { ResponseHandlerService } from '@app/shared/services';
 import { Module } from '@nestjs/common';
 import { CustomersController } from './customers.controller';
+import { SeedCustomersService } from './seed';
 import {
   CreateCustomerUseCase,
   GetCustomerAppointmentsUseCase,
@@ -12,6 +13,7 @@ import { FindCustomersUseCase } from './use-cases/find-customers.use-case';
   controllers: [CustomersController],
   providers: [
     ResponseHandlerService,
+    SeedCustomersService,
     CreateCustomerUseCase,
     FindCustomersUseCase,
     GetCustomerDetailsUseCase,

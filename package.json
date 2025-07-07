@@ -18,6 +18,7 @@
     "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe"
   },
   "dependencies": {
+    "@faker-js/faker": "^9.9.0",
     "@golevelup/nestjs-rabbitmq": "^6.0.1",
     "@nestjs/axios": "^4.0.0",
     "@nestjs/common": "^11.1.2",
