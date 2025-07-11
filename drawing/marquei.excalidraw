@@ -1690,8 +1690,8 @@
     {
       "id": "eE4QQFLgxcR_MRl9lB2er",
       "type": "arrow",
-      "x": 696.6267467402974,
-      "y": 485.8679159760625,
+      "x": 701.837746107056,
+      "y": 485.8908550781905,
       "width": 106.1110231264604,
       "height": 253.83529984103257,
       "angle": 0,
@@ -1709,11 +1709,11 @@
         "type": 2
       },
       "seed": 1481045451,
-      "version": 720,
-      "versionNonce": 1401404709,
+      "version": 807,
+      "versionNonce": 1130825618,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1746245813231,
+      "updated": 1751941973711,
       "link": null,
       "locked": false,
       "points": [
@@ -1733,13 +1733,13 @@
       "lastCommittedPoint": null,
       "startBinding": {
         "elementId": "3Qt1VdrOaHFbOqvymCAdz",
-        "focus": 0.7580396746572884,
-        "gap": 3.2084612399267196
+        "focus": 0.689329452224917,
+        "gap": 1.403555353871331
       },
       "endBinding": {
         "elementId": "pRIChhbUYPCaMxKorRcCE",
-        "focus": -0.5315821729572905,
-        "gap": 1.7649512289439144
+        "focus": -0.5125602645592446,
+        "gap": 3.6564870936663283
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
@@ -1986,7 +1986,7 @@
       "type": "text",
       "x": 315.1486703507974,
       "y": 1084.2154933840854,
-      "width": 656.9194946289062,
+      "width": 635.819580078125,
       "height": 25,
       "angle": 0,
       "strokeColor": "#1e1e1e",
@@ -2001,20 +2001,20 @@
       "index": "b05",
       "roundness": null,
       "seed": 1990539935,
-      "version": 108,
-      "versionNonce": 1691423469,
+      "version": 117,
+      "versionNonce": 1325999826,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1746387481726,
+      "updated": 1751942000233,
       "link": null,
       "locked": false,
-      "text": "Tabs: Agendamentos, clientes, Criar agendamento, Relatórios, Perfil",
+      "text": "Tabs: Agendamentos, clientes, Criar agendamento, Extrato, Perfil",
       "fontSize": 20,
       "fontFamily": 5,
       "textAlign": "left",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "Tabs: Agendamentos, clientes, Criar agendamento, Relatórios, Perfil",
+      "originalText": "Tabs: Agendamentos, clientes, Criar agendamento, Extrato, Perfil",
       "autoResize": true,
       "lineHeight": 1.25
     },

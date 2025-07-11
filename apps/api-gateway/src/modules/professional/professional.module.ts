@@ -9,6 +9,7 @@ import { PlansModule } from './plans/plans.module';
 import { AppointmentsModule } from './appointments/appointments.module';
 import { ProfessionalsModule } from './professionals/professionals.module';
 import { InAppNotificationsModule } from './in-app-notifications/in-app-notifications.module';
+import { StatementModule } from './statement/statement.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { InAppNotificationsModule } from './in-app-notifications/in-app-notifica
     AppointmentsModule,
     ProfessionalsModule,
     InAppNotificationsModule,
+    StatementModule,
   ],
 })
 export class ProfessionalModule {}

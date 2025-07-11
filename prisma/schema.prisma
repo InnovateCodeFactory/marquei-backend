@@ -63,6 +63,7 @@ model Business {
   businessServiceTypeId   String?
   BusinessSubscription    BusinessSubscription[]
   CurrentSelectedBusiness CurrentSelectedBusiness[]
+  ProfessionalStatement   ProfessionalStatement[]
 
   @@index([slug], name: "idx_business_slug")
   @@index([ownerId], name: "idx_business_owner")
@@ -106,17 +107,18 @@ model ProfessionalProfile {
   phone         String?
   profile_image String?
 
-  status              ProfessionalStatus  @default(ACTIVE) // status do profissional
-  created_at          DateTime            @default(now())
-  updated_at          DateTime            @updatedAt
-  rating              Float               @default(0.0)
-  reviewsCount        Int                 @default(0)
-  averagePrice        Float               @default(0.0) // preço médio dos serviços oferecidos
+  status                ProfessionalStatus      @default(ACTIVE) // status do profissional
+  created_at            DateTime                @default(now())
+  updated_at            DateTime                @updatedAt
+  rating                Float                   @default(0.0)
+  reviewsCount          Int                     @default(0)
+  averagePrice          Float                   @default(0.0) // preço médio dos serviços oferecidos
   //availability Json?             // JSON com horários disponíveis (ex: {"Monday": ["09:00", "17:00"], "Tuesday": ["10:00", "18:00"]})
-  User                User?               @relation(fields: [userId], references: [id])
-  userId              String?
-  in_app_notification InAppNotification[]
-  Appointment         Appointment[]
+  User                  User?                   @relation(fields: [userId], references: [id])
+  userId                String?
+  in_app_notification   InAppNotification[]
+  Appointment           Appointment[]
+  ProfessionalStatement ProfessionalStatement[]
 
   @@index([business_id], name: "idx_professional_business")
   @@index([userId], name: "idx_professional_user")
@@ -138,6 +140,26 @@ model ProfessionalService {
   @@index([service_id], name: "idx_professional_service_service")
 }
 
+model ProfessionalStatement {
+  id             String        @id @default(cuid())
+  type           StatementType
+  description    String
+  value_in_cents Int
+  created_at     DateTime      @default(now())
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  professional_profile  ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
+  professionalProfileId String
+
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  appointmentId String?
+  businessId    String
+
+  @@index([professionalProfileId], name: "idx_professional_statement_profile")
+  @@index([businessId], name: "idx_professional_statement_business")
+}
+
 model Appointment {
   id           String            @id @default(cuid())
   service_id   String
@@ -149,10 +171,11 @@ model Appointment {
   professional ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
   service      Service             @relation(fields: [service_id], references: [id])
 
-  created_at            DateTime @default(now())
-  updated_at            DateTime @updatedAt
+  created_at            DateTime                @default(now())
+  updated_at            DateTime                @updatedAt
   customerId            String
   professionalProfileId String
+  ProfessionalStatement ProfessionalStatement[]
 
   @@index([service_id], name: "idx_appointment_service")
   @@index([professionalProfileId, scheduled_at], name: "idx_professional_date")
@@ -371,4 +394,9 @@ enum BenefitKey {
   WAITING_LIST_ENABLED // Lista de espera habilitada?
   REVIEW_REQUEST_ENABLED // Enviar pedido de avaliação após atendimento?
   APP_POSITION // Posição do negócio no app de clientes
+}
+
+enum StatementType {
+  INCOME
+  OUTCOME
 }

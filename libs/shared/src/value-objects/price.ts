@@ -1,9 +1,13 @@
+import { Logger } from '@nestjs/common';
+
 export class Price {
   private readonly value: number;
+  private readonly logger = new Logger(Price.name);
 
   constructor(value: number) {
-    if (value < 0) {
-      throw new Error('Price cannot be negative');
+    if (isNaN(value)) {
+      this.logger.error('Incorrect value for Price');
+      return;
     }
     this.value = value;
   }
