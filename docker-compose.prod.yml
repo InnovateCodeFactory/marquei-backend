@@ -15,6 +15,7 @@ services:
       - PORT=3000
     networks:
       - rabbit_external_network
+      - redis_external_network
 
   messaging:
     build:
@@ -28,6 +29,7 @@ services:
       - PORT=3001
     networks:
       - rabbit_external_network
+      - redis_external_network
 
   payment:
     build:
@@ -41,7 +43,10 @@ services:
       - PORT=3002
     networks:
       - rabbit_external_network
+      - redis_external_network
 
 networks:
   rabbit_external_network:
+    external: true
+  redis_external_network:
     external: true
