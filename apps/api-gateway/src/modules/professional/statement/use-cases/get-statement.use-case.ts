@@ -7,7 +7,7 @@ import {
   Logger,
   OnModuleInit,
 } from '@nestjs/common';
-import { subMonths } from 'date-fns';
+import { endOfMonth, startOfMonth } from 'date-fns';
 import { GetStatementDto } from '../dto/requests/get-statement.dto';
 
 @Injectable()
@@ -20,7 +20,7 @@ export class GetStatementUseCase implements OnModuleInit {
     // const start = new Date(2025, 0, 1); // 01/01/2025
     // const end = now; // até hoje
     // const data = Array.from({ length: 140 }, (_, i) => {
-    //   const type = Math.random() > 0.25 ? 'INCOME' : 'OUTCOME';
+    //   const type = Math.random() > 0.3 ? 'INCOME' : 'OUTCOME';
     //   let value_in_cents = Math.floor(
     //     Math.random() * (100000 - 1500 + 1) + 1500,
     //   );
@@ -71,7 +71,8 @@ export class GetStatementUseCase implements OnModuleInit {
     if (type) where.type = type.toUpperCase();
     if (professional_id) where.professionalProfileId = professional_id;
 
-    const threeMonthsAgo = subMonths(new Date(), 3);
+    const monthStart = startOfMonth(new Date());
+    const monthEnd = endOfMonth(new Date());
 
     const [statements, total, income, expense] = await Promise.all([
       this.prismaService.professionalStatement.findMany({
@@ -96,7 +97,10 @@ export class GetStatementUseCase implements OnModuleInit {
               where: {
                 businessId: user.current_selected_business_id,
                 type: 'INCOME',
-                created_at: { gte: threeMonthsAgo },
+                created_at: {
+                  gte: monthStart,
+                  lte: monthEnd,
+                },
               },
               _sum: { value_in_cents: true },
             }),
@@ -104,7 +108,10 @@ export class GetStatementUseCase implements OnModuleInit {
               where: {
                 businessId: user.current_selected_business_id,
                 type: 'OUTCOME',
-                created_at: { gte: threeMonthsAgo },
+                created_at: {
+                  gte: monthStart,
+                  lte: monthEnd,
+                },
               },
               _sum: { value_in_cents: true },
             }),
@@ -124,17 +131,17 @@ export class GetStatementUseCase implements OnModuleInit {
     };
 
     if (calculate_totals === 'true' && income && expense) {
-      const total_income_last_3_months = income._sum.value_in_cents ?? 0;
-      const total_expense_last_3_months = expense._sum.value_in_cents ?? 0;
+      const total_income_current_month = income._sum.value_in_cents ?? 0;
+      const total_expense_current_month = expense._sum.value_in_cents ?? 0;
 
-      obj.total_income_last_3_months = new Price(
-        total_income_last_3_months,
+      obj.total_income_current_month = new Price(
+        total_income_current_month,
       ).toCurrency();
-      obj.total_expense_last_3_months = new Price(
-        total_expense_last_3_months,
+      obj.total_expense_current_month = new Price(
+        total_expense_current_month,
       ).toCurrency();
-      obj.net_total_last_3_months = new Price(
-        total_income_last_3_months + total_expense_last_3_months,
+      obj.net_total_current_month = new Price(
+        total_income_current_month + total_expense_current_month,
       ).toCurrency();
     }
 
