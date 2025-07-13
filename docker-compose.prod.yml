@@ -1,0 +1,47 @@
+version: '3.9'
+
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: apps/api-gateway/Dockerfile
+      args:
+        APP_NAME: api-gateway
+        APP_PORT: 3000
+    container_name: api-gateway
+    ports:
+      - '3000:3000'
+    environment:
+      - PORT=3000
+    networks:
+      - rabbit_external_network
+
+  messaging:
+    build:
+      context: .
+      dockerfile: apps/messaging/Dockerfile
+      args:
+        APP_NAME: messaging
+        APP_PORT: 3001
+    container_name: messaging
+    environment:
+      - PORT=3001
+    networks:
+      - rabbit_external_network
+
+  payment:
+    build:
+      context: .
+      dockerfile: apps/payment/Dockerfile
+      args:
+        APP_NAME: payment
+        APP_PORT: 3002
+    container_name: payment
+    environment:
+      - PORT=3002
+    networks:
+      - rabbit_external_network
+
+networks:
+  rabbit_external_network:
+    external: true
