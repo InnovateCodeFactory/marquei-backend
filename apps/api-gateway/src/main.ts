@@ -29,6 +29,7 @@ async function bootstrap() {
   const logger = new Logger('Main');
 
   swagger(app);
+  // teste
 
   try {
     const PORT = configService.getOrThrow('PORT');
