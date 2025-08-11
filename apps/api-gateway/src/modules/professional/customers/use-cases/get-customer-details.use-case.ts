@@ -6,10 +6,11 @@ import { GetCustomerDetailsDto } from '../dto/requests/get-customer-details.dto'
 
 @Injectable()
 export class GetCustomerDetailsUseCase {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async execute({ id }: GetCustomerDetailsDto, user: CurrentUser) {
-    const customer = await this.prismaService.customer.findUnique({
+    // id é do BusinessContact
+    const contact = await this.prisma.businessContact.findUnique({
       where: { id },
       select: {
         name: true,
@@ -17,31 +18,31 @@ export class GetCustomerDetailsUseCase {
         phone: true,
         verified: true,
         created_at: true,
-        _count: {
-          select: {
-            Appointment: {
-              where: {
-                professional: {
-                  business_id: user.current_selected_business_id,
-                },
-              },
-            },
-          },
-        },
+        customerId: true, // para contar appointments
       },
     });
 
-    if (!customer) throw new NotFoundException('Cliente não encontrado');
+    if (!contact) throw new NotFoundException('Cliente não encontrado');
 
-    const obj = {
-      name: customer.name,
-      email: customer.email,
-      phone: customer.phone,
-      verified: customer.verified,
-      appointments_count: customer._count.Appointment.toString(),
-      created_at: formatDate(customer.created_at, "dd 'de' MMM'.' 'de' yyyy"),
+    // conta appointments do perfil global (se houver) no negócio atual
+    const appointmentsCount = contact.customerId
+      ? await this.prisma.appointment.count({
+          where: {
+            customerProfileId: contact.customerId,
+            professional: {
+              business_id: user.current_selected_business_id,
+            },
+          },
+        })
+      : 0;
+
+    return {
+      name: contact.name,
+      email: contact.email,
+      phone: contact.phone,
+      verified: contact.verified,
+      appointments_count: String(appointmentsCount),
+      created_at: formatDate(contact.created_at, "dd 'de' MMM'.' 'de' yyyy"),
     };
-
-    return obj;
   }
 }

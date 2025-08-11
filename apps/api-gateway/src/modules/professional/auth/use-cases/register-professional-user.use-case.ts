@@ -23,77 +23,10 @@ export class RegisterProfessionalUserUseCase {
   ];
 
   constructor(
-    private readonly prismaService: PrismaService,
-    private readonly hashingService: HashingService,
-    private readonly rmqService: RmqService,
+    private readonly prisma: PrismaService,
+    private readonly hashing: HashingService,
+    private readonly rmq: RmqService,
   ) {}
-
-  // async onModuleInit() {
-  //   await this.prismaService.businessCategory.createMany({
-  //     data: [
-  //       {
-  //         name: 'Barbearia',
-  //       },
-  //       {
-  //         name: 'Salão de beleza',
-  //       },
-  //       {
-  //         name: 'Estética',
-  //       },
-  //       {
-  //         name: 'Pilates',
-  //       },
-  //       {
-  //         name: 'Consultório',
-  //       },
-  //       {
-  //         name: 'Academia',
-  //       },
-  //       {
-  //         name: 'Estúdio de dança',
-  //       },
-  //       {
-  //         name: 'Estúdio de pilates',
-  //       },
-  //       {
-  //         name: 'Estúdio de yoga',
-  //       },
-  //       {
-  //         name: 'Estúdio de crossfit',
-  //       },
-  //       {
-  //         name: 'Estúdio de funcional',
-  //       },
-  //       {
-  //         name: 'Estúdio de musculação',
-  //       },
-  //     ],
-  //   });
-
-  //   console.log('Business categories initialized');
-
-  //   await this.prismaService.businessServiceType.createMany({
-  //     data: [
-  //       {
-  //         name: 'Presencial',
-  //       },
-  //       {
-  //         name: 'Domiciliar',
-  //       },
-  //       {
-  //         name: 'Online',
-  //       },
-  //       {
-  //         name: 'Presencial e domiciliar',
-  //       },
-  //       {
-  //         name: 'Presencial e online',
-  //       },
-  //     ],
-  //   });
-
-  //   console.log('Business service types initialized');
-  // }
 
   async execute(registerDto: RegisterProfessionalUserDto) {
     const { name, email, password, documentNumber, phone, business } =
@@ -101,21 +34,22 @@ export class RegisterProfessionalUserUseCase {
 
     const slug = this.makeSlugFromName(business.name);
 
-    const [existingUser, existingBusiness] = await Promise.all([
-      this.prismaService.user.findUnique({
+    const [existingAccount, existingBusiness] = await Promise.all([
+      this.prisma.authAccount.findUnique({
         where: { email },
         select: { id: true },
       }),
-      this.prismaService.business.findUnique({
+      this.prisma.business.findUnique({
         where: { slug },
         select: { id: true },
       }),
     ]);
 
-    if (existingUser) throw new BadRequestException('Email já está em uso');
+    if (existingAccount) throw new BadRequestException('Email já está em uso');
     if (existingBusiness)
       throw new BadRequestException('Negócio já cadastrado com esse nome');
 
+    // opening_hours como JSON estruturado (compatível com seu front)
     const openingHours = this.daysOfWeek.map((day, index) => {
       const dayData = business.openingHours[index];
       return {
@@ -125,71 +59,96 @@ export class RegisterProfessionalUserUseCase {
       };
     });
 
-    const newBusiness = await this.prismaService.business.create({
-      data: {
-        slug,
-        name: business.name,
-        latitude: business.latitude,
-        longitude: business.longitude,
-        opening_hours: JSON.stringify(openingHours),
-        owner: {
-          create: {
-            email,
-            name,
-            password: await this.hashingService.hash(password),
-            user_type: 'PROFESSIONAL',
-            document_number: documentNumber,
-          },
-        },
-        BusinessCategory: {
-          connect: { id: business.category },
-        },
-        BusinessServiceType: {
-          connect: { id: business.placeType },
-        },
-      },
-      select: {
-        id: true,
-        owner: {
-          select: {
-            id: true,
-          },
-        },
-      },
-    });
+    const passwordHash = await this.hashing.hash(password);
 
-    if (!newBusiness) {
-      throw new BadRequestException('Failed to create business');
-    }
-
-    const professionalProfile =
-      await this.prismaService.professionalProfile.create({
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 1) Conta autenticável
+      const account = await tx.authAccount.create({
         data: {
-          business: {
-            connect: { id: newBusiness.id },
-          },
-          User: {
-            connect: { id: newBusiness.owner.id },
-          },
-          phone,
+          email,
+          password_hash: passwordHash,
+          first_access: false,
+          is_active: true,
         },
-        select: {
-          id: true,
+        select: { id: true, email: true },
+      });
+
+      // 2) Pessoa (perfil base)
+      const person = await tx.person.create({
+        data: {
+          name,
+          email,
+          phone,
+          document: documentNumber ?? null,
+        },
+        select: { id: true },
+      });
+
+      // 3) Vínculo Person ↔ AuthAccount
+      await tx.personAccount.create({
+        data: {
+          personId: person.id,
+          authAccountId: account.id,
         },
       });
 
+      // 4) Negócio (owner = AuthAccount)
+      const newBusiness = await tx.business.create({
+        data: {
+          slug,
+          name: business.name,
+          latitude: business.latitude,
+          longitude: business.longitude,
+          zipCode: business.zipCode,
+          street: business.street,
+          neighbourhood: business.neighbourhood,
+          number: business.number,
+          complement: business.complement,
+          city: business.city,
+          uf: business.uf,
+          opening_hours: JSON.stringify(openingHours),
+          owner: { connect: { id: account.id } },
+          ...(business.category && {
+            BusinessCategory: { connect: { id: business.category } },
+          }),
+          ...(business.placeType && {
+            BusinessServiceType: { connect: { id: business.placeType } },
+          }),
+        },
+        select: { id: true, ownerId: true },
+      });
+
+      // 5) Perfil de Profissional (aponta para Person + Business)
+      const professional = await tx.professionalProfile.create({
+        data: {
+          personId: person.id,
+          business_id: newBusiness.id,
+          phone,
+        },
+        select: { id: true },
+      });
+
+      return {
+        businessId: newBusiness.id,
+        ownerId: newBusiness.ownerId,
+        professionalProfileId: professional.id,
+        professionalName: name,
+      };
+    });
+
+    // Mensageria externa
     await Promise.all([
-      this.rmqService.publishToQueue({
+      this.rmq.publishToQueue({
         routingKey: MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.WELCOME_QUEUE,
         payload: new WelcomeMessageDto({
-          professionalName: name,
-          professionalProfileId: professionalProfile.id,
+          professionalName: result.professionalName,
+          professionalProfileId: result.professionalProfileId,
         }),
       }),
-      this.rmqService.publishToQueue({
+      this.rmq.publishToQueue({
         routingKey: PAYMENT_QUEUES.USE_CASES.CREATE_STRIPE_CUSTOMER_QUEUE,
         payload: {
-          businessId: newBusiness.id,
+          businessId: result.businessId,
         },
       }),
     ]);
@@ -197,17 +156,12 @@ export class RegisterProfessionalUserUseCase {
     return null;
   }
 
-  private getFirstName(name: string): string {
-    const names = name.split(' ');
-    return names.length > 0 ? names?.[0] : '';
-  }
-
   private makeSlugFromName(name: string): string {
     return name
-      .normalize('NFD') // separa letras de acentos
-      .replace(/[\u0300-\u036f]/g, '') // remove acentos
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-') // troca não alfanumérico por hífen
-      .replace(/^-|-$/g, ''); // remove hífen no começo/fim
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
   }
 }

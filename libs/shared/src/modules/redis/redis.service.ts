@@ -41,36 +41,31 @@ export class RedisService {
   }
 
   async getCurrentUserFromRequest({
-    userId,
+    accountId, // agora é o id da AuthAccount
   }: {
-    userId: string;
+    accountId: string;
   }): Promise<CachedUserProps | null> {
-    const cachedKey = `user:${userId}`;
+    const cachedKey = `account:${accountId}`; // antes era user: -> mude a chave pra refletir a nova entidade
 
     const userInCache = await this.get({ key: cachedKey });
-
     if (userInCache) return JSON.parse(userInCache);
 
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
+    const account = await this.prismaService.authAccount.findUnique({
+      where: { id: accountId },
       select: {
-        user_type: true,
         id: true,
+        // se quiser expor firstAccess/isActive, adicione aqui
         CurrentSelectedBusiness: {
           select: {
             business: {
               select: {
-                slug: true,
                 id: true,
+                slug: true,
                 BusinessSubscription: {
-                  orderBy: {
-                    created_at: 'desc',
-                  },
+                  orderBy: { created_at: 'desc' },
                   take: 1,
                   where: {
-                    status: {
-                      in: ['ACTIVE', 'PAST_DUE', 'UNPAID'],
-                    },
+                    status: { in: ['ACTIVE', 'PAST_DUE', 'UNPAID'] },
                   },
                   select: {
                     status: true,
@@ -89,21 +84,20 @@ export class RedisService {
       },
     });
 
-    if (user) {
+    if (account) {
       await this.set({
         key: cachedKey,
-        value: JSON.stringify(user),
+        value: JSON.stringify(account),
         ttlInSeconds: 60 * 60 * 24, // 1 day
       });
-
-      return user;
+      return account as unknown as CachedUserProps;
     }
 
     return null;
   }
 
-  async clearCurrentUserFromRequest({ userId }: { userId: string }) {
-    const cachedKey = `user:${userId}`;
+  async clearCurrentUserFromRequest({ accountId }: { accountId: string }) {
+    const cachedKey = `user:${accountId}`;
     return this.del({ key: cachedKey });
   }
 }

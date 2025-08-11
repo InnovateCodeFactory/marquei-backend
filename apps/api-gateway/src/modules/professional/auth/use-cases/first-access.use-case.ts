@@ -15,10 +15,10 @@ export class FirstAccessUseCase {
 
     // TODO: Implement logic to validate the mailRequestId
 
-    const update = await this.prismaService.user.update({
+    const update = await this.prismaService.authAccount.update({
       where: { id: userId },
       data: {
-        password: await this.hashingService.hash(newPassword),
+        password_hash: await this.hashingService.hash(newPassword),
         first_access: false,
         temporary_password: null,
       },

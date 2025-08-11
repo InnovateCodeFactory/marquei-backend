@@ -5,19 +5,24 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class GetBusinessByProfessionalUseCase {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async execute(currentUser: CurrentUser) {
-    const { id } = currentUser;
+    const { id: accountId } = currentUser; // id da AuthAccount
 
-    const business = await this.prismaService.business.findMany({
+    const businesses = await this.prisma.business.findMany({
       where: {
+        is_active: true,
         professionals: {
           some: {
-            userId: id,
+            // ProfessionalProfile -> Person -> PersonAccount -> AuthAccount(id)
+            person: {
+              personAccount: {
+                authAccountId: accountId,
+              },
+            },
           },
         },
-        is_active: true,
       },
       select: {
         id: true,
@@ -27,9 +32,9 @@ export class GetBusinessByProfessionalUseCase {
       },
     });
 
-    return business?.map((business) => ({
-      ...business,
-      initials: getInitials(business.name),
+    return businesses.map((b) => ({
+      ...b,
+      initials: getInitials(b.name),
     }));
   }
 }

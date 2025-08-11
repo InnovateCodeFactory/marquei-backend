@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { EnvSchemaType, envValidationSchema } from './environment';
@@ -11,6 +11,7 @@ import {
   TypedConfigService,
 } from './services';
 
+@Global()
 @Module({
   imports: [
     ConfigModule.forRoot({
