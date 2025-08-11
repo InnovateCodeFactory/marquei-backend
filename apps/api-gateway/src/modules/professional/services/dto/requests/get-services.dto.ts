@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNumberString, IsOptional } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNumberString, IsOptional, IsString } from 'class-validator';
 
 export class GetServicesDto {
   @IsNumberString()
@@ -19,4 +19,12 @@ export class GetServicesDto {
     example: '10',
   })
   limit?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'Search term to filter service by name',
+    example: 'haircut',
+  })
+  search?: string;
 }
