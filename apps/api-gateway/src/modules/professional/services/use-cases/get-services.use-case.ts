@@ -11,28 +11,50 @@ export class GetServicesUseCase {
   async execute(currentUser: CurrentUser, query: GetServicesDto) {
     if (!currentUser?.current_selected_business_slug)
       throw new BadRequestException('Nenhum negócio selecionado');
+
     const { current_selected_business_slug } = currentUser;
+    const { limit, page, search } = query;
 
-    const services = await this.prismaService.service.findMany({
-      where: {
-        business: {
-          slug: current_selected_business_slug,
+    const pageNumber = parseInt(page, 10) || 1;
+    const pageSize = parseInt(limit, 10) || 25;
+    const skip = (pageNumber - 1) * pageSize;
+
+    const whereClause: any = {
+      business: {
+        slug: currentUser.current_selected_business_slug,
+      },
+    };
+
+    if (search?.trim()) {
+      const terms = search.trim().split(/\s+/);
+
+      // aplica AND com contains para todas as palavras
+      whereClause.AND = terms.map((term) => ({
+        name: {
+          contains: term,
+          mode: 'insensitive',
         },
-      },
-      select: {
-        id: true,
-        name: true,
-        duration: true,
-        price_in_cents: true,
-      },
-      take: query.limit ? parseInt(query.limit) : undefined,
-      skip: query.page
-        ? (parseInt(query.page) - 1) *
-          (query.limit ? parseInt(query.limit) : 10)
-        : undefined,
-    });
+      }));
+    }
 
-    return services.map((service) => {
+    const [services, totalCount] = await Promise.all([
+      this.prismaService.service.findMany({
+        where: whereClause,
+        select: {
+          id: true,
+          name: true,
+          duration: true,
+          price_in_cents: true,
+        },
+        skip,
+        take: pageSize,
+      }),
+      this.prismaService.service.count({
+        where: whereClause,
+      }),
+    ]);
+
+    const servicesFormatted = services.map((service) => {
       const durationHours = Math.floor(service.duration / 60);
       const durationMinutes = service.duration % 60;
 
@@ -47,5 +69,17 @@ export class GetServicesUseCase {
         durationFormatted,
       };
     });
+
+    const hasMorePages = totalCount > skip + pageSize;
+
+    const obj = {
+      services: servicesFormatted,
+      totalCount,
+      page: pageNumber,
+      limit: pageSize,
+      hasMorePages,
+      totalPages: Math.ceil(totalCount / pageSize),
+    };
+    return obj;
   }
 }
