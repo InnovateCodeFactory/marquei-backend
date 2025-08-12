@@ -97,7 +97,7 @@ export class RedisService {
   }
 
   async clearCurrentUserFromRequest({ accountId }: { accountId: string }) {
-    const cachedKey = `user:${accountId}`;
+    const cachedKey = `account:${accountId}`;
     return this.del({ key: cachedKey });
   }
 }
