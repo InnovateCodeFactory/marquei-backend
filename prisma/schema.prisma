@@ -50,6 +50,13 @@ model Business {
   average_price           Float                     @default(0.0) // preço médio dos serviços
   stripe_customer_id      String? // ID do cliente no Stripe, se aplicável
   phone                   String?
+  zipCode                 String?
+  street                  String?
+  neighbourhood           String?
+  number                  String?
+  complement              String?
+  city                    String?
+  uf                      String?
   ownerId                 String
   owner                   User                      @relation("BusinessOwners", fields: [ownerId], references: [id])
   professionals           ProfessionalProfile[]
