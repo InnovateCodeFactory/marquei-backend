@@ -9,78 +9,45 @@ import { CreateCustomerDto } from '../dto/requests/create-customer.dto';
 
 @Injectable()
 export class CreateCustomerUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
   async execute(payload: CreateCustomerDto, currentUser: CurrentUser) {
     if (!currentUser?.current_selected_business_slug)
       throw new BadRequestException('Nenhum negócio selecionado');
 
-    const { current_selected_business_slug: slug } = currentUser;
+    const { current_selected_business_slug } = currentUser;
 
-    // 1) Checa duplicidade de contato no negócio (único por telefone)
-    const contactExists = await this.prisma.businessContact.findFirst({
+    const customerExists = await this.prismaService.customer.findFirst({
       where: {
         phone: payload.phone,
-        business: { slug },
+        business: {
+          slug: current_selected_business_slug,
+        },
       },
-      select: { id: true },
+      select: {
+        id: true,
+      },
     });
 
-    if (contactExists)
+    if (customerExists)
       throw new ConflictException('Cliente já cadastrado com este telefone');
 
-    // 2) Resolve o negócio
-    const business = await this.prisma.business.findUnique({
-      where: { slug },
-      select: { id: true },
-    });
-    if (!business) throw new BadRequestException('Negócio inválido');
-
-    // 3) Cria (ou reutiliza) Person/CustomerProfile e vincula BusinessContact
-    await this.prisma.$transaction(async (tx) => {
-      // Tenta achar Person por e-mail (se houver). Telefone não é único globalmente.
-      let person = payload.email
-        ? await tx.person.findUnique({ where: { email: payload.email } })
-        : null;
-
-      if (!person) {
-        person = await tx.person.create({
-          data: {
-            name: payload.name,
-            phone: payload.phone,
-            email: payload.email ?? null,
+    await this.prismaService.customer.create({
+      data: {
+        name: payload.name,
+        phone: payload.phone,
+        ...(payload.email && { email: payload.email }),
+        ...(payload.birthdate && { birthdate: payload.birthdate }),
+        ...(payload.notes && { notes: payload.notes }),
+        business: {
+          connect: {
+            slug: current_selected_business_slug,
           },
-        });
-      }
-
-      // CustomerProfile 1:1 com Person
-      let customerProfile = await tx.customerProfile.findUnique({
-        where: { personId: person.id },
-        select: { id: true },
-      });
-      if (!customerProfile) {
-        customerProfile = await tx.customerProfile.create({
-          data: {
-            personId: person.id,
-            birthdate: payload.birthdate ?? null,
-          },
-          select: { id: true },
-        });
-      }
-
-      // Contato local do negócio
-      await tx.businessContact.create({
-        data: {
-          businessId: business.id,
-          customerId: customerProfile.id,
-          name: payload.name,
-          phone: payload.phone,
-          email: payload.email ?? null,
-          notes: payload.notes ?? null,
-          verified: false,
         },
-        select: { id: true },
-      });
+      },
+      select: {
+        id: true,
+      },
     });
 
     return null;

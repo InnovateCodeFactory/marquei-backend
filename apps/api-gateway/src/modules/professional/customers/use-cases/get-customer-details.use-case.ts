@@ -6,11 +6,10 @@ import { GetCustomerDetailsDto } from '../dto/requests/get-customer-details.dto'
 
 @Injectable()
 export class GetCustomerDetailsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
   async execute({ id }: GetCustomerDetailsDto, user: CurrentUser) {
-    // id é do BusinessContact
-    const contact = await this.prisma.businessContact.findUnique({
+    const customer = await this.prismaService.customer.findUnique({
       where: { id },
       select: {
         name: true,
@@ -18,31 +17,31 @@ export class GetCustomerDetailsUseCase {
         phone: true,
         verified: true,
         created_at: true,
-        customerId: true, // para contar appointments
+        _count: {
+          select: {
+            Appointment: {
+              where: {
+                professional: {
+                  business_id: user.current_selected_business_id,
+                },
+              },
+            },
+          },
+        },
       },
     });
 
-    if (!contact) throw new NotFoundException('Cliente não encontrado');
+    if (!customer) throw new NotFoundException('Cliente não encontrado');
 
-    // conta appointments do perfil global (se houver) no negócio atual
-    const appointmentsCount = contact.customerId
-      ? await this.prisma.appointment.count({
-          where: {
-            customerProfileId: contact.customerId,
-            professional: {
-              business_id: user.current_selected_business_id,
-            },
-          },
-        })
-      : 0;
-
-    return {
-      name: contact.name,
-      email: contact.email,
-      phone: contact.phone,
-      verified: contact.verified,
-      appointments_count: String(appointmentsCount),
-      created_at: formatDate(contact.created_at, "dd 'de' MMM'.' 'de' yyyy"),
+    const obj = {
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+      verified: customer.verified,
+      appointments_count: customer._count.Appointment.toString(),
+      created_at: formatDate(customer.created_at, "dd 'de' MMM'.' 'de' yyyy"),
     };
+
+    return obj;
   }
 }

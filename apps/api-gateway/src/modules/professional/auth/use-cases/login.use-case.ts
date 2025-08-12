@@ -9,20 +9,22 @@ import { LoginDto } from '../dto/requests/login.dto';
 @Injectable()
 export class LoginUseCase {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly hashing: HashingService,
-    private readonly jwt: JwtService,
-    private readonly config: ConfigService<EnvSchemaType>,
+    private readonly prismaService: PrismaService,
+    private readonly hashingService: HashingService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService<EnvSchemaType>,
   ) {}
 
   async execute(loginDto: LoginDto) {
     const { password, username } = loginDto;
 
-    const account = await this.prisma.authAccount.findFirst({
-      where: { email: username },
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        email: username,
+      },
       select: {
         id: true,
-        password_hash: true,
+        password: true,
         first_access: true,
         CurrentSelectedBusiness: {
           select: {
@@ -38,32 +40,29 @@ export class LoginUseCase {
       },
     });
 
-    if (
-      !account ||
-      !(await this.hashing.compare(password, account.password_hash))
-    ) {
+    if (!user || !(await this.hashingService.compare(password, user?.password)))
       throw new BadRequestException('Credenciais inválidas');
-    }
-
-    const token = await this.jwt.signAsync(
-      { id: account.id },
-      {
-        secret: this.config.get('JWT_SECRET'),
-        expiresIn: '7d',
-      },
-    );
-
-    const current = account.CurrentSelectedBusiness?.[0]?.business;
 
     return {
-      token,
+      token: await this.jwtService.signAsync(
+        {
+          id: user.id,
+        },
+        {
+          secret: this.configService.get('JWT_SECRET'),
+          expiresIn: '7d',
+        },
+      ),
       user: {
-        is_the_owner: current ? current.ownerId === account.id : false,
-        ...(current?.slug && {
-          current_selected_business_slug: current.slug,
-          current_selected_business_name: current.name,
+        is_the_owner:
+          user.CurrentSelectedBusiness?.[0]?.business?.ownerId === user.id,
+        ...(user.CurrentSelectedBusiness?.[0]?.business?.slug && {
+          current_selected_business_slug:
+            user.CurrentSelectedBusiness[0].business.slug,
+          current_selected_business_name:
+            user.CurrentSelectedBusiness[0].business.name,
         }),
-        first_access: account.first_access,
+        first_access: user.first_access,
       },
     };
   }

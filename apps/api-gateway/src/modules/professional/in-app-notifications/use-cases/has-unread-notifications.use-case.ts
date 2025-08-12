@@ -4,35 +4,33 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class HasUnreadNotificationsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
   async execute(user: CurrentUser) {
-    const professionalProfile = await this.prisma.professionalProfile.findFirst(
-      {
+    const professionalProfile =
+      await this.prismaService.professionalProfile.findFirst({
         where: {
+          userId: user.id,
           business_id: user.current_selected_business_id,
-          person: {
-            personAccount: {
-              authAccountId: user.id,
-            },
-          },
         },
-        select: { id: true },
-      },
-    );
+        select: {
+          id: true,
+        },
+      });
 
-    if (!professionalProfile) {
+    if (!professionalProfile)
       throw new NotFoundException('Perfil profissional não encontrado');
-    }
 
-    const unread = await this.prisma.inAppNotification.count({
-      where: {
-        professionalProfileId: professionalProfile.id,
-        read: false,
-        // opcional: is_visible: true,
-      },
-    });
+    const unreadNotifications =
+      await this.prismaService.inAppNotification.count({
+        where: {
+          professionalProfileId: professionalProfile.id,
+          read: false,
+        },
+      });
 
-    return { has_unread_notifications: unread > 0 };
+    return {
+      has_unread_notifications: unreadNotifications > 0,
+    };
   }
 }

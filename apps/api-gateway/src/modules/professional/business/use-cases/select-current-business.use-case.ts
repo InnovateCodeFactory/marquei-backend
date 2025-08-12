@@ -7,46 +7,44 @@ import { SelectCurrentBusinessDto } from '../dto/requests/select-current-busines
 @Injectable()
 export class SelectCurrentBusinessUseCase {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prismaService: PrismaService,
     private readonly redis: RedisService,
   ) {}
 
   async execute(payload: SelectCurrentBusinessDto, user: CurrentUser) {
     const { current_selected_business_slug } = payload;
-    const accountId = user.id; // id da AuthAccount
 
-    const business = await this.prisma.business.findFirst({
+    const isUserInBusiness = await this.prismaService.business.findFirst({
       where: {
         slug: current_selected_business_slug,
         professionals: {
           some: {
-            person: {
-              personAccount: {
-                authAccountId: accountId,
-              },
-            },
+            userId: user.id,
           },
         },
       },
-      select: { id: true },
+      select: {
+        id: true,
+      },
     });
 
-    if (!business) throw new NotFoundException('Business not found');
+    if (!isUserInBusiness) throw new NotFoundException('Business not found');
 
     await Promise.all([
-      this.prisma.currentSelectedBusiness.upsert({
-        where: { accountId }, // UNIQUE
+      this.prismaService.currentSelectedBusiness.upsert({
+        where: {
+          userId: user.id,
+        },
         create: {
-          accountId,
-          businessId: business.id,
+          userId: user.id,
+          businessId: isUserInBusiness.id,
         },
         update: {
-          businessId: business.id,
+          businessId: isUserInBusiness.id,
         },
       }),
-      // ajuste o método do Redis para aceitar accountId
       this.redis.clearCurrentUserFromRequest({
-        accountId,
+        userId: user.id,
       }),
     ]);
 

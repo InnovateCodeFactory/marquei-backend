@@ -8,72 +8,77 @@ import { GetCustomerDetailsDto } from '../dto/requests/get-customer-details.dto'
 
 @Injectable()
 export class GetCustomerAppointmentsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
   async execute({ id }: GetCustomerDetailsDto, user: CurrentUser) {
-    // id é do BusinessContact
-    const contact = await this.prisma.businessContact.findUnique({
+    const appointments = await this.prismaService.customer.findUnique({
       where: { id },
-      select: { customerId: true },
-    });
-
-    if (!contact) throw new NotFoundException('Cliente não encontrado');
-
-    if (!contact.customerId) {
-      // contato ainda não tem perfil global
-      return [];
-    }
-
-    const appointments = await this.prisma.appointment.findMany({
-      where: {
-        customerProfileId: contact.customerId,
-        professional: {
-          business_id: user.current_selected_business_id,
-        },
-      },
-      orderBy: { created_at: 'desc' },
       select: {
-        id: true,
-        status: true,
-        scheduled_at: true,
-        service: {
-          select: { name: true, price_in_cents: true, duration: true },
-        },
-        professional: {
+        Appointment: {
+          where: {
+            professional: {
+              business_id: user.current_selected_business_id,
+            },
+          },
+          orderBy: {
+            created_at: 'desc',
+          },
           select: {
-            person: { select: { name: true } },
+            id: true,
+            status: true,
+            scheduled_at: true,
+            service: {
+              select: {
+                name: true,
+                price_in_cents: true,
+                duration: true,
+              },
+            },
+            professional: {
+              select: {
+                User: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
     });
 
-    return appointments.map((a) => {
-      const scheduledAtWithTimezone = addHours(a.scheduled_at, 3);
+    if (!appointments) throw new NotFoundException('Cliente não encontrado');
+
+    const arr = appointments.Appointment?.map((appointment) => {
+      const scheduledAtWithTimezone = addHours(appointment.scheduled_at, 3);
       const hourStart = formatDate(scheduledAtWithTimezone, 'HH:mm');
 
       const scheduledEnd = addMinutes(
         scheduledAtWithTimezone,
-        a.service.duration,
+        appointment.service.duration,
       );
       const hourEnd = formatDate(scheduledEnd, 'HH:mm');
 
       return {
-        id: a.id,
-        status: a.status,
+        id: appointment.id,
+        status: appointment.status,
         date: {
-          day: formatDate(a.scheduled_at, 'dd'),
-          month: formatDate(a.scheduled_at, 'MMM'),
+          day: formatDate(appointment.scheduled_at, 'dd'),
+          month: formatDate(appointment.scheduled_at, 'MMM'),
           hour: hourStart,
           hour_end: hourEnd,
         },
         service: {
-          name: a.service.name,
-          price: new Price(a.service.price_in_cents).toCurrency(),
+          name: appointment.service.name,
+          price: new Price(appointment.service.price_in_cents).toCurrency(),
         },
         professional: {
-          name: getTwoNames(a.professional.person.name),
+          name: getTwoNames(appointment.professional.User.name),
         },
       };
     });
+
+    return arr;
   }
 }

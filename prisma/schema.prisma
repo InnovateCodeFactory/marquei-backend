@@ -1,6 +1,3 @@
-// ==============================
-// Generator & Datasource
-// ==============================
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
@@ -13,9 +10,341 @@ datasource db {
   extensions        = [postgis()]
 }
 
-// ==============================
-// Enums (mantidos do original)
-// ==============================
+model User {
+  id                      String                    @id @default(cuid())
+  email                   String                    @unique
+  password                String
+  temporary_password      String? // usado para reset de senha
+  first_access            Boolean                   @default(false)
+  name                    String
+  document_number         String?
+  user_type               UserType
+  businesses              Business[]                @relation("BusinessOwners")
+  professional_profile    ProfessionalProfile[]
+  created_at              DateTime                  @default(now())
+  updated_at              DateTime                  @updatedAt
+  Customer                Customer?
+  CurrentSelectedBusiness CurrentSelectedBusiness[]
+
+  @@index([email], name: "idx_user_email")
+}
+
+model Business {
+  id                      String                    @id @default(cuid())
+  name                    String
+  slug                    String                    @unique
+  description             String?
+  logo                    String?
+  coverImage              String?
+  latitude                Float // Latitude para localização
+  longitude               Float // Longitude para localização
+  opening_hours           Json
+  website                 String?
+  instagram               String?
+  email                   String?
+  is_active               Boolean                   @default(true)
+  is_verified             Boolean                   @default(false)
+  is_featured             Boolean                   @default(false)
+  rating                  Float                     @default(0.0)
+  reviews_count           Int                       @default(0)
+  average_price           Float                     @default(0.0) // preço médio dos serviços
+  stripe_customer_id      String? // ID do cliente no Stripe, se aplicável
+  phone                   String?
+  ownerId                 String
+  owner                   User                      @relation("BusinessOwners", fields: [ownerId], references: [id])
+  professionals           ProfessionalProfile[]
+  services                Service[]
+  created_at              DateTime                  @default(now())
+  updated_at              DateTime                  @updatedAt
+  Customer                Customer[]
+  BusinessCategory        BusinessCategory?         @relation(fields: [businessCategoryId], references: [id])
+  businessCategoryId      String?
+  BusinessServiceType     BusinessServiceType?      @relation(fields: [businessServiceTypeId], references: [id])
+  businessServiceTypeId   String?
+  BusinessSubscription    BusinessSubscription[]
+  CurrentSelectedBusiness CurrentSelectedBusiness[]
+  ProfessionalStatement   ProfessionalStatement[]
+
+  @@index([slug], name: "idx_business_slug")
+  @@index([ownerId], name: "idx_business_owner")
+  @@index([businessCategoryId], name: "idx_business_category")
+  @@index([businessServiceTypeId], name: "idx_business_service_type")
+}
+
+model CurrentSelectedBusiness {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  businessId String
+  user       User     @relation(fields: [userId], references: [id])
+  business   Business @relation(fields: [businessId], references: [id])
+
+  @@index([userId], name: "idx_current_selected_business_user")
+  @@index([businessId], name: "idx_current_selected_business_business")
+}
+
+model Service {
+  id             String                @id @default(cuid())
+  name           String
+  duration       Int // Minutos
+  price_in_cents Int // preço padrão do serviço
+  businessId     String
+  business       Business              @relation(fields: [businessId], references: [id])
+  appointments   Appointment[]
+  professionals  ProfessionalService[] // relação com a pivot
+
+  @@unique([name, businessId]) // evita duplicidade de serviços no mesmo negócio
+  @@index([name], name: "idx_service_name")
+  @@index([businessId], name: "idx_service_business")
+}
+
+model ProfessionalProfile {
+  id String @id @default(cuid())
+
+  business_id   String
+  business      Business              @relation(fields: [business_id], references: [id])
+  services      ProfessionalService[] // relação com a pivot
+  bio           String?
+  phone         String?
+  profile_image String?
+
+  status                ProfessionalStatus      @default(ACTIVE) // status do profissional
+  created_at            DateTime                @default(now())
+  updated_at            DateTime                @updatedAt
+  rating                Float                   @default(0.0)
+  reviewsCount          Int                     @default(0)
+  averagePrice          Float                   @default(0.0) // preço médio dos serviços oferecidos
+  //availability Json?             // JSON com horários disponíveis (ex: {"Monday": ["09:00", "17:00"], "Tuesday": ["10:00", "18:00"]})
+  User                  User?                   @relation(fields: [userId], references: [id])
+  userId                String?
+  in_app_notification   InAppNotification[]
+  Appointment           Appointment[]
+  ProfessionalStatement ProfessionalStatement[]
+
+  @@index([business_id], name: "idx_professional_business")
+  @@index([userId], name: "idx_professional_user")
+}
+
+model ProfessionalService {
+  id                      String  @id @default(cuid())
+  professional_profile_id String
+  service_id              String
+  custom_price            Float? // se diferente do padrão
+  active                  Boolean @default(true)
+  order                   Int? // para ordenação opcional
+
+  professional_profile ProfessionalProfile @relation(fields: [professional_profile_id], references: [id])
+  service              Service             @relation(fields: [service_id], references: [id])
+
+  @@unique([professional_profile_id, service_id]) // evita duplicidade
+  @@index([professional_profile_id], name: "idx_professional_service_profile")
+  @@index([service_id], name: "idx_professional_service_service")
+}
+
+model ProfessionalStatement {
+  id             String        @id @default(cuid())
+  type           StatementType
+  description    String
+  value_in_cents Int
+  created_at     DateTime      @default(now())
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  professional_profile  ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
+  professionalProfileId String
+
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  appointmentId String?
+  businessId    String
+
+  @@index([professionalProfileId], name: "idx_professional_statement_profile")
+  @@index([businessId], name: "idx_professional_statement_business")
+}
+
+model Appointment {
+  id           String            @id @default(cuid())
+  service_id   String
+  scheduled_at DateTime
+  status       AppointmentStatus
+  notes        String?
+  customer     Customer          @relation(fields: [customerId], references: [id])
+
+  professional ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
+  service      Service             @relation(fields: [service_id], references: [id])
+
+  created_at            DateTime                @default(now())
+  updated_at            DateTime                @updatedAt
+  customerId            String
+  professionalProfileId String
+  ProfessionalStatement ProfessionalStatement[]
+
+  @@index([service_id], name: "idx_appointment_service")
+  @@index([professionalProfileId, scheduled_at], name: "idx_professional_date")
+}
+
+model Customer {
+  id         String   @id @default(cuid())
+  name       String
+  phone      String
+  email      String?
+  verified   Boolean  @default(false) // se tem ou não conta no app
+  birthdate  String? // opcional, data de nascimento (1990-01-01)
+  notes      String? // notas internas sobre o cliente
+  userId     String?  @unique // opcional: se for cliente real registrado
+  user       User?    @relation(fields: [userId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+  Appointment Appointment[]
+
+  @@index([businessId], name: "idx_customer_business")
+  @@index([userId], name: "idx_customer_user")
+}
+
+model BusinessCategory {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  businesses  Business[]
+
+  @@index([name], name: "idx_business_category_name")
+}
+
+model BusinessServiceType {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  businesses  Business[]
+
+  @@index([name], name: "idx_business_service_type_name")
+}
+
+model InAppNotification {
+  id                    String              @id @default(cuid())
+  title                 String
+  message               String
+  read                  Boolean             @default(false)
+  is_visible            Boolean             @default(true)
+  // type                 String // tipo da notificação (ex: "appointment", "message", etc.)
+  professional_profile  ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
+  created_at            DateTime            @default(now())
+  updated_at            DateTime            @updatedAt
+  professionalProfileId String
+
+  @@index([professionalProfileId], name: "idx_notification_professional")
+  @@index([created_at], name: "idx_notification_created_at")
+  @@index([is_visible], name: "idx_notification_visible")
+}
+
+model Plan {
+  id              String        @id @default(cuid())
+  name            String
+  description     String?
+  stripeProductId String
+  stripePriceId   String        @unique // ID do preço no Stripe (price_xxxxx)
+  price_in_cents  Int
+  billing_period  BillingPeriod @default(MONTHLY) // mensal, anual...
+  is_active       Boolean       @default(true)
+  showing_order   Int? // para ordenação na exibição
+
+  businesses BusinessSubscription[]
+
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+  PlanBenefit PlanBenefit[]
+
+  @@index([stripeProductId])
+  @@index([stripePriceId])
+}
+
+model PlanBenefit {
+  id          String     @id @default(cuid())
+  planId      String
+  key         BenefitKey
+  order       Int? // ajuda a manter a ordem de exibição
+  stringValue String? // “Starter”, “Avançado”, “Ilimitado”…
+  intValue    Int? // 1, 5, 10…
+  boolValue   Boolean? // ✓ / ✗
+  created_at  DateTime   @default(now())
+
+  plan Plan @relation(fields: [planId], references: [id])
+
+  @@unique([planId, key]) // um único valor por chave em cada plano
+  @@index([planId])
+}
+
+model BusinessSubscription {
+  id                   String             @id @default(cuid())
+  businessId           String
+  planId               String
+  stripeCustomerId     String
+  stripeSubscriptionId String? // subscription_id do Stripe
+  status               SubscriptionStatus @default(ACTIVE)
+  current_period_start DateTime?
+  current_period_end   DateTime?
+  cancel_at_period_end Boolean            @default(false)
+
+  business               Business              @relation(fields: [businessId], references: [id])
+  plan                   Plan                  @relation(fields: [planId], references: [id])
+  subscription_histories SubscriptionHistory[]
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  Payment    Payment[]
+
+  @@index([businessId])
+  @@index([stripeCustomerId])
+}
+
+model SubscriptionHistory {
+  id                     String             @id @default(cuid())
+  businessSubscriptionId String
+  action                 SubscriptionAction
+  previousPlanId         String? // caso tenha vindo de outro plano
+  newPlanId              String? // novo plano
+  actionDate             DateTime           @default(now())
+  reason                 String? // opcional, motivo da mudança
+
+  businessSubscription BusinessSubscription @relation(fields: [businessSubscriptionId], references: [id])
+
+  @@index([businessSubscriptionId])
+}
+
+model Payment {
+  id                     String        @id @default(cuid())
+  businessSubscriptionId String
+  stripeInvoiceId        String        @unique
+  amount_paid_in_cents   Int
+  currency               String
+  paid_at                DateTime
+  status                 PaymentStatus
+
+  businessSubscription BusinessSubscription @relation(fields: [businessSubscriptionId], references: [id])
+
+  created_at DateTime @default(now())
+
+  @@index([businessSubscriptionId])
+  @@index([stripeInvoiceId])
+}
+
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  event_id    String   @unique
+  type        String
+  payload     Json
+  received_at DateTime @default(now())
+
+  @@index([event_id])
+  @@index([type])
+}
+
+enum UserType {
+  ADMIN
+  CUSTOMER
+  PROFESSIONAL
+}
+
 enum AppointmentStatus {
   PENDING
   CONFIRMED
@@ -70,436 +399,4 @@ enum BenefitKey {
 enum StatementType {
   INCOME
   OUTCOME
-}
-
-// ==============================
-// Autenticação & Pessoas
-// ==============================
-
-/// Conta autenticável (credenciais)
-model AuthAccount {
-  id                 String   @id @default(cuid())
-  email              String   @unique
-  password_hash      String
-  temporary_password String? // usado para reset de senha
-  first_access       Boolean  @default(false)
-  is_active          Boolean  @default(true)
-  created_at         DateTime @default(now())
-  updated_at         DateTime @updatedAt
-
-  // Relacionamentos
-  personAccount   PersonAccount?
-  ownedBusinesses Business[]     @relation("BusinessOwners")
-
-  CurrentSelectedBusiness CurrentSelectedBusiness[]
-
-  @@index([email], name: "idx_auth_email")
-}
-
-/// Representa a pessoa (dados civis comuns)
-model Person {
-  id         String   @id @default(cuid())
-  name       String
-  email      String?  @unique
-  phone      String?
-  document   String?
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  // Perfis
-  professionalProfile ProfessionalProfile?
-  customerProfile     CustomerProfile?
-
-  // Vínculo opcional com conta autenticável
-  personAccount PersonAccount?
-
-  @@index([email], name: "idx_person_email")
-}
-
-/// Liga 1:1 Person ↔ AuthAccount (quando a pessoa possui login)
-model PersonAccount {
-  id            String   @id @default(cuid())
-  personId      String   @unique
-  authAccountId String   @unique
-  linked_at     DateTime @default(now())
-
-  person      Person      @relation(fields: [personId], references: [id])
-  authAccount AuthAccount @relation(fields: [authAccountId], references: [id])
-
-  @@index([authAccountId], name: "idx_person_account_auth")
-  @@index([personId], name: "idx_person_account_person")
-}
-
-// ==============================
-// Domínio: Negócio, Perfis e Contatos
-// ==============================
-
-model Business {
-  id          String  @id @default(cuid())
-  name        String
-  slug        String  @unique
-  description String?
-  logo        String?
-  coverImage  String?
-
-  latitude  Float?
-  longitude Float?
-
-  opening_hours Json
-  website       String?
-  instagram     String?
-  email         String?
-  phone         String?
-
-  zipCode       String?
-  street        String?
-  neighbourhood String?
-  number        String?
-  complement    String?
-  city          String?
-  uf            String?
-
-  is_active     Boolean @default(true)
-  is_verified   Boolean @default(false)
-  is_featured   Boolean @default(false)
-  rating        Float   @default(0.0)
-  reviews_count Int     @default(0)
-  average_price Float   @default(0.0)
-
-  stripe_customer_id String?
-
-  ownerId String
-  owner   AuthAccount @relation("BusinessOwners", fields: [ownerId], references: [id])
-
-  professionals         ProfessionalProfile[]
-  services              Service[]
-  businessContacts      BusinessContact[]
-  CustomerProfile       CustomerProfile[] // clientes (perfil) que já se relacionaram com este negócio (opcional conforme o seu fluxo)
-  BusinessCategory      BusinessCategory?     @relation(fields: [businessCategoryId], references: [id])
-  businessCategoryId    String?
-  BusinessServiceType   BusinessServiceType?  @relation(fields: [businessServiceTypeId], references: [id])
-  businessServiceTypeId String?
-
-  BusinessSubscription    BusinessSubscription[]
-  ProfessionalStatement   ProfessionalStatement[]
-  CurrentSelectedBusiness CurrentSelectedBusiness[]
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  @@index([slug], name: "idx_business_slug")
-  @@index([ownerId], name: "idx_business_owner")
-  @@index([businessCategoryId], name: "idx_business_category")
-  @@index([businessServiceTypeId], name: "idx_business_service_type")
-}
-
-/// Perfil de profissional (extende Person)
-model ProfessionalProfile {
-  id          String @id @default(cuid())
-  personId    String @unique
-  business_id String
-
-  bio           String?
-  phone         String?
-  profile_image String?
-
-  status       ProfessionalStatus @default(ACTIVE)
-  created_at   DateTime           @default(now())
-  updated_at   DateTime           @updatedAt
-  rating       Float              @default(0.0)
-  reviewsCount Int                @default(0)
-  averagePrice Float              @default(0.0)
-
-  person   Person   @relation(fields: [personId], references: [id])
-  business Business @relation(fields: [business_id], references: [id])
-
-  services              ProfessionalService[] // pivot
-  in_app_notification   InAppNotification[]
-  Appointment           Appointment[]
-  ProfessionalStatement ProfessionalStatement[]
-
-  @@index([business_id], name: "idx_professional_business")
-}
-
-/// Perfil de cliente (extende Person)
-model CustomerProfile {
-  id         String   @id @default(cuid())
-  personId   String   @unique
-  birthdate  String? // (1990-01-01) se quiser manter string
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  person Person @relation(fields: [personId], references: [id])
-
-  // relacionamento com negócios via contatos
-  businessContacts BusinessContact[]
-  Appointment      Appointment[]
-  Business         Business?         @relation(fields: [businessId], references: [id])
-  businessId       String?
-}
-
-/// Contato do negócio (CRM local). Pode ou não referenciar um CustomerProfile global.
-model BusinessContact {
-  id         String  @id @default(cuid())
-  businessId String
-  customerId String? // opcional
-  name       String
-  phone      String
-  email      String?
-  notes      String?
-  verified   Boolean @default(false)
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  business Business         @relation(fields: [businessId], references: [id])
-  customer CustomerProfile? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-
-  @@unique([businessId, phone], name: "uniq_contact_business_phone")
-  @@index([businessId], name: "idx_contact_business")
-  @@index([businessId, email], name: "idx_contact_business_email")
-}
-
-// ==============================
-// Seleção de negócio (conta ↔ negócio)
-// ==============================
-model CurrentSelectedBusiness {
-  id         String @id @default(cuid())
-  accountId  String @unique
-  businessId String
-
-  account  AuthAccount @relation(fields: [accountId], references: [id])
-  business Business    @relation(fields: [businessId], references: [id])
-
-  @@index([accountId], name: "idx_current_selected_business_account")
-  @@index([businessId], name: "idx_current_selected_business_business")
-}
-
-// ==============================
-// Serviços & Agendamentos
-// ==============================
-model Service {
-  id             String @id @default(cuid())
-  name           String
-  duration       Int // Minutos
-  price_in_cents Int // preço padrão do serviço
-  businessId     String
-
-  business      Business              @relation(fields: [businessId], references: [id])
-  appointments  Appointment[]
-  professionals ProfessionalService[] // relação pivot
-
-  @@unique([name, businessId])
-  @@index([name], name: "idx_service_name")
-  @@index([businessId], name: "idx_service_business")
-}
-
-model ProfessionalService {
-  id                      String  @id @default(cuid())
-  professional_profile_id String
-  service_id              String
-  custom_price            Float? // se diferente do padrão
-  active                  Boolean @default(true)
-  order                   Int? // para ordenação opcional
-
-  professional_profile ProfessionalProfile @relation(fields: [professional_profile_id], references: [id])
-  service              Service             @relation(fields: [service_id], references: [id])
-
-  @@unique([professional_profile_id, service_id])
-  @@index([professional_profile_id], name: "idx_professional_service_profile")
-  @@index([service_id], name: "idx_professional_service_service")
-}
-
-model Appointment {
-  id           String            @id @default(cuid())
-  service_id   String
-  scheduled_at DateTime
-  status       AppointmentStatus
-  notes        String?
-
-  // NOVO: agora aponta para CustomerProfile
-  customerProfileId     String
-  professionalProfileId String
-
-  service      Service             @relation(fields: [service_id], references: [id])
-  customer     CustomerProfile     @relation(fields: [customerProfileId], references: [id])
-  professional ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
-
-  created_at            DateTime                @default(now())
-  updated_at            DateTime                @updatedAt
-  ProfessionalStatement ProfessionalStatement[]
-
-  @@index([service_id], name: "idx_appointment_service")
-  @@index([professionalProfileId, scheduled_at], name: "idx_professional_date")
-  @@index([customerProfileId], name: "idx_customer_profile")
-}
-
-// ==============================
-// Financeiro do Profissional (lançamentos internos)
-// ==============================
-model ProfessionalStatement {
-  id             String        @id @default(cuid())
-  type           StatementType
-  description    String
-  value_in_cents Int
-  created_at     DateTime      @default(now())
-
-  businessId            String
-  professionalProfileId String
-  appointmentId         String?
-
-  business             Business            @relation(fields: [businessId], references: [id])
-  professional_profile ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
-  appointment          Appointment?        @relation(fields: [appointmentId], references: [id])
-
-  @@index([professionalProfileId], name: "idx_professional_statement_profile")
-  @@index([businessId], name: "idx_professional_statement_business")
-}
-
-// ==============================
-// Notificações in-app para profissionais
-// ==============================
-model InAppNotification {
-  id                    String   @id @default(cuid())
-  title                 String
-  message               String
-  read                  Boolean  @default(false)
-  is_visible            Boolean  @default(true)
-  professionalProfileId String
-  created_at            DateTime @default(now())
-  updated_at            DateTime @updatedAt
-
-  professional_profile ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
-
-  @@index([professionalProfileId], name: "idx_notification_professional")
-  @@index([created_at], name: "idx_notification_created_at")
-  @@index([is_visible], name: "idx_notification_visible")
-}
-
-// ==============================
-// Classificações do negócio
-// ==============================
-model BusinessCategory {
-  id          String     @id @default(cuid())
-  name        String     @unique
-  description String?
-  businesses  Business[]
-
-  @@index([name], name: "idx_business_category_name")
-}
-
-model BusinessServiceType {
-  id          String     @id @default(cuid())
-  name        String     @unique
-  description String?
-  businesses  Business[]
-
-  @@index([name], name: "idx_business_service_type_name")
-}
-
-// ==============================
-// Planos, Assinaturas e Pagamentos (Stripe)
-// ==============================
-model Plan {
-  id              String        @id @default(cuid())
-  name            String
-  description     String?
-  stripeProductId String
-  stripePriceId   String        @unique
-  price_in_cents  Int
-  billing_period  BillingPeriod @default(MONTHLY)
-  is_active       Boolean       @default(true)
-  showing_order   Int?
-
-  businesses  BusinessSubscription[]
-  created_at  DateTime               @default(now())
-  updated_at  DateTime               @updatedAt
-  PlanBenefit PlanBenefit[]
-
-  @@index([stripeProductId])
-  @@index([stripePriceId])
-}
-
-model PlanBenefit {
-  id          String     @id @default(cuid())
-  planId      String
-  key         BenefitKey
-  order       Int?
-  stringValue String?
-  intValue    Int?
-  boolValue   Boolean?
-  created_at  DateTime   @default(now())
-
-  plan Plan @relation(fields: [planId], references: [id])
-
-  @@unique([planId, key])
-  @@index([planId])
-}
-
-model BusinessSubscription {
-  id                   String             @id @default(cuid())
-  businessId           String
-  planId               String
-  stripeCustomerId     String
-  stripeSubscriptionId String?
-  status               SubscriptionStatus @default(ACTIVE)
-  current_period_start DateTime?
-  current_period_end   DateTime?
-  cancel_at_period_end Boolean            @default(false)
-
-  business               Business              @relation(fields: [businessId], references: [id])
-  plan                   Plan                  @relation(fields: [planId], references: [id])
-  subscription_histories SubscriptionHistory[]
-  Payment                Payment[]
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  @@index([businessId])
-  @@index([stripeCustomerId])
-}
-
-model SubscriptionHistory {
-  id                     String             @id @default(cuid())
-  businessSubscriptionId String
-  action                 SubscriptionAction
-  previousPlanId         String?
-  newPlanId              String?
-  actionDate             DateTime           @default(now())
-  reason                 String?
-
-  businessSubscription BusinessSubscription @relation(fields: [businessSubscriptionId], references: [id])
-
-  @@index([businessSubscriptionId])
-}
-
-model Payment {
-  id                     String        @id @default(cuid())
-  businessSubscriptionId String
-  stripeInvoiceId        String        @unique
-  amount_paid_in_cents   Int
-  currency               String
-  paid_at                DateTime
-  status                 PaymentStatus
-
-  businessSubscription BusinessSubscription @relation(fields: [businessSubscriptionId], references: [id])
-
-  created_at DateTime @default(now())
-
-  @@index([businessSubscriptionId])
-  @@index([stripeInvoiceId])
-}
-
-// ==============================
-// Webhooks (Stripe ou outros)
-// ==============================
-model WebhookEvent {
-  id          String   @id @default(cuid())
-  event_id    String   @unique
-  type        String
-  payload     Json
-  received_at DateTime @default(now())
-
-  @@index([event_id])
-  @@index([type])
 }
