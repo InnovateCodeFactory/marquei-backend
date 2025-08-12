@@ -13,7 +13,7 @@ import { addHours, addMinutes } from 'date-fns';
 
 @Injectable()
 export class GetAppointmentsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
   async execute(currentUser: CurrentUser) {
     if (!currentUser?.current_selected_business_id)
@@ -21,18 +21,15 @@ export class GetAppointmentsUseCase {
         'You must select a business to view appointments.',
       );
 
-    // Agora encontramos o perfil profissional pela AuthAccount -> PersonAccount -> Person
     const currentProfessionalProfile =
-      await this.prisma.professionalProfile.findFirst({
+      await this.prismaService.professionalProfile.findFirst({
         where: {
+          userId: currentUser.id,
           business_id: currentUser.current_selected_business_id,
-          person: {
-            personAccount: {
-              authAccountId: currentUser.id, // id da AuthAccount no JWT
-            },
-          },
         },
-        select: { id: true },
+        select: {
+          id: true,
+        },
       });
 
     if (!currentProfessionalProfile)
@@ -40,16 +37,33 @@ export class GetAppointmentsUseCase {
         'You must have a professional profile to view appointments.',
       );
 
-    const appointments = await this.prisma.appointment.findMany({
+    const appointments = await this.prismaService.appointment.findMany({
       where: {
         professionalProfileId: currentProfessionalProfile.id,
-        status: { in: ['CONFIRMED', 'PENDING'] },
+        status: {
+          in: ['CONFIRMED', 'PENDING'],
+        },
       },
       select: {
         id: true,
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+          },
+        },
         notes: true,
+        professional: {
+          select: {
+            User: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
         scheduled_at: true,
-        status: true,
         service: {
           select: {
             id: true,
@@ -58,72 +72,59 @@ export class GetAppointmentsUseCase {
             price_in_cents: true,
           },
         },
-        customer: {
-          // CustomerProfile -> Person (pega name/phone do cliente)
-          select: {
-            id: true,
-            person: {
-              select: {
-                name: true,
-                phone: true,
-              },
-            },
-          },
-        },
-        professional: {
-          // ProfessionalProfile -> Person (pega nome do profissional)
-          select: {
-            person: {
-              select: { name: true },
-            },
-          },
-        },
+        status: true,
       },
     });
 
-    const formatted = appointments.map((a) => {
-      // mantendo o offset +3h que você já aplicava
-      const scheduledAtWithTimezone = addHours(a.scheduled_at, 3);
+    const formattedAppointments = appointments.map((appointment) => {
+      const scheduledAtWithTimezone = addHours(appointment.scheduled_at, 3);
       const hourStart = formatDate(scheduledAtWithTimezone, 'HH:mm');
 
       const scheduledEnd = addMinutes(
         scheduledAtWithTimezone,
-        a.service.duration,
+        appointment.service.duration,
       );
       const hourEnd = formatDate(scheduledEnd, 'HH:mm');
 
       return {
-        id: a.id,
+        id: appointment.id,
         customer: {
-          id: a.customer.id,
-          name: a.customer.person.name,
-          phone: formatPhoneNumber(a.customer.person.phone),
+          id: appointment.customer.id,
+          name: appointment.customer.name,
+          phone: formatPhoneNumber(appointment.customer.phone),
         },
-        notes: a.notes,
+        notes: appointment.notes,
         professional: {
-          name: getTwoNames(a.professional.person.name),
+          name: getTwoNames(appointment.professional.User.name),
         },
-        start_date: addHours(a.scheduled_at, 3),
+        start_date: addHours(appointment.scheduled_at, 3),
         end_date: addHours(
-          new Date(a.scheduled_at.getTime() + a.service.duration * 60 * 1000),
+          new Date(
+            appointment.scheduled_at.getTime() +
+              appointment.service.duration * 60 * 1000, // duration in minutes
+          ),
           3,
         ),
         date: {
-          day: formatDate(a.scheduled_at, 'dd'),
-          month: formatDate(a.scheduled_at, 'MMM'),
+          day: formatDate(appointment.scheduled_at, 'dd'),
+          month: formatDate(appointment.scheduled_at, 'MMM'),
           hour: hourStart,
           hour_end: hourEnd,
         },
         service: {
-          id: a.service.id,
-          name: a.service.name,
-          duration: formatDuration(Number(a.service.duration), 'short'),
-          price_in_formatted: new Price(a.service.price_in_cents).toCurrency(),
+          id: appointment.service.id,
+          name: appointment.service.name,
+          duration: formatDuration(
+            Number(appointment.service.duration),
+            'short',
+          ),
+          price_in_formatted: new Price(
+            appointment.service.price_in_cents,
+          ).toCurrency(),
         },
-        status: formatAppointmentStatus(a.status),
+        status: formatAppointmentStatus(appointment.status),
       };
     });
-
-    return formatted;
+    return formattedAppointments;
   }
 }

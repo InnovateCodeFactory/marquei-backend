@@ -6,7 +6,6 @@ import { ClientModule } from './modules/client/client.module';
 import { PlansModule } from './modules/professional/plans/plans.module';
 import { ProfessionalModule } from './modules/professional/professional.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
-import { SeedModule } from './seed/seed.module';
 
 @Module({
   imports: [
@@ -15,7 +14,6 @@ import { SeedModule } from './seed/seed.module';
     ClientModule,
     WebhooksModule,
     PlansModule,
-    SeedModule,
   ],
   providers: [
     {

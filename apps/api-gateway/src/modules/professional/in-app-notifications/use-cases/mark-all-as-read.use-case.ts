@@ -1,36 +1,35 @@
 import { PrismaService } from '@app/shared';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class MarkAllInAppNotificationsAsReadUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
   async execute(user: CurrentUser) {
-    const professionalProfile = await this.prisma.professionalProfile.findFirst(
-      {
+    const professionalProfile =
+      await this.prismaService.professionalProfile.findFirst({
         where: {
+          userId: user.id,
           business_id: user.current_selected_business_id,
-          person: {
-            personAccount: {
-              authAccountId: user.id,
-            },
-          },
         },
-        select: { id: true },
-      },
-    );
+        select: {
+          id: true,
+        },
+      });
 
     if (!professionalProfile) {
-      throw new NotFoundException('Perfil profissional não encontrado');
+      throw new Error('Perfil profissional não encontrado');
     }
 
-    await this.prisma.inAppNotification.updateMany({
+    await this.prismaService.inAppNotification.updateMany({
       where: {
         professionalProfileId: professionalProfile.id,
         read: false,
       },
-      data: { read: true },
+      data: {
+        read: true,
+      },
     });
 
     return null;

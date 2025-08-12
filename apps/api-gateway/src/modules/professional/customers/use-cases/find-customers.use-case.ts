@@ -5,7 +5,7 @@ import { FindCustomersDto } from '../dto/requests/find-customers.dto';
 
 @Injectable()
 export class FindCustomersUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
   async execute(
     { search, limit, page }: FindCustomersDto,
@@ -15,41 +15,55 @@ export class FindCustomersUseCase {
     const pageSize = parseInt(limit, 10) || 25;
     const skip = (pageNumber - 1) * pageSize;
 
-    const where: any = {
-      business: { slug: currentUser.current_selected_business_slug },
+    const whereClause: any = {
+      business: {
+        slug: currentUser.current_selected_business_slug,
+      },
     };
 
     if (search?.trim()) {
       const terms = search.trim().split(/\s+/);
-      where.AND = terms.map((t) => ({
-        name: { contains: t, mode: 'insensitive' },
+
+      // aplica AND com contains para todas as palavras
+      whereClause.AND = terms.map((term) => ({
+        name: {
+          contains: term,
+          mode: 'insensitive',
+        },
       }));
     }
 
     const [customers, totalCount] = await Promise.all([
-      this.prisma.businessContact.findMany({
-        where,
-        orderBy: { name: 'asc' },
+      this.prismaService.customer.findMany({
+        where: whereClause,
+        orderBy: {
+          name: 'asc',
+        },
         select: {
           id: true,
           name: true,
           phone: true,
           email: true,
-          verified: true,
         },
         skip,
         take: pageSize,
       }),
-      this.prisma.businessContact.count({ where }),
+      this.prismaService.customer.count({
+        where: whereClause,
+      }),
     ]);
 
-    return {
+    const hasMorePages = totalCount > skip + pageSize;
+
+    const obj = {
       customers,
       totalCount,
       page: pageNumber,
       limit: pageSize,
-      hasMorePages: totalCount > skip + pageSize,
+      hasMorePages,
       totalPages: Math.ceil(totalCount / pageSize),
     };
+
+    return obj;
   }
 }
