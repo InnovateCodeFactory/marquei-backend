@@ -2,7 +2,6 @@ import { ResponseHandlerService } from '@app/shared/services';
 import { Module } from '@nestjs/common';
 import { BusinessController } from './business.controller';
 import {
-  FindNearbyBusinessesUseCase,
   GetBusinessByProfessionalUseCase,
   GetCurrentSubscriptionUseCase,
   GetProfessionalsUseCase,
@@ -14,7 +13,6 @@ import { SelectCurrentBusinessUseCase } from './use-cases/select-current-busines
   controllers: [BusinessController],
   providers: [
     ResponseHandlerService,
-    FindNearbyBusinessesUseCase,
     GetBusinessByProfessionalUseCase,
     SelectCurrentBusinessUseCase,
     GetCurrentSubscriptionUseCase,

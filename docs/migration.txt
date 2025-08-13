@@ -1,0 +1,14 @@
+• Como fazer migration da forma correta •
+
+• Motivo: realizar a migração sem apagar a coluna `location` da tabela `business`. Ela não está definida no schema.prisma, mas existe no DB via trigger function
+e serve para armazenar o geography point, usado no plugin PostGIS, baseado na latitude e longitude da empresa.
+
+• Comandos:
+
+1 - npx prisma migrate dev --create-only --name <nome-da-migration>
+O que faz: apenas cria o arquivo de migração com as alterações feitas no schema, sem alterar o DB
+
+2 - Entrar no arquivo de migração gerado, localizar o comando `ALTER TABLE `Business` DROP COLUMN `location` e removê-lo
+
+3 - npx prisma migrate deploy
+O que faz: envia a alteração para o DB sem a parte que remove a coluna `location`
