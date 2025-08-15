@@ -1,9 +1,12 @@
 import { Module } from '@nestjs/common';
 import { BusinessController } from './business.controller';
-import { FindNearbyBusinessesUseCase } from './use-cases';
+import {
+  FindNearbyBusinessesUseCase,
+  GetBusinessByIdUseCase,
+} from './use-cases';
 
 @Module({
   controllers: [BusinessController],
-  providers: [FindNearbyBusinessesUseCase],
+  providers: [FindNearbyBusinessesUseCase, GetBusinessByIdUseCase],
 })
 export class BusinessModule {}
