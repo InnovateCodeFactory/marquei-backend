@@ -15,7 +15,8 @@
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "db:push": "prisma db push",
     "prisma:generate": "prisma generate",
-    "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe"
+    "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe",
+    "deploy-prod": "git checkout main && git merge develop && git push && git checkout develop"
   },
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
