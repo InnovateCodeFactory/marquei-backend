@@ -18,6 +18,7 @@ model User {
   first_access            Boolean                   @default(false)
   name                    String
   document_number         String?
+  push_token              String?
   user_type               UserType
   businesses              Business[]                @relation("BusinessOwners")
   professional_profile    ProfessionalProfile[]

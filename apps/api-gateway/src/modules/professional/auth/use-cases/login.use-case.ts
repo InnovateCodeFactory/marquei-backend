@@ -26,6 +26,7 @@ export class LoginUseCase {
         id: true,
         password: true,
         first_access: true,
+        push_token: true,
         CurrentSelectedBusiness: {
           select: {
             business: {
@@ -63,6 +64,7 @@ export class LoginUseCase {
             user.CurrentSelectedBusiness[0].business.name,
         }),
         first_access: user.first_access,
+        has_push_token: user?.push_token !== null,
       },
     };
   }

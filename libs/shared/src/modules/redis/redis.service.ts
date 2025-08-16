@@ -56,12 +56,14 @@ export class RedisService {
       select: {
         user_type: true,
         id: true,
+        push_token: true,
         CurrentSelectedBusiness: {
           select: {
             business: {
               select: {
                 slug: true,
                 id: true,
+
                 BusinessSubscription: {
                   orderBy: {
                     created_at: 'desc',

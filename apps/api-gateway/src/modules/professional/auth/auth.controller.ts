@@ -8,8 +8,10 @@ import { Response } from 'express';
 import { FirstAccessDto } from './dto/requests/firts-access.dto';
 import { LoginDto } from './dto/requests/login.dto';
 import { RegisterProfessionalUserDto } from './dto/requests/register-professional-user';
+import { RegisterPushTokenDto } from './dto/requests/register-push-token.dto';
 import { LoginUseCase, RegisterProfessionalUserUseCase } from './use-cases';
 import { FirstAccessUseCase } from './use-cases/first-access.use-case';
+import { RegisterPushTokenUseCase } from './use-cases/register-push-token.use-case';
 
 @Controller('professional/auth')
 @ApiTags('auth')
@@ -19,6 +21,7 @@ export class AuthController {
     private readonly responseHandler: ResponseHandlerService,
     private readonly firstAccessUseCase: FirstAccessUseCase,
     private readonly loginUseCase: LoginUseCase,
+    private readonly registerPushTokenUseCase: RegisterPushTokenUseCase,
   ) {}
 
   @Post('login')
@@ -56,9 +59,25 @@ export class AuthController {
   async registerProfessionalUser(
     @Res() res: Response,
     @Body() body: RegisterProfessionalUserDto,
+    @CurrentUserDecorator() currentUser: CurrentUser,
   ) {
     return this.responseHandler.handle({
       method: () => this.registerProfessionalUserUseCase.execute(body),
+      res,
+    });
+  }
+
+  @Post('register-push-token')
+  @ApiOperation({
+    summary: 'Register push token for notifications',
+  })
+  async registerPushToken(
+    @Res() res: Response,
+    @Body() body: RegisterPushTokenDto,
+    @CurrentUserDecorator() currentUser: CurrentUser,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.registerPushTokenUseCase.execute(body, currentUser),
       res,
     });
   }
