@@ -12,15 +12,17 @@ export class SendTestNotificationUseCase implements OnApplicationBootstrap {
   }
 
   async execute() {
-    await this.pushNotificationsBaseService.sendToSingleToken({
-      token: 'test-token',
+    await this.pushNotificationsBaseService.sendToMultipleTokens({
       common: {
-        title: 'Test Notification',
-        body: 'This is a test notification',
+        title: 'Test Notification From Server',
+        body: 'This is a test notification sent from the server.',
       },
+      tokens: [
+        'ExponentPushToken[Rek050JXlxEjgGiQ3aRFqq]',
+        'ExponentPushToken[bHaYQgI5l15sUCFDMeaOHX]',
+      ],
       options: {
         verbose: true,
-        fetchReceipts: true,
       },
     });
   }
