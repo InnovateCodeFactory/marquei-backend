@@ -99,6 +99,8 @@ model Service {
   business       Business              @relation(fields: [businessId], references: [id])
   appointments   Appointment[]
   professionals  ProfessionalService[] // relação com a pivot
+  created_at     DateTime              @default(now())
+  updated_at     DateTime              @updatedAt
 
   @@unique([name, businessId]) // evita duplicidade de serviços no mesmo negócio
   @@index([name], name: "idx_service_name")

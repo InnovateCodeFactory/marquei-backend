@@ -5,9 +5,11 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { FindNearbyBusinessesDto } from './dto/requests/find-nearby-businesses.dto';
 import { GetBusinessByIdDto } from './dto/requests/get-business-by-id.dto';
+import { GetServicesDto } from './dto/requests/get-services.dto';
 import {
   FindNearbyBusinessesUseCase,
   GetBusinessByIdUseCase,
+  GetServicesUseCase,
 } from './use-cases';
 
 @Controller('client/business')
@@ -17,6 +19,7 @@ export class BusinessController {
     private readonly responseHandler: ResponseHandlerService,
     private readonly findNearbyBusinessesUseCase: FindNearbyBusinessesUseCase,
     private readonly getBusinessByIdUseCase: GetBusinessByIdUseCase,
+    private readonly getServicesUseCase: GetServicesUseCase,
   ) {}
 
   @Post('nearby')
@@ -41,6 +44,16 @@ export class BusinessController {
   ) {
     return this.responseHandler.handle({
       method: () => this.getBusinessByIdUseCase.execute(query),
+      res,
+    });
+  }
+
+  @Get('services')
+  @IsPublic()
+  @ApiOperation({ summary: 'Get services for a business' })
+  async getServices(@Res() res: Response, @Query() query: GetServicesDto) {
+    return this.responseHandler.handle({
+      method: () => this.getServicesUseCase.execute(query),
       res,
     });
   }
