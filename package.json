@@ -19,6 +19,8 @@
     "deploy-prod": "git checkout main && git merge develop && git push && git checkout develop"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.864.0",
+    "@aws-sdk/s3-request-presigner": "^3.864.0",
     "@faker-js/faker": "^9.9.0",
     "@golevelup/nestjs-rabbitmq": "^6.0.1",
     "@nestjs/axios": "^4.0.0",
@@ -45,6 +47,7 @@
     "express": "^5.1.0",
     "ioredis": "^5.6.1",
     "joi": "^17.13.3",
+    "mime-types": "^3.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "stripe": "^18.2.0"
@@ -56,6 +59,7 @@
     "@types/bcrypt": "^5.0.2",
     "@types/express": "^5.0.2",
     "@types/jest": "^29.5.14",
+    "@types/mime-types": "^3.0.1",
     "@types/node": "^22.15.24",
     "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^8.33.0",
