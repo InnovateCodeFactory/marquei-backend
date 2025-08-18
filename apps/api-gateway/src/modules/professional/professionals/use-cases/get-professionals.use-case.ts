@@ -1,22 +1,27 @@
 import { PrismaService } from '@app/shared';
+import { ProfessionalStatus } from '@app/shared/enum';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { GetProfessionalDto } from './../dto/requests/get-professional.dto';
 
 @Injectable()
 export class GetProfessionalsUseCase {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async execute(currentUser: CurrentUser) {
+  async execute(query: GetProfessionalDto, currentUser: CurrentUser) {
     if (!currentUser?.current_selected_business_id) {
       throw new UnauthorizedException(
         'Usuário não autorizado ou sem negócio selecionado',
       );
     }
 
+    const { status } = query;
+
     const professionals = await this.prismaService.professionalProfile.findMany(
       {
         where: {
           business_id: currentUser.current_selected_business_id,
+          ...(status && { status: { equals: status as ProfessionalStatus } }),
         },
         select: {
           id: true,

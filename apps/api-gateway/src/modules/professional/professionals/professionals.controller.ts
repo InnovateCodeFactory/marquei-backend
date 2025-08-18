@@ -1,10 +1,11 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { Body, Controller, Get, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CreateProfessionalDto } from './dto/requests/create-professional.dto';
+import { GetProfessionalDto } from './dto/requests/get-professional.dto';
 import {
   CreateProfessionalUseCase,
   GetProfessionalsUseCase,
@@ -27,10 +28,11 @@ export class ProfessionalsController {
   })
   async getProfessionals(
     @Res() res: Response,
+    @Query() query: GetProfessionalDto,
     @CurrentUserDecorator() currentUser: CurrentUser,
   ) {
     return await this.responseHandler.handle({
-      method: () => this.getProfessionalsUseCase.execute(currentUser),
+      method: () => this.getProfessionalsUseCase.execute(query, currentUser),
       res,
     });
   }
