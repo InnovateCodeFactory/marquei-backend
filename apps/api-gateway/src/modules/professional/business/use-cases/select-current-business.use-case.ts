@@ -43,7 +43,7 @@ export class SelectCurrentBusinessUseCase {
           businessId: isUserInBusiness.id,
         },
       }),
-      this.redis.clearCurrentUserFromRequest({
+      this.redis.clearCurrentUserProfessionalFromRequest({
         userId: user.id,
       }),
     ]);

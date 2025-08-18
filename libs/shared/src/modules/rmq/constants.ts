@@ -20,7 +20,10 @@ export const MESSAGING_QUEUES = {
   IN_APP_NOTIFICATIONS: {
     WELCOME_QUEUE: 'messaging.in_app_notifications.welcome_queue',
   },
-  PUSH_NOTIFICATIONS: {},
+  PUSH_NOTIFICATIONS: {
+    APPOINTMENT_CREATED_QUEUE:
+      'messaging.push_notifications.appointment_created_queue',
+  },
   EMAIL_NOTIFICATIONS: {},
   SMS_NOTIFICATIONS: {},
 };

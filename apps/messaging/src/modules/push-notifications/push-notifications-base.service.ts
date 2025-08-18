@@ -36,7 +36,7 @@ export class PushNotificationsBaseService {
     const { messages, invalidTokens } = this.buildMessages(input, tokens);
 
     if (verbose) {
-      this.logger.log(
+      this.logger.debug(
         `Montadas ${messages.length} mensagens. Tokens inválidos: ${invalidTokens.length}`,
       );
     }

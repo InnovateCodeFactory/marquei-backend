@@ -36,7 +36,7 @@ export class RegisterProfessionalUserUseCase {
 
     const [existingUser, existingBusiness] = await Promise.all([
       this.prismaService.user.findUnique({
-        where: { email },
+        where: { uq_user_email_type: { email, user_type: 'PROFESSIONAL' } },
         select: { id: true },
       }),
       this.prismaService.business.findUnique({

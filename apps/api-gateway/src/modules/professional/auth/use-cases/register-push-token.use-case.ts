@@ -22,7 +22,9 @@ export class RegisterPushTokenUseCase {
         where: { id: currentUser.id },
         data: { push_token },
       }),
-      this.redisService.clearCurrentUserFromRequest({ userId: currentUser.id }),
+      this.redisService.clearCurrentUserProfessionalFromRequest({
+        userId: currentUser.id,
+      }),
     ]);
 
     return;

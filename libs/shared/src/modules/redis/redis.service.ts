@@ -40,19 +40,19 @@ export class RedisService {
     return result === 1;
   }
 
-  async getCurrentUserFromRequest({
+  async getCurrentUserProfessionalFromRequest({
     userId,
   }: {
     userId: string;
   }): Promise<CachedUserProps | null> {
-    const cachedKey = `user:${userId}`;
+    const cachedKey = `user:professional:${userId}`;
 
     const userInCache = await this.get({ key: cachedKey });
 
     if (userInCache) return JSON.parse(userInCache);
 
     const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
+      where: { id: userId, user_type: 'PROFESSIONAL' },
       select: {
         user_type: true,
         id: true,
@@ -104,8 +104,50 @@ export class RedisService {
     return null;
   }
 
-  async clearCurrentUserFromRequest({ userId }: { userId: string }) {
-    const cachedKey = `user:${userId}`;
+  async clearCurrentUserProfessionalFromRequest({
+    userId,
+  }: {
+    userId: string;
+  }) {
+    const cachedKey = `user:professional:${userId}`;
+    return this.del({ key: cachedKey });
+  }
+
+  async getCurrentUserCustomerFromRequest({
+    userId,
+  }: {
+    userId: string;
+  }): Promise<Omit<CachedUserProps, 'CurrentSelectedBusiness'> | null> {
+    const cachedKey = `user:customer:${userId}`;
+
+    const userInCache = await this.get({ key: cachedKey });
+
+    if (userInCache) return JSON.parse(userInCache);
+
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId, user_type: 'CUSTOMER' },
+      select: {
+        user_type: true,
+        id: true,
+        push_token: true,
+      },
+    });
+
+    if (user) {
+      await this.set({
+        key: cachedKey,
+        value: JSON.stringify(user),
+        ttlInSeconds: 60 * 60 * 24, // 1 day
+      });
+
+      return user;
+    }
+
+    return null;
+  }
+
+  async clearCurrentUserCustomerFromRequest({ userId }: { userId: string }) {
+    const cachedKey = `user:customer:${userId}`;
     return this.del({ key: cachedKey });
   }
 }

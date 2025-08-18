@@ -93,7 +93,10 @@ export class CreateProfessionalUseCase {
         User: {
           connectOrCreate: {
             where: {
-              email: payload.email,
+              uq_user_email_type: {
+                email: payload.email,
+                user_type: 'PROFESSIONAL',
+              },
             },
             create: {
               email: payload.email,

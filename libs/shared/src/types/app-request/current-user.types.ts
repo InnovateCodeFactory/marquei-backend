@@ -8,3 +8,9 @@ export type CurrentUser = {
   current_business_subscription_plan_name?: string;
   current_business_subscription_plan_billing_period?: string;
 };
+
+export type CurrentCustomer = {
+  id: string;
+  user_type: string;
+  push_token?: string | null;
+};

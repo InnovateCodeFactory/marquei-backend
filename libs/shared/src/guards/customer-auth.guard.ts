@@ -9,16 +9,14 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from '../decorators/isPublic.decorator';
-import { PrismaService } from '../modules/database/database.service';
 import { RedisService } from '../modules/redis/redis.service';
 
 @Injectable()
-export class AuthGuard implements CanActivate {
+export class CustomerAuthGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private redisService: RedisService,
     private jwtService: JwtService,
-    private readonly prismaService: PrismaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -46,29 +44,18 @@ export class AuthGuard implements CanActivate {
         throw new UnauthorizedException('Token inválido ou expirado');
       }
       const userId = payload.id;
-      const user =
-        await this.redisService.getCurrentUserProfessionalFromRequest({
-          userId,
-        });
+      const user = await this.redisService.getCurrentUserCustomerFromRequest({
+        userId,
+      });
 
       if (!user) {
         throw new NotFoundException('Usuário não encontrado');
       }
 
-      const currentBusiness = user.CurrentSelectedBusiness?.[0]?.business;
       request.user = {
         id: user.id,
         user_type: user.user_type,
         push_token: user?.push_token || null,
-        current_selected_business_slug: currentBusiness?.slug || null,
-        current_selected_business_id: currentBusiness?.id || null,
-        current_business_subscription_status:
-          currentBusiness?.BusinessSubscription?.[0]?.status || null,
-        current_business_subscription_plan_name:
-          currentBusiness?.BusinessSubscription?.[0]?.plan?.name || null,
-        current_business_subscription_plan_billing_period:
-          currentBusiness?.BusinessSubscription?.[0]?.plan?.billing_period ||
-          null,
       };
 
       return true;

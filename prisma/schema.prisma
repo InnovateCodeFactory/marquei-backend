@@ -10,9 +10,23 @@ datasource db {
   extensions        = [postgis()]
 }
 
+model Guest {
+  id     String  @id @default(cuid())
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id], name: "UserGuest")
+
+  device_token String   @unique
+  device_info  Json
+  push_token   String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@index([device_token], name: "idx_guest_device_token")
+}
+
 model User {
   id                      String                    @id @default(cuid())
-  email                   String                    @unique
+  email                   String
   password                String
   temporary_password      String? // usado para reset de senha
   first_access            Boolean                   @default(false)
@@ -26,8 +40,10 @@ model User {
   updated_at              DateTime                  @updatedAt
   Customer                Customer?
   CurrentSelectedBusiness CurrentSelectedBusiness[]
+  guest                   Guest?                    @relation(name: "UserGuest")
 
-  @@index([email], name: "idx_user_email")
+  @@unique([email, user_type], name: "uq_user_email_type")
+  @@index([email, user_type], name: "idx_user_email_user_type")
 }
 
 model Business {
