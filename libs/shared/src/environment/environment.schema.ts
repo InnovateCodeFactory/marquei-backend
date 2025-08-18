@@ -22,8 +22,12 @@ export type EnvSchemaType = {
   STRIPE_PUBLISHABLE_KEY: string;
   STRIPE_WEBHOOK_SECRET: string;
 
-  APITALLY_API_KEY: string;
-  APITALLY_ENV: string;
+  R2_ACCESS_KEY_ID: string;
+  R2_SECRET_ACCESS_KEY: string;
+  R2_BUCKET: string;
+  R2_ENDPOINT: string;
+  R2_REGION: string;
+  R2_SIGNED_URL_TTL: number;
 };
 
 export const envValidationSchema = Joi.object<EnvSchemaType>({
@@ -54,6 +58,10 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
   STRIPE_PUBLISHABLE_KEY: Joi.string().required(),
   STRIPE_WEBHOOK_SECRET: Joi.string().required(),
 
-  APITALLY_API_KEY: Joi.string().required(),
-  APITALLY_ENV: Joi.string().valid('dev', 'prod').required(),
+  R2_ACCESS_KEY_ID: Joi.string().required(),
+  R2_SECRET_ACCESS_KEY: Joi.string().required(),
+  R2_BUCKET: Joi.string().required(),
+  R2_ENDPOINT: Joi.string().uri().required(),
+  R2_REGION: Joi.string().default('auto').required(),
+  R2_SIGNED_URL_TTL: Joi.number().default(3600).positive().integer().required(),
 });

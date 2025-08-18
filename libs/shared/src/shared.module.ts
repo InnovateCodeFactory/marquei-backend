@@ -33,7 +33,12 @@ import {
     RmqModule,
     RedisModule,
   ],
-  providers: [ResponseHandlerService, TypedConfigService, HashingService],
+  providers: [
+    ResponseHandlerService,
+    TypedConfigService,
+    HashingService,
+    // FileSystemService,
+  ],
   exports: [
     ConfigModule,
     DatabaseModule,
@@ -43,6 +48,7 @@ import {
     TypedConfigService,
     HashingService,
     JwtModule,
+    // FileSystemService,
   ],
 })
 export class SharedModule {}
