@@ -3,7 +3,7 @@ import { BusinessController } from './business.controller';
 import {
   FindNearbyBusinessesUseCase,
   GetAvailableTimesForServiceAndProfessionalUseCase,
-  GetBusinessByIdUseCase,
+  GetBusinessBySlugUseCase,
   GetProfessionalsForAppointmentUseCase,
   GetServicesUseCase,
 } from './use-cases';
@@ -12,7 +12,7 @@ import {
   controllers: [BusinessController],
   providers: [
     FindNearbyBusinessesUseCase,
-    GetBusinessByIdUseCase,
+    GetBusinessBySlugUseCase,
     GetServicesUseCase,
     GetProfessionalsForAppointmentUseCase,
     GetAvailableTimesForServiceAndProfessionalUseCase,

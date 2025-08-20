@@ -117,7 +117,12 @@ export class RedisService {
     userId,
   }: {
     userId: string;
-  }): Promise<Omit<CachedUserProps, 'CurrentSelectedBusiness'> | null> {
+  }): Promise<{
+    user_type: string;
+    id: string;
+    push_token?: string | null;
+    personId?: string;
+  } | null> {
     const cachedKey = `user:customer:${userId}`;
 
     const userInCache = await this.get({ key: cachedKey });
@@ -130,6 +135,7 @@ export class RedisService {
         user_type: true,
         id: true,
         push_token: true,
+        personId: true,
       },
     });
 

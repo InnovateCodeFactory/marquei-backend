@@ -24,10 +24,10 @@ export class SeedCustomersService implements OnModuleInit {
       notes: faker.lorem.paragraphs(2, '\n\n'),
     }));
 
-    await this.prismaService.customer.createMany({
-      data: customers,
-      skipDuplicates: true,
-    });
+    // await this.prismaService.customer.createMany({
+    //   data: customers,
+    //   skipDuplicates: true,
+    // });
 
     console.log(`Seeded ${customers.length} customers.`);
   }

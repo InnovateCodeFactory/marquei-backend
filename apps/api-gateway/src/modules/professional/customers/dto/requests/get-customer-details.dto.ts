@@ -5,7 +5,7 @@ export class GetCustomerDetailsDto {
   @IsString()
   @IsNotEmpty()
   @ApiProperty({
-    description: 'The ID of the customer',
+    description: 'The ID of the business customer',
     example: '12345',
   })
   id: string;
