@@ -74,6 +74,9 @@ export class GetAppointmentsUseCase {
         },
         status: true,
       },
+      orderBy: {
+        scheduled_at: 'asc',
+      },
     });
 
     const formattedAppointments = appointments.map((appointment) => {
