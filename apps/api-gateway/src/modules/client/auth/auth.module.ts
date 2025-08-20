@@ -1,9 +1,13 @@
 import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
-import { CustomerFirstAccessUseCase } from './use-cases';
+import {
+  CreateCustomerUseCase,
+  CustomerFirstAccessUseCase,
+  LoginUseCase,
+} from './use-cases';
 
 @Module({
   controllers: [AuthController],
-  providers: [CustomerFirstAccessUseCase],
+  providers: [CustomerFirstAccessUseCase, CreateCustomerUseCase, LoginUseCase],
 })
 export class AuthModule {}

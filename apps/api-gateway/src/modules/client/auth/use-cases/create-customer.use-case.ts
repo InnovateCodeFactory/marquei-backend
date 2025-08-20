@@ -79,7 +79,12 @@ export class CreateCustomerUseCase {
           user_type: 'CUSTOMER',
           person: { connect: { id: personId } },
         },
-        select: { id: true, personId: true },
+        select: {
+          id: true,
+          personId: true,
+          name: true,
+          person: { select: { phone: true } },
+        },
       });
 
       // 4) Vincula Guest pelo device_token (se existir)
@@ -109,9 +114,16 @@ export class CreateCustomerUseCase {
           { id: user.id },
           {
             secret: this.configService.get('JWT_SECRET'),
-            expiresIn: '7d',
+            expiresIn: '30d',
           },
         ),
+        user: {
+          name: user.name,
+          phone: user.person.phone,
+          personId: user.personId,
+          id: user.id,
+          has_push_token: false,
+        },
       };
     });
   }

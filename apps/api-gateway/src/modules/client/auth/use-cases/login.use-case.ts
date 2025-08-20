@@ -5,5 +5,5 @@ import { Injectable } from '@nestjs/common';
 export class LoginUseCase {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async execute() {}
+  async execute(body) {}
 }
