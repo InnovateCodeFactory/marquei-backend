@@ -11,7 +11,7 @@ export const NotificationMessageBuilder = {
     service_name: string;
   }) => {
     return {
-      title: 'Agendamento recebido 🗓️',
+      title: '🗓️ Agendamento recebido',
       body: `${customer_name} agendou ${service_name} para ${dayAndMonth} às ${time}.`,
     };
   },
