@@ -37,7 +37,7 @@ model User {
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
 
-  // NOVO: vínculo canônico
+  // NOVO: vínculo canônico para o tipo customer
   personId String? @unique
   person   Person? @relation("UserPerson", fields: [personId], references: [id])
 
@@ -213,6 +213,7 @@ model Appointment {
   @@index([personId], name: "idx_appointment_person")
 }
 
+// Vincular pessoa como user do tipo Customer e vincular como cliente das empresas
 model Person {
   id              String  @id @default(cuid())
   // Identificadores para dedupe e match automático
