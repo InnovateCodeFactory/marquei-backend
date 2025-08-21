@@ -1,15 +1,15 @@
 import { PrismaService } from '@app/shared';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { GetBusinessByIdDto } from '../dto/requests/get-business-by-id.dto';
+import { GetBusinessBySlugDto } from '../dto/requests/get-business-by-slug.dto';
 
 @Injectable()
-export class GetBusinessByIdUseCase {
+export class GetBusinessBySlugUseCase {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async execute(query: GetBusinessByIdDto) {
+  async execute(query: GetBusinessBySlugDto) {
     const business = await this.prismaService.business.findUnique({
       where: {
-        id: query.id,
+        slug: query.slug,
       },
       select: {
         name: true,
@@ -19,6 +19,7 @@ export class GetBusinessByIdUseCase {
         latitude: true,
         longitude: true,
         slug: true,
+        id: true,
       },
     });
 

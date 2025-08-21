@@ -6,42 +6,43 @@ import { GetCustomerDetailsDto } from '../dto/requests/get-customer-details.dto'
 
 @Injectable()
 export class GetCustomerDetailsUseCase {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async execute({ id }: GetCustomerDetailsDto, user: CurrentUser) {
-    const customer = await this.prismaService.customer.findUnique({
+    // id é BusinessCustomer.id
+    const bc = await this.prisma.businessCustomer.findUnique({
       where: { id },
       select: {
-        name: true,
-        email: true,
-        phone: true,
-        verified: true,
         created_at: true,
-        _count: {
+        verified: true,
+        person: {
           select: {
-            Appointment: {
-              where: {
-                professional: {
-                  business_id: user.current_selected_business_id,
-                },
-              },
-            },
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
           },
         },
+        business: { select: { id: true } },
       },
     });
 
-    if (!customer) throw new NotFoundException('Cliente não encontrado');
+    if (!bc) throw new NotFoundException('Cliente não encontrado');
 
-    const obj = {
-      name: customer.name,
-      email: customer.email,
-      phone: customer.phone,
-      verified: customer.verified,
-      appointments_count: customer._count.Appointment.toString(),
-      created_at: formatDate(customer.created_at, "dd 'de' MMM'.' 'de' yyyy"),
+    const appointmentsCount = await this.prisma.appointment.count({
+      where: {
+        personId: bc.person.id,
+        professional: { business_id: user.current_selected_business_id },
+      },
+    });
+
+    return {
+      name: bc.person.name,
+      email: bc.person.email,
+      phone: bc.person.phone,
+      verified: bc.verified,
+      appointments_count: String(appointmentsCount),
+      created_at: formatDate(bc.created_at, "dd 'de' MMM'.' 'de' yyyy"),
     };
-
-    return obj;
   }
 }

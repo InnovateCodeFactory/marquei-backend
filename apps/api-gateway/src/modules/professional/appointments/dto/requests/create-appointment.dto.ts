@@ -19,7 +19,7 @@ export class CreateAppointmentDto {
   @IsString()
   @IsNotEmpty()
   @ApiProperty({
-    description: 'The ID of the client for the appointment',
+    description: 'The ID of the business customer relation for the appointment',
     example: '123e4567-e89b-12d3-a456-426614174001',
   })
   customer_id: string;

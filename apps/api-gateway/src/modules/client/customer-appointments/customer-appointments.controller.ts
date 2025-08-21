@@ -1,6 +1,7 @@
 import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
-import { Body, Controller, Post, Res } from '@nestjs/common';
+import { AppRequest } from '@app/shared/types/app-request';
+import { Body, Controller, Post, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CreateCustomerAppointmentDto } from './dto/requests/create-customer-appointment.dto';
@@ -20,9 +21,10 @@ export class CustomerAppointmentsController {
   async createAppointment(
     @Res() res: Response,
     @Body() payload: CreateCustomerAppointmentDto,
+    @Req() req: AppRequest,
   ) {
     return await this.responseHandler.handle({
-      method: () => this.createAppointmentUseCase.execute(payload),
+      method: () => this.createAppointmentUseCase.execute(payload, req),
       res,
       successStatus: 201,
     });

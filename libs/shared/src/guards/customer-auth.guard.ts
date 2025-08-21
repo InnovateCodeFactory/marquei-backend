@@ -56,6 +56,7 @@ export class CustomerAuthGuard implements CanActivate {
         id: user.id,
         user_type: user.user_type,
         push_token: user?.push_token || null,
+        personId: user?.personId || null,
       };
 
       return true;

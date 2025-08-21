@@ -2,6 +2,7 @@ export type CurrentUser = {
   id: string;
   user_type: string;
   push_token?: string | null;
+  personId?: string | null;
   current_selected_business_slug?: string;
   current_selected_business_id?: string;
   current_business_subscription_status?: string;
@@ -13,4 +14,5 @@ export type CurrentCustomer = {
   id: string;
   user_type: string;
   push_token?: string | null;
+  personId?: string | null;
 };

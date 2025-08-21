@@ -25,20 +25,25 @@ model Guest {
 }
 
 model User {
-  id                      String                    @id @default(cuid())
-  email                   String
-  password                String
-  temporary_password      String? // usado para reset de senha
-  first_access            Boolean                   @default(false)
-  name                    String
-  document_number         String?
-  push_token              String?
-  user_type               UserType
+  id                 String   @id @default(cuid())
+  email              String
+  password           String
+  temporary_password String?
+  first_access       Boolean  @default(false)
+  name               String
+  document_number    String?
+  push_token         String?
+  user_type          UserType
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  // NOVO: vínculo canônico para o tipo customer
+  personId String? @unique
+  person   Person? @relation("UserPerson", fields: [personId], references: [id])
+
+  // ...demais relações existentes inalteradas...
   businesses              Business[]                @relation("BusinessOwners")
   professional_profile    ProfessionalProfile[]
-  created_at              DateTime                  @default(now())
-  updated_at              DateTime                  @updatedAt
-  Customer                Customer?
   CurrentSelectedBusiness CurrentSelectedBusiness[]
   guest                   Guest?                    @relation(name: "UserGuest")
 
@@ -80,7 +85,6 @@ model Business {
   services                Service[]
   created_at              DateTime                  @default(now())
   updated_at              DateTime                  @updatedAt
-  Customer                Customer[]
   BusinessCategory        BusinessCategory?         @relation(fields: [businessCategoryId], references: [id])
   businessCategoryId      String?
   BusinessServiceType     BusinessServiceType?      @relation(fields: [businessServiceTypeId], references: [id])
@@ -88,6 +92,7 @@ model Business {
   BusinessSubscription    BusinessSubscription[]
   CurrentSelectedBusiness CurrentSelectedBusiness[]
   ProfessionalStatement   ProfessionalStatement[]
+  BusinessCustomer        BusinessCustomer[]
 
   @@index([slug], name: "idx_business_slug")
   @@index([ownerId], name: "idx_business_owner")
@@ -192,40 +197,68 @@ model Appointment {
   scheduled_at DateTime
   status       AppointmentStatus
   notes        String?
-  customer     Customer          @relation(fields: [customerId], references: [id])
 
-  professional ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
-  service      Service             @relation(fields: [service_id], references: [id])
+  professional   ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
+  service        Service             @relation(fields: [service_id], references: [id])
+  customerPerson Person              @relation(fields: [personId], references: [id])
 
   created_at            DateTime                @default(now())
   updated_at            DateTime                @updatedAt
-  customerId            String
   professionalProfileId String
   ProfessionalStatement ProfessionalStatement[]
+  personId              String
 
   @@index([service_id], name: "idx_appointment_service")
   @@index([professionalProfileId, scheduled_at], name: "idx_professional_date")
+  @@index([personId], name: "idx_appointment_person")
 }
 
-model Customer {
-  id         String   @id @default(cuid())
-  name       String
-  phone      String
-  email      String?
-  verified   Boolean  @default(false) // se tem ou não conta no app
-  birthdate  String? // opcional, data de nascimento (1990-01-01)
-  notes      String? // notas internas sobre o cliente
-  userId     String?  @unique // opcional: se for cliente real registrado
-  user       User?    @relation(fields: [userId], references: [id])
+// Vincular pessoa como user do tipo Customer e vincular como cliente das empresas
+model Person {
+  id              String  @id @default(cuid())
+  // Identificadores para dedupe e match automático
+  document_number String? @unique // CPF/CNPJ, limpo e sem máscara
+  email           String? @unique // email em minúsculas
+  phone           String? @unique // telefone em E.164 (ex: +552199...)
+
+  // Dados básicos
+  name      String
+  birthdate String? // mantenho como String se preferir
+
+  // Auditoria
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relacionamentos
+  user          User?              @relation("UserPerson")
+  businessLinks BusinessCustomer[]
+  Appointment   Appointment[]
+
+  @@index([email], name: "idx_person_email")
+}
+
+model BusinessCustomer {
+  id         String @id @default(cuid())
   businessId String
-  business   Business @relation(fields: [businessId], references: [id])
+  personId   String
 
-  created_at  DateTime      @default(now())
-  updated_at  DateTime      @updatedAt
-  Appointment Appointment[]
+  // Propriedades específicas do relacionamento com o negócio
+  notes    String?
+  verified Boolean @default(false)
 
-  @@index([businessId], name: "idx_customer_business")
-  @@index([userId], name: "idx_customer_user")
+  // Caso queira manter email/phone “do cadastro do negócio”, deixe como sombra/opcional
+  email String?
+  phone String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id])
+  person   Person   @relation(fields: [personId], references: [id])
+
+  @@unique([businessId, personId], name: "uq_business_person")
+  @@index([businessId], name: "idx_bc_business")
+  @@index([personId], name: "idx_bc_person")
 }
 
 model BusinessCategory {

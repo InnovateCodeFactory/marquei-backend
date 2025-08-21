@@ -13,11 +13,15 @@ export class GetServicesUseCase {
     const limit = parseInt(query.limit, 10);
     const skip = (page - 1) * limit;
 
+    const where = {
+      business: {
+        slug: query.slug,
+      },
+    };
+
     const [services, total] = await Promise.all([
       this.prismaService.service.findMany({
-        where: {
-          businessId: query.id,
-        },
+        where,
         skip,
         take: limit,
         orderBy: {
@@ -33,9 +37,7 @@ export class GetServicesUseCase {
         },
       }),
       this.prismaService.service.count({
-        where: {
-          businessId: query.id,
-        },
+        where,
       }),
     ]);
 

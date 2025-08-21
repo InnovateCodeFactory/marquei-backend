@@ -5,65 +5,83 @@ import { FindCustomersDto } from '../dto/requests/find-customers.dto';
 
 @Injectable()
 export class FindCustomersUseCase {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async execute(
     { search, limit, page }: FindCustomersDto,
     currentUser: CurrentUser,
   ) {
-    const pageNumber = parseInt(page, 10) || 1;
-    const pageSize = parseInt(limit, 10) || 25;
+    const pageNumber = Number(page) || 1;
+    const pageSize = Number(limit) || 25;
     const skip = (pageNumber - 1) * pageSize;
 
-    const whereClause: any = {
-      business: {
-        slug: currentUser.current_selected_business_slug,
-      },
+    const where: any = {
+      business: { slug: currentUser.current_selected_business_slug },
     };
 
     if (search?.trim()) {
-      const terms = search.trim().split(/\s+/);
+      const s = search.trim();
+      const terms = s.split(/\s+/);
 
-      // aplica AND com contains para todas as palavras
-      whereClause.AND = terms.map((term) => ({
-        name: {
-          contains: term,
-          mode: 'insensitive',
+      where.AND = [
+        // AND de termos no nome (Person.name)
+        ...terms.map((term) => ({
+          person: {
+            name: { contains: term, mode: 'insensitive' },
+          },
+        })),
+        // Busca complementar por email/telefone (Person) OU sombras no vínculo
+        {
+          OR: [
+            { person: { email: { contains: s, mode: 'insensitive' } } },
+            { person: { phone: { contains: s, mode: 'insensitive' } } },
+            { email: { contains: s, mode: 'insensitive' } }, // sombra no vínculo
+            { phone: { contains: s, mode: 'insensitive' } }, // sombra no vínculo
+          ],
         },
-      }));
+      ];
     }
 
-    const [customers, totalCount] = await Promise.all([
-      this.prismaService.customer.findMany({
-        where: whereClause,
-        orderBy: {
-          name: 'asc',
-        },
+    const [rows, totalCount] = await Promise.all([
+      this.prisma.businessCustomer.findMany({
+        where,
+        orderBy: [{ person: { name: 'asc' } }],
         select: {
           id: true,
-          name: true,
-          phone: true,
-          email: true,
+          notes: true,
+          verified: true,
+          // dados principais vêm da Person
+          person: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+            },
+          },
         },
         skip,
         take: pageSize,
       }),
-      this.prismaService.customer.count({
-        where: whereClause,
-      }),
+      this.prisma.businessCustomer.count({ where }),
     ]);
 
-    const hasMorePages = totalCount > skip + pageSize;
+    const customers = rows.map((bc) => ({
+      id: bc.id, // id do vínculo no negócio
+      name: bc.person.name,
+      email: bc.person.email,
+      phone: bc.person.phone,
+      verified: bc.verified,
+      notes: bc.notes ?? undefined,
+    }));
 
-    const obj = {
+    return {
       customers,
       totalCount,
       page: pageNumber,
       limit: pageSize,
-      hasMorePages,
+      hasMorePages: totalCount > skip + pageSize,
       totalPages: Math.ceil(totalCount / pageSize),
     };
-
-    return obj;
   }
 }

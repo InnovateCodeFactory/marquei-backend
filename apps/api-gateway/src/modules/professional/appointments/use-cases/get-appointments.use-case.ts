@@ -13,57 +13,42 @@ import { addHours, addMinutes } from 'date-fns';
 
 @Injectable()
 export class GetAppointmentsUseCase {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async execute(currentUser: CurrentUser) {
-    if (!currentUser?.current_selected_business_id)
+    if (!currentUser?.current_selected_business_id) {
       throw new UnauthorizedException(
         'You must select a business to view appointments.',
       );
+    }
 
-    const currentProfessionalProfile =
-      await this.prismaService.professionalProfile.findFirst({
-        where: {
-          userId: currentUser.id,
-          business_id: currentUser.current_selected_business_id,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-    if (!currentProfessionalProfile)
+    // 1) Perfil profissional do usuário no negócio atual
+    const prof = await this.prisma.professionalProfile.findFirst({
+      where: {
+        userId: currentUser.id,
+        business_id: currentUser.current_selected_business_id,
+      },
+      select: { id: true },
+    });
+    if (!prof) {
       throw new UnauthorizedException(
         'You must have a professional profile to view appointments.',
       );
+    }
 
-    const appointments = await this.prismaService.appointment.findMany({
+    // 2) Busca agendamentos
+    const appointments = await this.prisma.appointment.findMany({
       where: {
-        professionalProfileId: currentProfessionalProfile.id,
-        status: {
-          in: ['CONFIRMED', 'PENDING'],
-        },
+        professionalProfileId: prof.id,
+        status: { in: ['CONFIRMED', 'PENDING'] },
       },
       select: {
         id: true,
-        customer: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-          },
-        },
         notes: true,
-        professional: {
-          select: {
-            User: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
         scheduled_at: true,
+        status: true,
+        customerPerson: { select: { id: true, name: true, phone: true } }, // 👈 Person do cliente
+        professional: { select: { User: { select: { name: true } } } },
         service: {
           select: {
             id: true,
@@ -72,62 +57,68 @@ export class GetAppointmentsUseCase {
             price_in_cents: true,
           },
         },
-        status: true,
       },
-      orderBy: {
-        scheduled_at: 'asc',
-      },
+      orderBy: { scheduled_at: 'asc' },
     });
 
-    const formattedAppointments = appointments.map((appointment) => {
-      const scheduledAtWithTimezone = addHours(appointment.scheduled_at, 3);
-      const hourStart = formatDate(scheduledAtWithTimezone, 'HH:mm');
+    // 3) Mapear personId -> BusinessCustomer.id (no negócio atual) para manter navegação p/ detalhes
+    const personIds = Array.from(
+      new Set(appointments.map((a) => a.customerPerson.id)),
+    );
+    const bcs = await this.prisma.businessCustomer.findMany({
+      where: {
+        personId: { in: personIds },
+        businessId: currentUser.current_selected_business_id,
+      },
+      select: { id: true, personId: true, phone: true }, // phone “sombra” do vínculo, se quiser priorizar
+    });
+    const bcByPersonId = new Map(bcs.map((b) => [b.personId, b]));
 
+    // 4) Formata saída (prioriza telefone do vínculo; se não houver, usa phone global da Person)
+    const formatted = appointments.map((a) => {
+      const scheduledAtWithTimezone = addHours(a.scheduled_at, 3);
+      const hourStart = formatDate(scheduledAtWithTimezone, 'HH:mm');
       const scheduledEnd = addMinutes(
         scheduledAtWithTimezone,
-        appointment.service.duration,
+        a.service.duration,
       );
       const hourEnd = formatDate(scheduledEnd, 'HH:mm');
 
+      const bc = bcByPersonId.get(a.customerPerson.id);
+      const phoneRaw = bc?.phone ?? a.customerPerson.phone;
+
       return {
-        id: appointment.id,
+        id: a.id,
         customer: {
-          id: appointment.customer.id,
-          name: appointment.customer.name,
-          phone: formatPhoneNumber(appointment.customer.phone),
+          id: bc?.id ?? null, // 👈 BusinessCustomer.id (para telas de detalhe do cliente no negócio)
+          name: a.customerPerson.name,
+          phone: phoneRaw ? formatPhoneNumber(phoneRaw) : null,
         },
-        notes: appointment.notes,
+        notes: a.notes,
         professional: {
-          name: getTwoNames(appointment.professional.User.name),
+          name: getTwoNames(a.professional.User.name),
         },
-        start_date: addHours(appointment.scheduled_at, 3),
+        start_date: addHours(a.scheduled_at, 3),
         end_date: addHours(
-          new Date(
-            appointment.scheduled_at.getTime() +
-              appointment.service.duration * 60 * 1000, // duration in minutes
-          ),
+          new Date(a.scheduled_at.getTime() + a.service.duration * 60 * 1000),
           3,
         ),
         date: {
-          day: formatDate(appointment.scheduled_at, 'dd'),
-          month: formatDate(appointment.scheduled_at, 'MMM'),
+          day: formatDate(a.scheduled_at, 'dd'),
+          month: formatDate(a.scheduled_at, 'MMM'),
           hour: hourStart,
           hour_end: hourEnd,
         },
         service: {
-          id: appointment.service.id,
-          name: appointment.service.name,
-          duration: formatDuration(
-            Number(appointment.service.duration),
-            'short',
-          ),
-          price_in_formatted: new Price(
-            appointment.service.price_in_cents,
-          ).toCurrency(),
+          id: a.service.id,
+          name: a.service.name,
+          duration: formatDuration(Number(a.service.duration), 'short'),
+          price_in_formatted: new Price(a.service.price_in_cents).toCurrency(),
         },
-        status: formatAppointmentStatus(appointment.status),
+        status: formatAppointmentStatus(a.status),
       };
     });
-    return formattedAppointments;
+
+    return formatted;
   }
 }
