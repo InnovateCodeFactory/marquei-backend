@@ -230,9 +230,10 @@ model Person {
   updated_at DateTime @updatedAt
 
   // Relacionamentos
-  user          User?              @relation("UserPerson")
-  businessLinks BusinessCustomer[]
-  Appointment   Appointment[]
+  user              User?               @relation("UserPerson")
+  businessLinks     BusinessCustomer[]
+  Appointment       Appointment[]
+  InAppNotification InAppNotification[]
 
   @@index([email], name: "idx_person_email")
 }
@@ -280,18 +281,21 @@ model BusinessServiceType {
 }
 
 model InAppNotification {
-  id                    String              @id @default(cuid())
+  id                    String               @id @default(cuid())
   title                 String
   message               String
-  read                  Boolean             @default(false)
-  is_visible            Boolean             @default(true)
+  read                  Boolean              @default(false)
+  is_visible            Boolean              @default(true)
   // type                 String // tipo da notificação (ex: "appointment", "message", etc.)
-  professional_profile  ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
-  created_at            DateTime            @default(now())
-  updated_at            DateTime            @updatedAt
+  professional_profile  ProfessionalProfile? @relation(fields: [professionalProfileId], references: [id])
+  person                Person?              @relation(fields: [personId], references: [id])
+  created_at            DateTime             @default(now())
+  updated_at            DateTime             @updatedAt
   professionalProfileId String
+  personId              String?
 
   @@index([professionalProfileId], name: "idx_notification_professional")
+  @@index([personId], name: "idx_notification_person")
   @@index([created_at], name: "idx_notification_created_at")
   @@index([is_visible], name: "idx_notification_visible")
 }
