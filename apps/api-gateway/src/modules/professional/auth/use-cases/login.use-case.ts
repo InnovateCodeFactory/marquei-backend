@@ -21,6 +21,7 @@ export class LoginUseCase {
     const user = await this.prismaService.user.findFirst({
       where: {
         email: username,
+        user_type: 'PROFESSIONAL',
       },
       select: {
         id: true,
@@ -48,10 +49,11 @@ export class LoginUseCase {
       token: await this.jwtService.signAsync(
         {
           id: user.id,
+          user_type: 'PROFESSIONAL',
         },
         {
           secret: this.configService.get('JWT_SECRET'),
-          expiresIn: '7d',
+          expiresIn: '30d',
         },
       ),
       user: {

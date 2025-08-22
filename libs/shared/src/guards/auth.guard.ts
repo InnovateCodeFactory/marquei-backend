@@ -9,54 +9,64 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from '../decorators/isPublic.decorator';
-import { PrismaService } from '../modules/database/database.service';
 import { RedisService } from '../modules/redis/redis.service';
+
+type UserType = 'PROFESSIONAL' | 'CUSTOMER';
+
+interface JwtPayload {
+  id: string;
+  user_type: UserType;
+}
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
-    private reflector: Reflector,
-    private redisService: RedisService,
-    private jwtService: JwtService,
-    private readonly prismaService: PrismaService,
+    private readonly reflector: Reflector,
+    private readonly redisService: RedisService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    if (context.getType() !== 'http') {
-      // Ignora chamadas que não sejam HTTP (ex: RabbitMQ, WebSocket etc.)
-      return true;
-    }
+    // Ignora contexts que não sejam HTTP (ex.: RabbitMQ, WS)
+    if (context.getType() !== 'http') return true;
 
+    // Respeita rotas públicas
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getClass(),
       context.getHandler(),
     ]);
-
     if (isPublic) return true;
 
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<Request>();
     const token = this.extractTokenFromHeader(request);
-
     if (!token) throw new UnauthorizedException('Token não fornecido');
 
+    let payload: JwtPayload;
     try {
-      const payload = await this.jwtService.verifyAsync<{ id: string }>(token);
+      payload = await this.jwtService.verifyAsync<JwtPayload>(token);
+    } catch {
+      throw new UnauthorizedException('Token inválido ou expirado');
+    }
 
-      if (!payload || !payload.id) {
-        throw new UnauthorizedException('Token inválido ou expirado');
-      }
-      const userId = payload.id;
+    if (!payload?.id || !payload?.user_type) {
+      throw new UnauthorizedException('Token inválido ou expirado');
+    }
+
+    const { id: userId, user_type } = payload;
+
+    // Busca o usuário conforme o tipo
+    if (user_type === 'PROFESSIONAL') {
       const user =
         await this.redisService.getCurrentUserProfessionalFromRequest({
           userId,
         });
 
-      if (!user) {
-        throw new NotFoundException('Usuário não encontrado');
-      }
+      if (!user) throw new NotFoundException('Usuário não encontrado');
 
       const currentBusiness = user.CurrentSelectedBusiness?.[0]?.business;
-      request.user = {
+
+      // Popula request.user para PROFESSIONAL
+      (request as any).user = {
         id: user.id,
         user_type: user.user_type,
         push_token: user?.push_token || null,
@@ -72,15 +82,33 @@ export class AuthGuard implements CanActivate {
       };
 
       return true;
-    } catch (error) {
-      throw new UnauthorizedException('Token inválido ou expirado');
     }
+
+    if (user_type === 'CUSTOMER') {
+      const user = await this.redisService.getCurrentUserCustomerFromRequest({
+        userId,
+      });
+
+      if (!user) throw new NotFoundException('Usuário não encontrado');
+
+      // Popula request.user para CUSTOMER
+      (request as any).user = {
+        id: user.id,
+        user_type: user.user_type,
+        push_token: user?.push_token || null,
+        personId: user?.personId || null,
+      };
+
+      return true;
+    }
+
+    // Se chegou aqui, o user_type não é suportado
+    throw new UnauthorizedException('Tipo de usuário não suportado');
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {
     const [type, token] = request.headers.authorization?.split(' ') || [];
-    if (type && type.toLowerCase() === 'bearer' && token) return token;
-
+    if (type?.toLowerCase() === 'bearer' && token) return token;
     return undefined;
   }
 }

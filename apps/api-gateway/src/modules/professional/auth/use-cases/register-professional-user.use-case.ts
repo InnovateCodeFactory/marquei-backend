@@ -132,6 +132,12 @@ export class RegisterProfessionalUserUseCase {
           businessId: newBusiness.id,
         },
       }),
+      this.prismaService.currentSelectedBusiness.create({
+        data: {
+          business: { connect: { id: newBusiness.id } },
+          user: { connect: { id: newBusiness.owner.id } },
+        },
+      }),
     ]);
 
     return null;
