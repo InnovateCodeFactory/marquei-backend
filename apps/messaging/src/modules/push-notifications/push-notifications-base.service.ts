@@ -175,7 +175,7 @@ export class PushNotificationsBaseService {
         });
 
         if (verbose) {
-          this.logger.log(
+          this.logger.debug(
             `Chunk enviado. OK=${ticketChunk.filter((t) => t.status === 'ok').length} ERROR=${ticketChunk.filter((t) => t.status === 'error').length}`,
           );
         }

@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import { ScheduleModule } from '@nestjs/schedule';
 import { EnvSchemaType, envValidationSchema } from './environment';
 import { DatabaseModule } from './modules/database/database.module';
 import { RedisModule } from './modules/redis/redis.module';
@@ -29,6 +30,7 @@ import {
         },
       }),
     }),
+    ScheduleModule.forRoot(),
     DatabaseModule,
     RmqModule,
     RedisModule,

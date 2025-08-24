@@ -2,12 +2,12 @@ import { PrismaService } from '@app/shared';
 import { PAYMENT_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import Stripe from 'stripe';
 import { STRIPE_PAYMENT_GATEWAY } from '../stripe.constants';
 
 @Injectable()
-export class CreateCustomerUseCase {
+export class CreateCustomerUseCase implements OnModuleInit {
   private readonly logger = new Logger(CreateCustomerUseCase.name);
 
   constructor(
@@ -16,6 +16,10 @@ export class CreateCustomerUseCase {
     @Inject(STRIPE_PAYMENT_GATEWAY)
     private readonly stripe: Stripe,
   ) {}
+
+  async onModuleInit() {
+    // await this.execute({ businessId: 'cmenq459a0001re01jufkjvwq' });
+  }
 
   @RabbitSubscribe({
     exchange: RABBIT_EXCHANGE,
@@ -47,6 +51,11 @@ export class CreateCustomerUseCase {
           id: true,
         },
       });
+
+      if (!freePlan) {
+        this.logger.error('Free trial plan not found in the database');
+        return;
+      }
 
       await Promise.all([
         this.prismaService.business.update({

@@ -32,6 +32,7 @@ export class LoginUseCase {
         person: {
           select: {
             phone: true,
+            profile_image: true,
           },
         },
       },
@@ -57,6 +58,7 @@ export class LoginUseCase {
         personId: user.personId,
         id: user.id,
         has_push_token: !!user.push_token,
+        profile_image: user.person.profile_image,
       },
     };
   }

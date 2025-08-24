@@ -11,6 +11,7 @@ export class GetNextAppointmentUseCase {
   constructor(private readonly prismaService: PrismaService) {}
 
   async execute({ user }: AppRequest) {
+    // Arrumar payment para criar customerid no stripe
     const nextAppointment = await this.prismaService.appointment.findFirst({
       where: {
         customerPerson: {
