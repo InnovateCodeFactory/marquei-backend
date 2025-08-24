@@ -7,6 +7,7 @@ import { DatabaseModule } from './modules/database/database.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { RmqModule } from './modules/rmq/rmq.module';
 import {
+  FileSystemService,
   HashingService,
   ResponseHandlerService,
   TypedConfigService,
@@ -39,7 +40,7 @@ import {
     ResponseHandlerService,
     TypedConfigService,
     HashingService,
-    // FileSystemService,
+    FileSystemService,
   ],
   exports: [
     ConfigModule,
@@ -50,7 +51,7 @@ import {
     TypedConfigService,
     HashingService,
     JwtModule,
-    // FileSystemService,
+    FileSystemService,
   ],
 })
 export class SharedModule {}
