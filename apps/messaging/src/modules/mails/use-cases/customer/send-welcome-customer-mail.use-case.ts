@@ -5,13 +5,11 @@ import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { MailTemplateType } from '@prisma/client';
-import { MailBaseService } from '../mail-base.service';
+import { MailBaseService } from '../../mail-base.service';
 
 @Injectable()
-export class SendWelcomeProfessionalMailUseCase
-  implements OnApplicationBootstrap
-{
-  private readonly logger = new Logger(SendWelcomeProfessionalMailUseCase.name);
+export class SendWelcomeCustomerMailUseCase implements OnApplicationBootstrap {
+  private readonly logger = new Logger(SendWelcomeCustomerMailUseCase.name);
 
   constructor(
     private readonly mailBaseService: MailBaseService,
@@ -21,20 +19,21 @@ export class SendWelcomeProfessionalMailUseCase
   async onApplicationBootstrap() {
     // await this.execute({
     //   // to: 'alanagabriele43@gmail.com',
-    //   firstName: 'Carlos',
+    //   firstName: 'Gostoso',
     //   to: 'chziegler445@gmail.com',
     // });
   }
   @RabbitSubscribe({
     exchange: RABBIT_EXCHANGE,
-    routingKey: MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_WELCOME_MAIL_QUEUE,
-    queue: MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_WELCOME_MAIL_QUEUE,
+    routingKey:
+      MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_WELCOME_CUSTOMER_MAIL_QUEUE,
+    queue: MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_WELCOME_CUSTOMER_MAIL_QUEUE,
   })
   async execute({ to, firstName }: SendWelcomeMailDto) {
     try {
       const template = await this.prisma.mailTemplate.findFirst({
         where: {
-          type: MailTemplateType.WELCOME_PROFESSIONAL,
+          type: MailTemplateType.WELCOME_CUSTOMER,
           active: true,
         },
         select: {
@@ -60,7 +59,7 @@ export class SendWelcomeProfessionalMailUseCase
 
       if (!response) throw new Error('Erro ao enviar email');
 
-      this.logger.debug(`Email de boas-vindas enviado para: ${to}`);
+      this.logger.debug(`Email de boas-vindas enviado para o cliente: ${to}`);
 
       return;
     } catch (error) {

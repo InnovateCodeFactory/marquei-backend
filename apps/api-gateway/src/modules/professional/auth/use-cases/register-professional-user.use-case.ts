@@ -1,5 +1,6 @@
 import { PrismaService } from '@app/shared';
 import { WelcomeMessageDto } from '@app/shared/dto/messaging/in-app-notifications';
+import { SendWelcomeMailDto } from '@app/shared/dto/messaging/mail-notifications';
 import { DaysOfWeek } from '@app/shared/enum';
 import {
   MESSAGING_QUEUES,
@@ -7,6 +8,7 @@ import {
 } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { HashingService } from '@app/shared/services';
+import { getFirstName } from '@app/shared/utils';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { RegisterProfessionalUserDto } from '../dto/requests/register-professional-user';
 
@@ -138,14 +140,18 @@ export class RegisterProfessionalUserUseCase {
           user: { connect: { id: newBusiness.owner.id } },
         },
       }),
+      this.rmqService.publishToQueue({
+        payload: new SendWelcomeMailDto({
+          to: email,
+          firstName: getFirstName(name),
+        }),
+        routingKey:
+          MESSAGING_QUEUES.MAIL_NOTIFICATIONS
+            .SEND_WELCOME_PROFESSIONAL_MAIL_QUEUE,
+      }),
     ]);
 
     return null;
-  }
-
-  private getFirstName(name: string): string {
-    const names = name.split(' ');
-    return names.length > 0 ? names?.[0] : '';
   }
 
   private makeSlugFromName(name: string): string {

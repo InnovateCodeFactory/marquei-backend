@@ -122,3 +122,8 @@ export function codeGenerator({
   }
   return result;
 }
+
+export function getFirstName(name: string): string {
+  const names = name.split(' ');
+  return names.length > 0 ? names?.[0] : '';
+}
