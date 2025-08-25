@@ -46,6 +46,7 @@ model User {
   professional_profile    ProfessionalProfile[]
   CurrentSelectedBusiness CurrentSelectedBusiness[]
   guest                   Guest?                    @relation(name: "UserGuest")
+  UploadedMedia           UploadedMedia[]
 
   @@unique([email, user_type], name: "uq_user_email_type")
   @@index([email, user_type], name: "idx_user_email_user_type")
@@ -222,8 +223,9 @@ model Person {
   phone           String? @unique // telefone em E.164 (ex: +552199...)
 
   // Dados básicos
-  name      String
-  birthdate String? // mantenho como String se preferir
+  name          String
+  birthdate     String? // mantenho como String se preferir
+  profile_image String?
 
   // Auditoria
   created_at DateTime @default(now())
@@ -400,6 +402,27 @@ model WebhookEvent {
 
   @@index([event_id])
   @@index([type])
+}
+
+model UploadedMedia {
+  id          String              @id @default(cuid())
+  key         String              @unique // chave do objeto no S3
+  etag        String?
+  source      UploadedMediaSource
+  uploaded_by User                @relation(fields: [userId], references: [id])
+  created_at  DateTime            @default(now())
+  userId      String
+
+  @@index([source], name: "idx_uploaded_media_source")
+  @@index([userId], name: "idx_uploaded_media_user")
+}
+
+enum UploadedMediaSource {
+  BUSINESS_LOGO
+  BUSINESS_COVER
+  PROFESSIONAL_AVATAR
+  CUSTOMER_AVATAR
+  SERVICE_IMAGE
 }
 
 enum UserType {

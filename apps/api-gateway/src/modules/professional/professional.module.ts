@@ -1,6 +1,4 @@
-import { AuthGuard } from '@app/shared/guards/auth.guard';
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
 import { AppointmentsModule } from './appointments/appointments.module';
 import { AuthModule } from './auth/auth.module';
 import { BusinessCategoryModule } from './business-category/business-category.module';
@@ -26,12 +24,6 @@ import { StatementModule } from './statement/statement.module';
     ProfessionalsModule,
     InAppNotificationsModule,
     StatementModule,
-  ],
-  providers: [
-    {
-      provide: APP_GUARD,
-      useClass: AuthGuard,
-    },
   ],
 })
 export class ProfessionalModule {}

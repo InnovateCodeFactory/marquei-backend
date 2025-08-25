@@ -50,8 +50,8 @@ export class SeedProfessionalPlansUseCase implements OnModuleInit {
       planId: 'cmbsraj1j0000yxm0u4sd1vom',
       key: 'PROFESSIONALS',
       order: 1,
-      stringValue: 'Até 2',
-      intValue: 2,
+      stringValue: 'Até 3',
+      intValue: 3,
       boolValue: null,
     },
     {

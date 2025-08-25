@@ -1,9 +1,12 @@
 import { Module } from '@nestjs/common';
 import { CustomerAppointmentsController } from './customer-appointments.controller';
-import { CreateAppointmentUseCase } from './use-cases';
+import {
+  CreateAppointmentUseCase,
+  GetNextAppointmentUseCase,
+} from './use-cases';
 
 @Module({
   controllers: [CustomerAppointmentsController],
-  providers: [CreateAppointmentUseCase],
+  providers: [CreateAppointmentUseCase, GetNextAppointmentUseCase],
 })
 export class CustomerAppointmentsModule {}

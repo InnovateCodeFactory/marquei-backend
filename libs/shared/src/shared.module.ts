@@ -1,11 +1,13 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import { ScheduleModule } from '@nestjs/schedule';
 import { EnvSchemaType, envValidationSchema } from './environment';
 import { DatabaseModule } from './modules/database/database.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { RmqModule } from './modules/rmq/rmq.module';
 import {
+  FileSystemService,
   HashingService,
   ResponseHandlerService,
   TypedConfigService,
@@ -29,6 +31,7 @@ import {
         },
       }),
     }),
+    ScheduleModule.forRoot(),
     DatabaseModule,
     RmqModule,
     RedisModule,
@@ -37,7 +40,7 @@ import {
     ResponseHandlerService,
     TypedConfigService,
     HashingService,
-    // FileSystemService,
+    FileSystemService,
   ],
   exports: [
     ConfigModule,
@@ -48,7 +51,7 @@ import {
     TypedConfigService,
     HashingService,
     JwtModule,
-    // FileSystemService,
+    FileSystemService,
   ],
 })
 export class SharedModule {}

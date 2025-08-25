@@ -4,7 +4,7 @@ import { HashingService } from '@app/shared/services';
 import { ConflictException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { CreateCustomerDto } from '../dto/requests/create-customer.dto';
+import { CreateUserCustomerDto } from '../dto/requests/create-customer.dto';
 
 @Injectable()
 export class CreateCustomerUseCase {
@@ -15,7 +15,7 @@ export class CreateCustomerUseCase {
     private readonly configService: ConfigService<EnvSchemaType>,
   ) {}
 
-  async execute(dto: CreateCustomerDto) {
+  async execute(dto: CreateUserCustomerDto) {
     const email = dto.email.trim().toLowerCase();
     const phone = dto.phone.trim();
 
@@ -111,7 +111,7 @@ export class CreateCustomerUseCase {
 
       return {
         token: await this.jwtService.signAsync(
-          { id: user.id },
+          { id: user.id, user_type: 'CUSTOMER' },
           {
             secret: this.configService.get('JWT_SECRET'),
             expiresIn: '30d',

@@ -3,7 +3,7 @@ import { ResponseHandlerService } from '@app/shared/services';
 import { Body, Controller, Post, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
-import { CreateCustomerDto } from './dto/requests/create-customer.dto';
+import { CreateUserCustomerDto } from './dto/requests/create-customer.dto';
 import { CustomerFirstAccessDto } from './dto/requests/customer-first-access.dto';
 import {
   CreateCustomerUseCase,
@@ -38,7 +38,10 @@ export class AuthController {
   @Post('register')
   @ApiOperation({ summary: 'Register Customer' })
   @IsPublic()
-  async createCustomer(@Res() res: Response, @Body() body: CreateCustomerDto) {
+  async createCustomer(
+    @Res() res: Response,
+    @Body() body: CreateUserCustomerDto,
+  ) {
     return await this.responseHandler.handle({
       method: () => this.createCustomerUseCase.execute(body),
       res,

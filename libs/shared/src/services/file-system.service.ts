@@ -28,6 +28,7 @@ export class FileSystemService {
   private readonly s3: S3Client;
   private readonly bucket: string;
   private readonly signedUrlTtl: number;
+  private readonly customDomain: string;
 
   constructor(private readonly configService: ConfigService<EnvSchemaType>) {
     const endpoint = this.configService.getOrThrow('R2_ENDPOINT');
@@ -39,26 +40,24 @@ export class FileSystemService {
         accessKeyId: this.configService.getOrThrow('R2_ACCESS_KEY_ID'),
         secretAccessKey: this.configService.getOrThrow('R2_SECRET_ACCESS_KEY'),
       },
-      // R2 requer path-style (sem bucket no host)
       forcePathStyle: true,
     });
 
     this.bucket = this.configService.getOrThrow('R2_BUCKET');
     this.signedUrlTtl = this.configService.getOrThrow('R2_SIGNED_URL_TTL');
+    this.customDomain = this.configService.getOrThrow('R2_CUSTOM_DOMAIN');
   }
 
-  /**
-   * Upload (privado por padrão). Retorna { key, etag }
-   */
   async upload({
     key,
     body,
     contentType,
-    cacheControl,
+    cacheControl = 'public, max-age=31536000, immutable',
     contentDisposition,
     metadata,
     bucket,
   }: UploadInput) {
+    const finalKey = key.startsWith('marquei/') ? key : `marquei/${key}`;
     const finalBucket = bucket || this.bucket;
     const finalContentType =
       contentType ||
@@ -68,22 +67,20 @@ export class FileSystemService {
 
     const cmd = new PutObjectCommand({
       Bucket: finalBucket,
-      Key: key,
+      Key: finalKey,
       Body: body as any,
       ContentType: String(finalContentType),
       CacheControl: cacheControl,
       ContentDisposition: contentDisposition,
       Metadata: metadata,
-      // ACL não é necessário na R2; objetos são privados a menos que você use Access Policies
     });
 
     const res = await this.s3.send(cmd);
-    return { key, etag: res.ETag };
+    const publicUrl = this.getPublicUrl({ key });
+
+    return { etag: res.ETag, publicUrl, key: finalKey };
   }
 
-  /**
-   * Gera URL assinada de GET para download temporário
-   */
   async getSignedUrl(
     key: string,
     opts?: { expiresIn?: number; bucket?: string },
@@ -96,9 +93,6 @@ export class FileSystemService {
     return { url, expiresIn, key };
   }
 
-  /**
-   * HEAD (metadados) — útil para checar existência/Content-Type/Content-Length
-   */
   async head(key: string, bucket?: string) {
     const res = await this.s3.send(
       new HeadObjectCommand({ Bucket: bucket || this.bucket, Key: key }),
@@ -106,9 +100,6 @@ export class FileSystemService {
     return res; // { ContentType, ContentLength, Metadata, ... }
   }
 
-  /**
-   * GET como stream (server-to-server)
-   */
   async getObjectStream(key: string, bucket?: string) {
     const res = await this.s3.send(
       new GetObjectCommand({ Bucket: bucket || this.bucket, Key: key }),
@@ -117,13 +108,15 @@ export class FileSystemService {
     return res.Body as Readable;
   }
 
-  /**
-   * Delete do objeto
-   */
   async delete(key: string, bucket?: string) {
     await this.s3.send(
       new DeleteObjectCommand({ Bucket: bucket || this.bucket, Key: key }),
     );
     return { key, deleted: true };
+  }
+
+  getPublicUrl({ key }: { key: string }) {
+    const base = this.customDomain;
+    return `${base.replace(/\/+$/, '')}/${key.replace(/^\/+/, '')}`;
   }
 }
