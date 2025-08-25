@@ -29,6 +29,11 @@ export type EnvSchemaType = {
   R2_REGION: string;
   R2_SIGNED_URL_TTL: number;
   R2_CUSTOM_DOMAIN: string;
+
+  MAIL_USER: string;
+  MAIL_PASS: string;
+  MAIL_HOST: string;
+  MAIL_PORT: number;
 };
 
 export const envValidationSchema = Joi.object<EnvSchemaType>({
@@ -66,4 +71,9 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
   R2_REGION: Joi.string().default('auto').required(),
   R2_SIGNED_URL_TTL: Joi.number().default(3600).positive().integer().required(),
   R2_CUSTOM_DOMAIN: Joi.string().uri().required(),
+
+  MAIL_USER: Joi.string().required(),
+  MAIL_PASS: Joi.string().required(),
+  MAIL_HOST: Joi.string().required(),
+  MAIL_PORT: Joi.number().positive().integer().required(),
 });

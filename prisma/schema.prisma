@@ -417,6 +417,47 @@ model UploadedMedia {
   @@index([userId], name: "idx_uploaded_media_user")
 }
 
+model MailTemplate {
+  id          String           @id @default(cuid())
+  description String
+  type        MailTemplateType
+  subject     String
+  pre_header  String
+  html        String           @db.Text
+  from        String
+  active      Boolean          @default(true)
+  created_at  DateTime         @default(now())
+  updated_at  DateTime         @updatedAt
+
+  @@unique([type, active], name: "uq_mail_template_type_active")
+}
+
+model MailValidation {
+  id           String           @id @default(cuid())
+  email        String
+  code         String
+  type         MailTemplateType
+  active       Boolean          @default(true)
+  expires_at   DateTime
+  message_id   String?
+  validated    Boolean          @default(false)
+  validated_at DateTime?
+  created_at   DateTime         @default(now())
+
+  @@index([email], name: "idx_mail_validation_email")
+  @@index([code], name: "idx_mail_validation_code")
+}
+
+enum MailTemplateType {
+  WELCOME_PROFESSIONAL
+  WELCOME_CUSTOMER
+  VALIDATION_CODE
+  PASSWORD_RESET
+  APPOINTMENT_CONFIRMATION
+  APPOINTMENT_REMINDER
+  APPOINTMENT_CANCELLATION
+}
+
 enum UploadedMediaSource {
   BUSINESS_LOGO
   BUSINESS_COVER

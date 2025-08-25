@@ -24,6 +24,11 @@ export const MESSAGING_QUEUES = {
     APPOINTMENT_CREATED_QUEUE:
       'messaging.push_notifications.appointment_created_queue',
   },
-  EMAIL_NOTIFICATIONS: {},
+  MAIL_NOTIFICATIONS: {
+    SEND_WELCOME_MAIL_QUEUE:
+      'messaging.mail_notifications.send_welcome_mail_queue',
+    SEND_CODE_VALIDATION_MAIL_QUEUE:
+      'messaging.mail_notifications.send_code_validation_mail_queue',
+  },
   SMS_NOTIFICATIONS: {},
 };

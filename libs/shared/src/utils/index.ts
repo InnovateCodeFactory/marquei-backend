@@ -93,3 +93,28 @@ export function getTwoNames(name: string): string {
   if (names.length === 1) return names[0];
   return `${names[0]} ${names[1]}`;
 }
+
+export function codeGenerator({
+  length,
+  onlyNumbers = false,
+  onlyLetters = false,
+}: {
+  length: number;
+  onlyNumbers?: boolean;
+  onlyLetters?: boolean;
+}): string {
+  let result = '';
+  const characters =
+    !onlyNumbers && !onlyLetters
+      ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+      : onlyNumbers
+        ? '0123456789'
+        : 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const charactersLength = characters.length;
+  let counter = 0;
+  while (counter < length) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    counter += 1;
+  }
+  return result;
+}
