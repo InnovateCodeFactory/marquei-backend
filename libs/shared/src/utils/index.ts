@@ -2,6 +2,10 @@ import { AppointmentStatus } from '@prisma/client';
 import { formatDate as formatDateFns, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+export function removeSpecialCharacters(value: string): string {
+  return value?.replace(/[^\w\s]/gi, '');
+}
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
