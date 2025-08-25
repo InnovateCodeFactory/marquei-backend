@@ -1,6 +1,7 @@
 import { PrismaService } from '@app/shared';
 import { FileSystemService } from '@app/shared/services';
 import { CurrentCustomer } from '@app/shared/types/app-request';
+import { removeSpecialCharacters } from '@app/shared/utils';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -29,7 +30,7 @@ export class UploadProfilePictureUseCase {
         UploadedMedia: {
           create: {
             key,
-            etag,
+            etag: removeSpecialCharacters(etag),
             source: 'CUSTOMER_AVATAR',
           },
         },
