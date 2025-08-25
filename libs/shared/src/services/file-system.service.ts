@@ -57,6 +57,7 @@ export class FileSystemService {
     metadata,
     bucket,
   }: UploadInput) {
+    const finalKey = key.startsWith('marquei/') ? key : `marquei/${key}`;
     const finalBucket = bucket || this.bucket;
     const finalContentType =
       contentType ||
@@ -66,7 +67,7 @@ export class FileSystemService {
 
     const cmd = new PutObjectCommand({
       Bucket: finalBucket,
-      Key: key,
+      Key: finalKey,
       Body: body as any,
       ContentType: String(finalContentType),
       CacheControl: cacheControl,
@@ -77,7 +78,7 @@ export class FileSystemService {
     const res = await this.s3.send(cmd);
     const publicUrl = this.getPublicUrl({ key });
 
-    return { etag: res.ETag, publicUrl };
+    return { etag: res.ETag, publicUrl, key: finalKey };
   }
 
   async getSignedUrl(

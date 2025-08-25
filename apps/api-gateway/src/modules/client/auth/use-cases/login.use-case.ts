@@ -1,6 +1,6 @@
 import { PrismaService } from '@app/shared';
 import { EnvSchemaType } from '@app/shared/environment';
-import { HashingService } from '@app/shared/services';
+import { FileSystemService, HashingService } from '@app/shared/services';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -13,6 +13,7 @@ export class LoginUseCase {
     private readonly hashingService: HashingService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService<EnvSchemaType>,
+    private readonly fileSystem: FileSystemService,
   ) {}
 
   async execute(body: CustomerLoginDto) {
@@ -41,6 +42,13 @@ export class LoginUseCase {
     if (!user || !(await this.hashingService.compare(password, user?.password)))
       throw new BadRequestException('Credenciais inválidas');
 
+    let profile_image = null;
+    if (user.person.profile_image) {
+      profile_image = this.fileSystem.getPublicUrl({
+        key: user.person.profile_image,
+      });
+    }
+
     return {
       token: await this.jwtService.signAsync(
         {
@@ -58,7 +66,7 @@ export class LoginUseCase {
         personId: user.personId,
         id: user.id,
         has_push_token: !!user.push_token,
-        profile_image: user.person.profile_image,
+        profile_image,
       },
     };
   }

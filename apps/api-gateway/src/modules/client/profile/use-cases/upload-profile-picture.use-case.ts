@@ -12,7 +12,7 @@ export class UploadProfilePictureUseCase {
 
   async execute(file: Express.Multer.File, user: CurrentCustomer) {
     const ext = (file.mimetype?.split('/')?.[1] ?? 'png').toLowerCase();
-    const key = `avatars/${user?.id}/${Date.now()}-${Math.random()
+    const key = `marquei/avatars/${user?.id}/${Date.now()}-${Math.random()
       .toString(36)
       .slice(2)}.${ext}`;
 
@@ -20,7 +20,7 @@ export class UploadProfilePictureUseCase {
       key,
       body: file.buffer,
       contentType: file.mimetype || 'image/png',
-      metadata: { userId: user?.id },
+      metadata: { user_id: user?.id, user_type: 'CUSTOMER' },
     });
 
     await this.prismaService.user.update({
