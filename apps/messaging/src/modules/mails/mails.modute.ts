@@ -3,6 +3,7 @@ import { MailBaseService } from './mail-base.service';
 import {
   CreateMailTemplateUseCase,
   SendCodeValidationMailUseCase,
+  SendWelcomeCustomerMailUseCase,
   SendWelcomeProfessionalMailUseCase,
 } from './use-cases';
 
@@ -11,6 +12,7 @@ import {
   providers: [
     MailBaseService,
     SendWelcomeProfessionalMailUseCase,
+    SendWelcomeCustomerMailUseCase,
     CreateMailTemplateUseCase,
     SendCodeValidationMailUseCase,
   ],

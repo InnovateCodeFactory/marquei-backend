@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
-    <title>Bem-vindo(a)</title>
+    <title>Bem-vindo(a) ao Marquei</title>
     <style>
       html,
       body {
@@ -52,7 +52,6 @@
         }
       }
 
-      /* Dark mode: manter card e header claros */
       @media (prefers-color-scheme: dark) {
         body,
         .body-bg {
@@ -81,7 +80,7 @@
     <!-- Preheader invisível -->
     <div
       style="
-        display: none !important;
+        display: none;
         visibility: hidden;
         opacity: 0;
         overflow: hidden;
@@ -92,10 +91,9 @@
         color: #fff;
       "
     >
-      {PREHEADER}
+      Sua jornada com o Marquei está começando!
     </div>
 
-    <!-- Wrapper -->
     <table
       role="presentation"
       width="100%"
@@ -106,7 +104,6 @@
     >
       <tr>
         <td align="center" style="padding: 28px 16px">
-          <!-- Card -->
           <table
             role="presentation"
             width="600"
@@ -122,7 +119,7 @@
               overflow: hidden;
             "
           >
-            <!-- Header claro -->
+            <!-- Header -->
             <tr>
               <td
                 class="header"
@@ -169,9 +166,6 @@
                   "
                 >
                   Bem-vindo(a), {NAME}!
-                </h1>
-                <p class="text" style="margin: 0; text-align: center">
-                  Estamos muito felizes em ter você com a gente
                   <img
                     src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f389.png"
                     alt="🎉"
@@ -186,9 +180,33 @@
                       text-decoration: none;
                     "
                   />
-                  <br />
-                  A partir de agora, você tem acesso a uma plataforma que
-                  simplifica o agendamento e ajuda seu negócio a crescer.
+                </h1>
+                <p
+                  class="text"
+                  style="
+                    margin: 0;
+                    text-align: center;
+                    font-size: 15px;
+                    line-height: 1.6;
+                    color: #334155;
+                  "
+                >
+                  Agora você pode agendar seus serviços favoritos de forma
+                  <b>simples, rápida e segura</b>.
+                </p>
+                <br />
+                <p
+                  class="text"
+                  style="
+                    margin: 0;
+                    text-align: center;
+                    font-size: 15px;
+                    line-height: 1.6;
+                    color: #334155;
+                  "
+                >
+                  Encontre profissionais de confiança, escolha o melhor horário
+                  e confirme tudo em poucos cliques.
                 </p>
 
                 <table
@@ -197,25 +215,34 @@
                   cellpadding="0"
                   cellspacing="0"
                   border="0"
-                  style="margin: 8px auto 0 auto"
+                  style="margin: 24px auto 0 auto"
                 >
                   <tr>
                     <td align="center" style="padding: 0">
                       <img
-                        style="width: 40%"
+                        style="width: 60%; max-width: 300px"
                         src="https://innovatecode.online/general/welcome.png"
+                        alt="Bem-vindo ao Marquei"
                       />
                     </td>
                   </tr>
                 </table>
 
-                <p class="text" style="margin: 16px 0 0 0; text-align: center">
-                  Comece explorando seu painel, conecte seus serviços e
-                  personalize sua página de agendamentos. Qualquer dúvida,
-                  estamos por aqui para ajudar.
+                <p
+                  class="text"
+                  style="
+                    margin: 16px 0 0 0;
+                    text-align: center;
+                    font-size: 15px;
+                    line-height: 1.6;
+                    color: #334155;
+                  "
+                >
+                  Aproveite sua nova experiência e mantenha seus compromissos
+                  sempre organizados. Estamos aqui para tornar seu dia a dia
+                  mais fácil.
                 </p>
 
-                <!-- Divider -->
                 <table
                   role="presentation"
                   width="100%"
@@ -239,7 +266,6 @@
                   </tr>
                 </table>
 
-                <!-- Ajuda -->
                 <p
                   class="muted"
                   style="
@@ -253,7 +279,7 @@
                     color: #6b7280;
                   "
                 >
-                  Precisa de ajuda? Responda este e-mail
+                  Dúvidas? Responda este e-mail que nossa equipe vai te ajudar.
                 </p>
               </td>
             </tr>

@@ -1,6 +1,10 @@
 import { PrismaService } from '@app/shared';
+import { SendWelcomeMailDto } from '@app/shared/dto/messaging/mail-notifications';
 import { EnvSchemaType } from '@app/shared/environment';
+import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
+import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { HashingService } from '@app/shared/services';
+import { getFirstName } from '@app/shared/utils';
 import { ConflictException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -13,6 +17,7 @@ export class CreateCustomerUseCase {
     private readonly hashingService: HashingService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService<EnvSchemaType>,
+    private readonly rmqService: RmqService,
   ) {}
 
   async execute(dto: CreateUserCustomerDto) {
@@ -108,6 +113,16 @@ export class CreateCustomerUseCase {
           });
         }
       }
+
+      // 5) Dispara email de boas-vindas
+      await this.rmqService.publishToQueue({
+        payload: new SendWelcomeMailDto({
+          to: email,
+          firstName: getFirstName(dto.name),
+        }),
+        routingKey:
+          MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_WELCOME_CUSTOMER_MAIL_QUEUE,
+      });
 
       return {
         token: await this.jwtService.signAsync(
