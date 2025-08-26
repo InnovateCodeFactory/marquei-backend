@@ -1,11 +1,11 @@
 import { PrismaService } from '@app/shared';
 import { SendCodeValidationMailDto } from '@app/shared/dto/messaging/mail-notifications';
+import { SendMailTypeEnum } from '@app/shared/enum';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
 import { codeGenerator } from '@app/shared/utils';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { MailTemplateType } from '@prisma/client';
 import { MailBaseService } from '../mail-base.service';
 
 @Injectable()
@@ -36,7 +36,7 @@ export class SendCodeValidationMailUseCase implements OnApplicationBootstrap {
       const [template, _] = await Promise.all([
         this.prisma.mailTemplate.findFirst({
           where: {
-            type: MailTemplateType.VALIDATION_CODE,
+            type: SendMailTypeEnum.VALIDATION_CODE,
             active: true,
           },
           select: {
@@ -48,7 +48,7 @@ export class SendCodeValidationMailUseCase implements OnApplicationBootstrap {
         }),
         this.prisma.mailValidation.updateMany({
           where: {
-            type: MailTemplateType.VALIDATION_CODE,
+            type: SendMailTypeEnum.VALIDATION_CODE,
             active: true,
           },
           data: { active: false },
@@ -59,9 +59,13 @@ export class SendCodeValidationMailUseCase implements OnApplicationBootstrap {
 
       const code = codeGenerator({ length: 6, onlyNumbers: true });
 
-      const html = this.mailBaseService.fillTemplate(template.html, {
-        CODE: code,
-        PREHEADER: template.pre_header || '',
+      const html = this.mailBaseService.fillTemplate({
+        type: SendMailTypeEnum.VALIDATION_CODE,
+        template: template.html,
+        data: {
+          CODE: code,
+          PREHEADER: template.pre_header || '',
+        },
       });
 
       const response = await this.mailBaseService.sendMail({
@@ -78,7 +82,7 @@ export class SendCodeValidationMailUseCase implements OnApplicationBootstrap {
           email: to,
           code,
           expires_at: new Date(Date.now() + this.fiveMinutesInMs),
-          type: MailTemplateType.VALIDATION_CODE,
+          type: SendMailTypeEnum.VALIDATION_CODE,
           message_id: response.messageId,
         },
       });

@@ -8,10 +8,8 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { MailBaseService } from '../../mail-base.service';
 
 @Injectable()
-export class SendWelcomeProfessionalMailUseCase
-  implements OnApplicationBootstrap
-{
-  private readonly logger = new Logger(SendWelcomeProfessionalMailUseCase.name);
+export class SendNewAppointmentMailUseCase implements OnApplicationBootstrap {
+  private readonly logger = new Logger(SendNewAppointmentMailUseCase.name);
 
   constructor(
     private readonly mailBaseService: MailBaseService,
@@ -29,15 +27,17 @@ export class SendWelcomeProfessionalMailUseCase
   @RabbitSubscribe({
     exchange: RABBIT_EXCHANGE,
     routingKey:
-      MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_WELCOME_PROFESSIONAL_MAIL_QUEUE,
+      MESSAGING_QUEUES.MAIL_NOTIFICATIONS
+        .SEND_NEW_APPOINTMENT_PROFESSIONAL_MAIL_QUEUE,
     queue:
-      MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_WELCOME_PROFESSIONAL_MAIL_QUEUE,
+      MESSAGING_QUEUES.MAIL_NOTIFICATIONS
+        .SEND_NEW_APPOINTMENT_PROFESSIONAL_MAIL_QUEUE,
   })
   async execute({ to, firstName }: SendWelcomeMailDto) {
     try {
       const template = await this.prisma.mailTemplate.findFirst({
         where: {
-          type: SendMailTypeEnum.WELCOME_PROFESSIONAL,
+          type: SendMailTypeEnum.NEW_APPOINTMENT_PROFESSIONAL,
           active: true,
         },
         select: {
@@ -50,7 +50,7 @@ export class SendWelcomeProfessionalMailUseCase
       if (!template) throw new Error('Template de email não encontrado');
 
       const html = this.mailBaseService.fillTemplate({
-        type: SendMailTypeEnum.WELCOME_PROFESSIONAL,
+        type: SendMailTypeEnum.NEW_APPOINTMENT_PROFESSIONAL,
         template: template.html,
         data: {
           NAME: firstName,

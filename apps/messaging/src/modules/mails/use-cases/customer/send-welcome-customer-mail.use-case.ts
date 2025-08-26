@@ -1,10 +1,10 @@
 import { PrismaService } from '@app/shared';
 import { SendWelcomeMailDto } from '@app/shared/dto/messaging/mail-notifications';
+import { SendMailTypeEnum } from '@app/shared/enum';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { MailTemplateType } from '@prisma/client';
 import { MailBaseService } from '../../mail-base.service';
 
 @Injectable()
@@ -33,7 +33,7 @@ export class SendWelcomeCustomerMailUseCase implements OnApplicationBootstrap {
     try {
       const template = await this.prisma.mailTemplate.findFirst({
         where: {
-          type: MailTemplateType.WELCOME_CUSTOMER,
+          type: SendMailTypeEnum.WELCOME_CUSTOMER,
           active: true,
         },
         select: {
@@ -45,9 +45,13 @@ export class SendWelcomeCustomerMailUseCase implements OnApplicationBootstrap {
       });
       if (!template) throw new Error('Template de email não encontrado');
 
-      const html = this.mailBaseService.fillTemplate(template.html, {
-        NAME: firstName,
-        PREHEADER: template.pre_header || '',
+      const html = this.mailBaseService.fillTemplate({
+        type: SendMailTypeEnum.WELCOME_CUSTOMER,
+        template: template.html,
+        data: {
+          NAME: firstName,
+          PREHEADER: template.pre_header || '',
+        },
       });
 
       const response = await this.mailBaseService.sendMail({

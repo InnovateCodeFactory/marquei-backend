@@ -1,4 +1,6 @@
+import { SendMailTypeEnum } from '@app/shared/enum';
 import { EnvSchemaType } from '@app/shared/environment';
+import { MailTemplateDataMap } from '@app/shared/types/mail-template-data-map.type';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
@@ -43,7 +45,15 @@ export class MailBaseService {
     }
   }
 
-  fillTemplate(template: string, data: Record<string, string>) {
+  fillTemplate<T extends SendMailTypeEnum>({
+    data,
+    template,
+    type,
+  }: {
+    type: T;
+    template: string;
+    data: MailTemplateDataMap[T];
+  }): string {
     return Object.entries(data).reduce((acc, [key, value]) => {
       return acc.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
     }, template);

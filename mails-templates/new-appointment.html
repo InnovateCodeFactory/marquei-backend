@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
-    <title>Bem-vindo(a) ao Marquei</title>
+    <title>Novo agendamento</title>
     <style>
       html,
       body {
@@ -50,16 +50,18 @@
           width: 160px !important;
           height: auto !important;
         }
+        .btn a {
+          font-size: 16px !important;
+        }
       }
 
+      /* Dark mode seguro (mantém cartão e header claros) */
       @media (prefers-color-scheme: dark) {
         body,
         .body-bg {
           background: #0f1115 !important;
         }
-        .card {
-          background: #ffffff !important;
-        }
+        .card,
         .header {
           background: #ffffff !important;
         }
@@ -77,10 +79,10 @@
     </style>
   </head>
   <body class="body-bg" style="background: #f3f5ff; margin: 0; padding: 0">
-    <!-- Preheader invisível -->
+    <!-- Preheader -->
     <div
       style="
-        display: none;
+        display: none !important;
         visibility: hidden;
         opacity: 0;
         overflow: hidden;
@@ -91,7 +93,7 @@
         color: #fff;
       "
     >
-      Sua jornada com o Marquei está começando!
+      Novo agendamento: {SERVICE_NAME} em {APPT_DATE} às {APPT_TIME}.
     </div>
 
     <table
@@ -123,7 +125,7 @@
             <tr>
               <td
                 class="header"
-                style="background: #ffffff; padding: 24px 24px 8px 24px"
+                style="background: #ffffff; padding: 24px 24px 20px 24px"
               >
                 <table role="presentation" width="100%">
                   <tr>
@@ -141,7 +143,16 @@
                     <td style="padding-top: 16px">
                       <table role="presentation" width="100%">
                         <tr>
-                          <td style="border-top: 1px solid #4647fa">&nbsp;</td>
+                          <td
+                            style="
+                              border-top: 1px solid #4647fa;
+                              height: 1px;
+                              line-height: 1px;
+                              font-size: 0;
+                            "
+                          >
+                            &nbsp;
+                          </td>
                         </tr>
                       </table>
                     </td>
@@ -152,104 +163,144 @@
 
             <!-- Conteúdo -->
             <tr>
-              <td class="px py" style="padding: 0 28px">
+              <td class="px py" style="padding: 0 28px 28px 28px">
                 <h1
                   class="title"
                   style="
-                    margin: 0 0 24px 0;
+                    margin: 0 0 16px 0;
                     font-family:
                       -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
                       Arial, 'Helvetica Neue', sans-serif;
-                    font-size: 24px;
+                    font-size: 22px;
                     font-weight: 700;
                     color: #111827;
                   "
                 >
-                  Bem-vindo(a), {NAME}!
-                  <img
-                    src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f389.png"
-                    alt="🎉"
-                    width="18"
-                    height="18"
-                    style="
-                      display: inline-block;
-                      vertical-align: -3px;
-                      line-height: 0;
-                      border: 0;
-                      outline: none;
-                      text-decoration: none;
-                    "
-                  />
+                  Novo agendamento
                 </h1>
                 <p
                   class="text"
                   style="
-                    margin: 0;
-                    text-align: center;
+                    margin: 0 0 12px 0;
+                    font-family:
+                      -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                      Arial, 'Helvetica Neue', sans-serif;
                     font-size: 15px;
                     line-height: 1.6;
                     color: #334155;
                   "
                 >
-                  Agora você pode agendar seus serviços favoritos de forma
-                  <b>simples, rápida e segura</b>.
-                </p>
-                <br />
-                <p
-                  class="text"
-                  style="
-                    margin: 0;
-                    text-align: center;
-                    font-size: 15px;
-                    line-height: 1.6;
-                    color: #334155;
-                  "
-                >
-                  Encontre profissionais de confiança, escolha o melhor horário
-                  e confirme tudo em poucos cliques.
+                  Olá, {PROFESSIONAL_NAME}. Você tem um novo agendamento feito
+                  por <b>{CLIENT_NAME}</b>.
                 </p>
 
-                <table
-                  role="presentation"
-                  align="center"
-                  cellpadding="0"
-                  cellspacing="0"
-                  border="0"
-                  style="margin: 24px auto 0 auto"
-                >
-                  <tr>
-                    <td align="center" style="padding: 0">
-                      <img
-                        style="width: 60%; max-width: 300px"
-                        src="https://innovatecode.online/general/welcome.png"
-                        alt="Bem-vindo ao Marquei"
-                      />
-                    </td>
-                  </tr>
-                </table>
-
-                <p
-                  class="text"
-                  style="
-                    margin: 16px 0 0 0;
-                    text-align: center;
-                    font-size: 15px;
-                    line-height: 1.6;
-                    color: #334155;
-                  "
-                >
-                  Aproveite sua nova experiência e mantenha seus compromissos
-                  sempre organizados. Estamos aqui para tornar seu dia a dia
-                  mais fácil.
-                </p>
-
+                <!-- Resumo -->
                 <table
                   role="presentation"
                   width="100%"
                   cellpadding="0"
                   cellspacing="0"
                   border="0"
-                  style="margin: 32px 0 24px 0"
+                  style="
+                    margin: 16px 0;
+                    background: #fafbff;
+                    border: 1px solid #e6e8f0;
+                    border-radius: 12px;
+                  "
+                >
+                  <tr>
+                    <td style="padding: 16px 20px">
+                      <table
+                        role="presentation"
+                        width="100%"
+                        cellpadding="0"
+                        cellspacing="0"
+                        border="0"
+                      >
+                        <tr>
+                          <td
+                            style="
+                              padding: 6px 0;
+                              font-family:
+                                -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                                Roboto, Arial, 'Helvetica Neue', sans-serif;
+                              font-size: 14px;
+                              color: #111827;
+                            "
+                          >
+                            <b>Serviço:</b> {SERVICE_NAME}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            style="
+                              padding: 6px 0;
+                              font-family:
+                                -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                                Roboto, Arial, 'Helvetica Neue', sans-serif;
+                              font-size: 14px;
+                              color: #111827;
+                            "
+                          >
+                            <b>Data e hora:</b> {APPT_DATE} às {APPT_TIME}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            style="
+                              padding: 6px 0;
+                              font-family:
+                                -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                                Roboto, Arial, 'Helvetica Neue', sans-serif;
+                              font-size: 14px;
+                              color: #111827;
+                            "
+                          >
+                            <b>Duração:</b> {DURATION}
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td
+                            style="
+                              padding: 6px 0;
+                              font-family:
+                                -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                                Roboto, Arial, 'Helvetica Neue', sans-serif;
+                              font-size: 14px;
+                              color: #111827;
+                            "
+                          >
+                            <b>Preço:</b> {PRICE}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            style="
+                              padding: 6px 0;
+                              font-family:
+                                -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                                Roboto, Arial, 'Helvetica Neue', sans-serif;
+                              font-size: 14px;
+                              color: #111827;
+                            "
+                          >
+                            <b>Observações do cliente:</b> {CLIENT_NOTES}
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Divider -->
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  border="0"
+                  style="margin: 24px 0"
                 >
                   <tr>
                     <td
@@ -266,6 +317,23 @@
                   </tr>
                 </table>
 
+                <!-- Dicas operacionais -->
+                <p
+                  class="muted"
+                  style="
+                    margin: 0 0 6px 0;
+                    text-align: center;
+                    font-family:
+                      -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                      Arial, 'Helvetica Neue', sans-serif;
+                    font-size: 12px;
+                    line-height: 1.7;
+                    color: #6b7280;
+                  "
+                >
+                  Enviaremos um lembrete para você 24 horas antes do
+                  agendamento.
+                </p>
                 <p
                   class="muted"
                   style="
@@ -279,7 +347,8 @@
                     color: #6b7280;
                   "
                 >
-                  Dúvidas? Responda este e-mail que nossa equipe vai te ajudar.
+                  Em caso de imprevisto, acesse o aplicativo para reagendar ou
+                  cancelar.
                 </p>
               </td>
             </tr>
