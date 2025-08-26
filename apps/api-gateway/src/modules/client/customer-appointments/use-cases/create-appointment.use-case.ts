@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/shared';
+import { SendNewAppointmentProfessionalDto } from '@app/shared/dto/messaging/mail-notifications/send-new-appointment-professional.dto';
 import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifications';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import {
@@ -8,6 +9,7 @@ import {
 import { AppRequest } from '@app/shared/types/app-request';
 import { getTwoNames } from '@app/shared/utils';
 import { NotificationMessageBuilder } from '@app/shared/utils/notification-message-builder';
+import { Price } from '@app/shared/value-objects';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { format } from 'date-fns';
@@ -72,6 +74,7 @@ export class CreateAppointmentUseCase {
             User: {
               select: {
                 push_token: true,
+                email: true,
               },
             },
             business_id: true,
@@ -80,6 +83,8 @@ export class CreateAppointmentUseCase {
         service: {
           select: {
             name: true,
+            price_in_cents: true,
+            duration: true,
           },
         },
       },
@@ -97,6 +102,14 @@ export class CreateAppointmentUseCase {
         service_name: appointment.service.name,
       });
 
+    const durationHours = Math.floor(appointment.service.duration / 60);
+    const durationMinutes = appointment.service.duration % 60;
+
+    const durationFormatted =
+      durationHours > 0
+        ? `${durationHours}h ${durationMinutes}min`
+        : `${durationMinutes}min`;
+
     await Promise.all([
       this.rmqService.publishToQueue({
         payload: new SendPushNotificationDto({
@@ -113,6 +126,22 @@ export class CreateAppointmentUseCase {
           person_id: request.user.personId,
         },
         routingKey: 'check-customer-appointment-created',
+      }),
+      this.rmqService.publishToQueue({
+        payload: new SendNewAppointmentProfessionalDto({
+          professionalName: getTwoNames(appointment.customerPerson.name),
+          clientName: getTwoNames(appointment.customerPerson.name),
+          serviceName: appointment.service.name,
+          apptDate: format(payload.appointment_date, 'dd/MM/yyyy'),
+          apptTime: format(payload.appointment_date, 'HH:mm'),
+          price: new Price(appointment.service.price_in_cents).toCurrency(),
+          clientNotes: notes || '-',
+          to: appointment?.professional.User.email,
+          duration: durationFormatted,
+        }),
+        routingKey:
+          MESSAGING_QUEUES.MAIL_NOTIFICATIONS
+            .SEND_NEW_APPOINTMENT_PROFESSIONAL_MAIL_QUEUE,
       }),
     ]);
 

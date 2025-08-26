@@ -423,7 +423,7 @@ model MailTemplate {
   description String
   type        String
   subject     String
-  pre_header  String
+  pre_header  String?
   html        String   @db.Text
   from        String
   active      Boolean  @default(true)

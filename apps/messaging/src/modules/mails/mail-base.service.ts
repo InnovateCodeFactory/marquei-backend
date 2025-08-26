@@ -1,4 +1,3 @@
-import { SendMailTypeEnum } from '@app/shared/enum';
 import { EnvSchemaType } from '@app/shared/environment';
 import { MailTemplateDataMap } from '@app/shared/types/mail-template-data-map.type';
 import { Injectable, Logger } from '@nestjs/common';
@@ -45,7 +44,7 @@ export class MailBaseService {
     }
   }
 
-  fillTemplate<T extends SendMailTypeEnum>({
+  fillTemplate<T extends keyof MailTemplateDataMap>({
     data,
     template,
     type,

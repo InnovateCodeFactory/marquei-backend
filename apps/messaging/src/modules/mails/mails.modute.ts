@@ -6,6 +6,7 @@ import {
   SendWelcomeCustomerMailUseCase,
   SendWelcomeProfessionalMailUseCase,
 } from './use-cases';
+import { SendNewAppointmentMailUseCase } from './use-cases/professional/send-new-appointment-mail.use-case';
 
 @Module({
   imports: [],
@@ -15,6 +16,7 @@ import {
     SendWelcomeCustomerMailUseCase,
     CreateMailTemplateUseCase,
     SendCodeValidationMailUseCase,
+    SendNewAppointmentMailUseCase,
   ],
 })
 export class MailsModule {}

@@ -1,5 +1,5 @@
 import { PrismaService } from '@app/shared';
-import { SendWelcomeMailDto } from '@app/shared/dto/messaging/mail-notifications';
+import { SendNewAppointmentProfessionalDto } from '@app/shared/dto/messaging/mail-notifications/send-new-appointment-professional.dto';
 import { SendMailTypeEnum } from '@app/shared/enum';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
@@ -18,9 +18,15 @@ export class SendNewAppointmentMailUseCase implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     // await this.execute({
-    //   // to: 'alanagabriele43@gmail.com',
-    //   firstName: 'Carlos',
     //   to: 'chziegler445@gmail.com',
+    //   apptDate: '27/08/2025',
+    //   apptTime: '14:00',
+    //   clientName: 'Alana Gabriele',
+    //   clientNotes: 'Quero muito relaxar!',
+    //   price: 'R$ 00,00',
+    //   professionalName: 'Carlos Henrique',
+    //   serviceName: 'Massagem Relaxante',
+    //   duration: '1h30min',
     // });
   }
 
@@ -33,7 +39,17 @@ export class SendNewAppointmentMailUseCase implements OnApplicationBootstrap {
       MESSAGING_QUEUES.MAIL_NOTIFICATIONS
         .SEND_NEW_APPOINTMENT_PROFESSIONAL_MAIL_QUEUE,
   })
-  async execute({ to, firstName }: SendWelcomeMailDto) {
+  async execute({
+    apptDate,
+    apptTime,
+    clientName,
+    clientNotes,
+    price,
+    professionalName,
+    serviceName,
+    to,
+    duration,
+  }: SendNewAppointmentProfessionalDto) {
     try {
       const template = await this.prisma.mailTemplate.findFirst({
         where: {
@@ -53,8 +69,14 @@ export class SendNewAppointmentMailUseCase implements OnApplicationBootstrap {
         type: SendMailTypeEnum.NEW_APPOINTMENT_PROFESSIONAL,
         template: template.html,
         data: {
-          NAME: firstName,
-          PREHEADER: template.pre_header || '',
+          SERVICE_NAME: serviceName,
+          PROFESSIONAL_NAME: professionalName,
+          CLIENT_NAME: clientName,
+          APPT_TIME: apptTime,
+          APPT_DATE: apptDate,
+          PRICE: price,
+          CLIENT_NOTES: clientNotes,
+          DURATION: duration,
         },
       });
 
@@ -67,9 +89,7 @@ export class SendNewAppointmentMailUseCase implements OnApplicationBootstrap {
 
       if (!response) throw new Error('Erro ao enviar email');
 
-      this.logger.debug(
-        `Email de boas-vindas enviado para o profissional: ${to}`,
-      );
+      this.logger.debug(`Email de novo agendamento enviado para ${to}`);
 
       return;
     } catch (error) {

@@ -5,14 +5,15 @@ export type MailTemplateDataMap = {
   [SendMailTypeEnum.WELCOME_CUSTOMER]: { NAME: string; PREHEADER: string };
   [SendMailTypeEnum.VALIDATION_CODE]: { CODE: string; PREHEADER: string };
   [SendMailTypeEnum.PASSWORD_RESET]: { NAME: string; RESET_URL: string };
-  [SendMailTypeEnum.NEW_APPOINTMENT]: {
+  [SendMailTypeEnum.NEW_APPOINTMENT_PROFESSIONAL]: {
     PROFESSIONAL_NAME: string;
     CLIENT_NAME: string;
     SERVICE_NAME: string;
     APPT_DATE: string;
     APPT_TIME: string;
-    LOCATION: string;
     PRICE: string;
+    CLIENT_NOTES: string;
+    DURATION: string;
   };
   [SendMailTypeEnum.APPOINTMENT_CONFIRMATION]: {
     CLIENT_NAME: string;
