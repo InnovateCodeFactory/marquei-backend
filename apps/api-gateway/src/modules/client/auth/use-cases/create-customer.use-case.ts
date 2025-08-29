@@ -3,7 +3,7 @@ import { SendWelcomeMailDto } from '@app/shared/dto/messaging/mail-notifications
 import { EnvSchemaType } from '@app/shared/environment';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
-import { HashingService } from '@app/shared/services';
+import { HashingService, TokenService } from '@app/shared/services';
 import { getFirstName } from '@app/shared/utils';
 import { ConflictException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -18,6 +18,7 @@ export class CreateCustomerUseCase {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService<EnvSchemaType>,
     private readonly rmqService: RmqService,
+    private readonly tokenService: TokenService,
   ) {}
 
   async execute(dto: CreateUserCustomerDto) {
@@ -124,14 +125,14 @@ export class CreateCustomerUseCase {
           MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_WELCOME_CUSTOMER_MAIL_QUEUE,
       });
 
+      const { accessToken, refreshToken } = await this.tokenService.issueTokenPair({
+        id: user.id,
+        user_type: 'CUSTOMER',
+      });
+
       return {
-        token: await this.jwtService.signAsync(
-          { id: user.id, user_type: 'CUSTOMER' },
-          {
-            secret: this.configService.get('JWT_SECRET'),
-            expiresIn: '30d',
-          },
-        ),
+        token: accessToken,
+        refresh_token: refreshToken,
         user: {
           name: user.name,
           phone: user.person.phone,

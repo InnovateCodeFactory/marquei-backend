@@ -5,6 +5,8 @@ import { AuthController } from './auth.controller';
 import { LoginUseCase, RegisterProfessionalUserUseCase } from './use-cases';
 import { FirstAccessUseCase } from './use-cases/first-access.use-case';
 import { RegisterPushTokenUseCase } from './use-cases/register-push-token.use-case';
+import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
+import { LogoutUseCase } from './use-cases/logout.use-case';
 
 @Module({
   controllers: [AuthController],
@@ -16,6 +18,8 @@ import { RegisterPushTokenUseCase } from './use-cases/register-push-token.use-ca
     RegisterProfessionalUserUseCase,
     FirstAccessUseCase,
     RegisterPushTokenUseCase,
+    RefreshTokenUseCase,
+    LogoutUseCase,
   ],
 })
 export class AuthModule {}

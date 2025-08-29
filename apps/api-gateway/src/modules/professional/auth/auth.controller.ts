@@ -12,6 +12,9 @@ import { RegisterPushTokenDto } from './dto/requests/register-push-token.dto';
 import { LoginUseCase, RegisterProfessionalUserUseCase } from './use-cases';
 import { FirstAccessUseCase } from './use-cases/first-access.use-case';
 import { RegisterPushTokenUseCase } from './use-cases/register-push-token.use-case';
+import { RefreshTokenDto } from './dto/requests/refresh-token.dto';
+import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
+import { LogoutUseCase } from './use-cases/logout.use-case';
 
 @Controller('professional/auth')
 @ApiTags('auth')
@@ -22,6 +25,8 @@ export class AuthController {
     private readonly firstAccessUseCase: FirstAccessUseCase,
     private readonly loginUseCase: LoginUseCase,
     private readonly registerPushTokenUseCase: RegisterPushTokenUseCase,
+    private readonly refreshTokenUseCase: RefreshTokenUseCase,
+    private readonly logoutUseCase: LogoutUseCase,
   ) {}
 
   @Post('login')
@@ -32,6 +37,35 @@ export class AuthController {
   async login(@Res() res: Response, @Body() body: LoginDto) {
     return this.responseHandler.handle({
       method: () => this.loginUseCase.execute(body),
+      res,
+    });
+  }
+
+  @Post('refresh')
+  @ApiOperation({ summary: 'Refresh token (Professional)' })
+  @IsPublic()
+  async refresh(@Res() res: Response, @Body() body: RefreshTokenDto) {
+    return this.responseHandler.handle({
+      method: () => this.refreshTokenUseCase.execute(body),
+      res,
+    });
+  }
+
+  @Post('logout')
+  @ApiOperation({ summary: 'Logout (invalidate refresh token)' })
+  @IsPublic()
+  async logout(
+    @Res() res: Response,
+    @Body() body: { refreshToken?: string; allDevices?: boolean },
+    @CurrentUserDecorator() currentUser: CurrentUser,
+  ) {
+    return this.responseHandler.handle({
+      method: () =>
+        this.logoutUseCase.execute({
+          refreshToken: body?.refreshToken,
+          allDevices: body?.allDevices,
+          userId: currentUser?.id,
+        }),
       res,
     });
   }

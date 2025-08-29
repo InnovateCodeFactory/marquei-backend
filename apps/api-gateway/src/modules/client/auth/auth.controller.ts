@@ -5,11 +5,14 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CreateUserCustomerDto } from './dto/requests/create-customer.dto';
 import { CustomerFirstAccessDto } from './dto/requests/customer-first-access.dto';
+import { RefreshTokenDto } from './dto/requests/refresh-token.dto';
 import {
   CreateCustomerUseCase,
   CustomerFirstAccessUseCase,
   LoginUseCase,
 } from './use-cases';
+import { LogoutUseCase } from './use-cases/logout.use-case';
+import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
 
 @Controller('client/auth')
 @ApiTags('Client Auth')
@@ -19,6 +22,8 @@ export class AuthController {
     private readonly customerFirstAccessUseCase: CustomerFirstAccessUseCase,
     private readonly createCustomerUseCase: CreateCustomerUseCase,
     private readonly loginUseCase: LoginUseCase,
+    private readonly refreshTokenUseCase: RefreshTokenUseCase,
+    private readonly logoutUseCase: LogoutUseCase,
   ) {}
 
   @Post('first-access')
@@ -55,6 +60,32 @@ export class AuthController {
   async login(@Res() res: Response, @Body() body: any) {
     return await this.responseHandler.handle({
       method: () => this.loginUseCase.execute(body),
+      res,
+    });
+  }
+
+  @Post('refresh')
+  @ApiOperation({ summary: 'Refresh token (Customer)' })
+  @IsPublic()
+  async refresh(@Res() res: Response, @Body() body: RefreshTokenDto) {
+    return await this.responseHandler.handle({
+      method: () => this.refreshTokenUseCase.execute(body),
+      res,
+    });
+  }
+
+  @Post('logout')
+  @IsPublic()
+  @ApiOperation({ summary: 'Logout (invalidate refresh token)' })
+  async logout(
+    @Res() res: Response,
+    @Body() body: { refreshToken?: string; allDevices?: boolean },
+  ) {
+    return await this.responseHandler.handle({
+      method: () =>
+        this.logoutUseCase.execute({
+          refreshToken: body?.refreshToken,
+        }),
       res,
     });
   }

@@ -40,6 +40,92 @@ export class RedisService {
     return result === 1;
   }
 
+  async expire({
+    key,
+    ttlInSeconds,
+  }: {
+    key: string;
+    ttlInSeconds: number;
+  }): Promise<number> {
+    return this.redis.expire(key, ttlInSeconds);
+  }
+
+  /** SET NX EX — retorna true se lock adquirido */
+  async setNx({
+    key,
+    value,
+    ttlInSeconds,
+  }: {
+    key: string;
+    value: string;
+    ttlInSeconds: number;
+  }): Promise<boolean> {
+    const ttl = Math.max(1, Math.floor(ttlInSeconds)); // inteiro >= 1
+    // Usa "call" para evitar sobrecarga de tipos do ioredis
+    const res = await (this.redis as any).call(
+      'SET',
+      key,
+      value,
+      'NX',
+      'EX',
+      ttl.toString(),
+    );
+    return res === 'OK';
+  }
+
+  async watch(keys: string | string[]): Promise<void> {
+    await this.redis.watch(...(Array.isArray(keys) ? keys : [keys]));
+  }
+
+  async unwatch(): Promise<void> {
+    await this.redis.unwatch();
+  }
+
+  multi() {
+    return this.redis.multi();
+  }
+
+  /** Execução de script Lua genérico (usado para liberar lock com check-and-del) */
+  async evalLua<T = any>({
+    script,
+    keys = [],
+    args = [],
+  }: {
+    script: string;
+    keys?: string[];
+    args?: (string | number)[];
+  }): Promise<T> {
+    // Evita quebras/indentação que às vezes geram erro
+    const clean = script.replace(/\s+/g, ' ').trim();
+    return (this.redis.eval as any)(clean, keys.length, ...keys, ...args) as T;
+  }
+
+  // ----------------- Set operations helpers (refresh tracking) -----------------
+  async sadd({
+    key,
+    member,
+  }: {
+    key: string;
+    member: string;
+  }): Promise<number> {
+    return this.redis.sadd(key, member);
+  }
+
+  async smembers({ key }: { key: string }): Promise<string[]> {
+    return this.redis.smembers(key);
+  }
+
+  async srem({
+    key,
+    member,
+  }: {
+    key: string;
+    member: string;
+  }): Promise<number> {
+    return this.redis.srem(key, member);
+  }
+  // ---------------------------------------------------------------------------
+
   async getCurrentUserProfessionalFromRequest({
     userId,
   }: {

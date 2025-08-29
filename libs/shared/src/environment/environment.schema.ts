@@ -5,6 +5,9 @@ export type EnvSchemaType = {
   PORT: number;
 
   JWT_SECRET: string;
+  JWT_ACCESS_EXPIRES_IN: string; // e.g., 15m
+  JWT_REFRESH_SECRET: string;
+  JWT_REFRESH_EXPIRES_IN: string; // e.g., 30d
 
   DATABASE_URL: string;
 
@@ -43,6 +46,9 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
   PORT: Joi.number().default(3000).positive().integer().required(),
 
   JWT_SECRET: Joi.string().required(),
+  JWT_ACCESS_EXPIRES_IN: Joi.string().default('15m'),
+  JWT_REFRESH_SECRET: Joi.string().allow(''),
+  JWT_REFRESH_EXPIRES_IN: Joi.string().default('30d'),
 
   DATABASE_URL: Joi.string().uri().required(),
 

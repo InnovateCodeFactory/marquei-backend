@@ -1,6 +1,6 @@
 import { PrismaService } from '@app/shared';
 import { EnvSchemaType } from '@app/shared/environment';
-import { HashingService } from '@app/shared/services';
+import { HashingService, TokenService } from '@app/shared/services';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -13,6 +13,7 @@ export class LoginUseCase {
     private readonly hashingService: HashingService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService<EnvSchemaType>,
+    private readonly tokenService: TokenService,
   ) {}
 
   async execute(loginDto: LoginDto) {
@@ -45,17 +46,14 @@ export class LoginUseCase {
     if (!user || !(await this.hashingService.compare(password, user?.password)))
       throw new BadRequestException('Credenciais inválidas');
 
+    const { accessToken, refreshToken } = await this.tokenService.issueTokenPair({
+      id: user.id,
+      user_type: 'PROFESSIONAL',
+    });
+
     return {
-      token: await this.jwtService.signAsync(
-        {
-          id: user.id,
-          user_type: 'PROFESSIONAL',
-        },
-        {
-          secret: this.configService.get('JWT_SECRET'),
-          expiresIn: '30d',
-        },
-      ),
+      token: accessToken,
+      refresh_token: refreshToken,
       user: {
         is_the_owner:
           user.CurrentSelectedBusiness?.[0]?.business?.ownerId === user.id,
