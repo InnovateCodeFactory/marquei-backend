@@ -75,6 +75,7 @@ export class CreateAppointmentUseCase {
               select: {
                 push_token: true,
                 email: true,
+                name: true,
               },
             },
             business_id: true,
@@ -129,7 +130,7 @@ export class CreateAppointmentUseCase {
       }),
       this.rmqService.publishToQueue({
         payload: new SendNewAppointmentProfessionalDto({
-          professionalName: getTwoNames(appointment.customerPerson.name),
+          professionalName: getTwoNames(appointment.professional.User.name),
           clientName: getTwoNames(appointment.customerPerson.name),
           serviceName: appointment.service.name,
           apptDate: format(payload.appointment_date, 'dd/MM/yyyy'),
