@@ -48,7 +48,9 @@ export class GetAppointmentsUseCase {
         scheduled_at: true,
         status: true,
         customerPerson: { select: { id: true, name: true, phone: true } }, // 👈 Person do cliente
-        professional: { select: { User: { select: { name: true } } } },
+        professional: {
+          select: { User: { select: { name: true, id: true } } },
+        },
         service: {
           select: {
             id: true,
@@ -96,6 +98,7 @@ export class GetAppointmentsUseCase {
         },
         notes: a.notes,
         professional: {
+          id: a.professional.User.id,
           name: getTwoNames(a.professional.User.name),
         },
         start_date: addHours(a.scheduled_at, 3),
