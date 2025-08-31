@@ -20,37 +20,19 @@ export class BusinessCategoryAndServiceTypeSeed implements OnModuleInit {
           name: 'Barbearia',
         },
         {
-          name: 'Salão de beleza',
+          name: 'Salão de Beleza',
         },
         {
           name: 'Estética',
         },
         {
-          name: 'Pilates',
+          name: 'Fitness',
         },
         {
-          name: 'Consultório',
+          name: 'Saúde & Bem-estar',
         },
         {
-          name: 'Academia',
-        },
-        {
-          name: 'Estúdio de dança',
-        },
-        {
-          name: 'Estúdio de pilates',
-        },
-        {
-          name: 'Estúdio de yoga',
-        },
-        {
-          name: 'Estúdio de crossfit',
-        },
-        {
-          name: 'Estúdio de funcional',
-        },
-        {
-          name: 'Estúdio de musculação',
+          name: 'Esportes & Movimento',
         },
       ],
     });

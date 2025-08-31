@@ -12,6 +12,7 @@ import {
   FindNearbyBusinessesUseCase,
   GetAvailableTimesForServiceAndProfessionalUseCase,
   GetBusinessBySlugUseCase,
+  GetBusinessCategoriesUseCase,
   GetProfessionalsForAppointmentUseCase,
   GetServicesUseCase,
 } from './use-cases';
@@ -26,6 +27,7 @@ export class BusinessController {
     private readonly getServicesUseCase: GetServicesUseCase,
     private readonly getProfessionalsForAppointmentUseCase: GetProfessionalsForAppointmentUseCase,
     private readonly getAvailableTimesForServiceAndProfessionalUseCase: GetAvailableTimesForServiceAndProfessionalUseCase,
+    private readonly getBusinessCategoriesUseCase: GetBusinessCategoriesUseCase,
   ) {}
 
   @Post('nearby')
@@ -89,6 +91,16 @@ export class BusinessController {
     return this.responseHandler.handle({
       method: () =>
         this.getAvailableTimesForServiceAndProfessionalUseCase.execute(query),
+      res,
+    });
+  }
+
+  @Get('categories')
+  @IsPublic()
+  @ApiOperation({ summary: 'Get business categories' })
+  async getBusinessCategories(@Res() res: Response) {
+    return this.responseHandler.handle({
+      method: () => this.getBusinessCategoriesUseCase.execute(),
       res,
     });
   }

@@ -4,6 +4,7 @@ import {
   FindNearbyBusinessesUseCase,
   GetAvailableTimesForServiceAndProfessionalUseCase,
   GetBusinessBySlugUseCase,
+  GetBusinessCategoriesUseCase,
   GetProfessionalsForAppointmentUseCase,
   GetServicesUseCase,
 } from './use-cases';
@@ -16,6 +17,7 @@ import {
     GetServicesUseCase,
     GetProfessionalsForAppointmentUseCase,
     GetAvailableTimesForServiceAndProfessionalUseCase,
+    GetBusinessCategoriesUseCase,
   ],
 })
 export class BusinessModule {}
