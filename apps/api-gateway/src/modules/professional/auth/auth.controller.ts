@@ -1,32 +1,36 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
+import { SendMailTypeEnum } from '@app/shared/enum';
 import { ResponseHandlerService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { Body, Controller, Post, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { MailService } from 'apps/api-gateway/src/shared/services';
 import { Response } from 'express';
 import { FirstAccessDto } from './dto/requests/firts-access.dto';
 import { LoginDto } from './dto/requests/login.dto';
+import { RefreshTokenDto } from './dto/requests/refresh-token.dto';
 import { RegisterProfessionalUserDto } from './dto/requests/register-professional-user';
 import { RegisterPushTokenDto } from './dto/requests/register-push-token.dto';
 import { LoginUseCase, RegisterProfessionalUserUseCase } from './use-cases';
 import { FirstAccessUseCase } from './use-cases/first-access.use-case';
-import { RegisterPushTokenUseCase } from './use-cases/register-push-token.use-case';
-import { RefreshTokenDto } from './dto/requests/refresh-token.dto';
-import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
 import { LogoutUseCase } from './use-cases/logout.use-case';
+import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
+import { RegisterPushTokenUseCase } from './use-cases/register-push-token.use-case';
 
 @Controller('professional/auth')
 @ApiTags('auth')
 export class AuthController {
   constructor(
     private readonly registerProfessionalUserUseCase: RegisterProfessionalUserUseCase,
-    private readonly responseHandler: ResponseHandlerService,
     private readonly firstAccessUseCase: FirstAccessUseCase,
     private readonly loginUseCase: LoginUseCase,
     private readonly registerPushTokenUseCase: RegisterPushTokenUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly logoutUseCase: LogoutUseCase,
+
+    private readonly responseHandler: ResponseHandlerService,
+    private readonly mailService: MailService,
   ) {}
 
   @Post('login')
@@ -112,6 +116,45 @@ export class AuthController {
   ) {
     return this.responseHandler.handle({
       method: () => this.registerPushTokenUseCase.execute(body, currentUser),
+      res,
+    });
+  }
+
+  @Post('send-validation-mail-code')
+  @ApiOperation({
+    summary: 'Send validation code to email',
+  })
+  @IsPublic()
+  async sendValidationCode(
+    @Res() res: Response,
+    @Body() body: { email: string },
+  ) {
+    return this.responseHandler.handle({
+      method: () =>
+        this.mailService.sendCode({
+          to: body.email,
+          type: SendMailTypeEnum.CREATE_ACCOUNT_PROFESSIONAL,
+        }),
+      res,
+    });
+  }
+
+  @Post('validate-code-mail')
+  @ApiOperation({
+    summary: 'Validate code sent to email',
+  })
+  @IsPublic()
+  async validateCode(
+    @Res() res: Response,
+    @Body() body: { email: string; code: string },
+  ) {
+    return this.responseHandler.handle({
+      method: () =>
+        this.mailService.validateCode({
+          email: body.email,
+          code: body.code,
+          type: SendMailTypeEnum.CREATE_ACCOUNT_PROFESSIONAL,
+        }),
       res,
     });
   }

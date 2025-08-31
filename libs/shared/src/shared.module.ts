@@ -6,7 +6,13 @@ import { EnvSchemaType, envValidationSchema } from './environment';
 import { DatabaseModule } from './modules/database/database.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { RmqModule } from './modules/rmq/rmq.module';
-import { FileSystemService, HashingService, ResponseHandlerService, TypedConfigService, TokenService } from './services';
+import {
+  FileSystemService,
+  HashingService,
+  ResponseHandlerService,
+  TokenService,
+  TypedConfigService,
+} from './services';
 
 @Global()
 @Module({
@@ -51,4 +57,4 @@ import { FileSystemService, HashingService, ResponseHandlerService, TypedConfigS
     TokenService,
   ],
 })
-export class SharedModule {}
+export class LibsSharedModule {}

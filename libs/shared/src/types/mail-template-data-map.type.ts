@@ -1,10 +1,16 @@
 import { SendMailTypeEnum } from '../enum';
 
 export type MailTemplateDataMap = {
+  // bem-vindo
   [SendMailTypeEnum.WELCOME_PROFESSIONAL]: { NAME: string; PREHEADER: string };
   [SendMailTypeEnum.WELCOME_CUSTOMER]: { NAME: string; PREHEADER: string };
-  [SendMailTypeEnum.VALIDATION_CODE]: { CODE: string; PREHEADER: string };
-  [SendMailTypeEnum.PASSWORD_RESET]: { NAME: string; RESET_URL: string };
+  // Email de validação
+  [SendMailTypeEnum.VALIDATION_CODE]: {
+    CODE: string;
+    PREHEADER: string;
+  };
+
+  // agendamento
   [SendMailTypeEnum.NEW_APPOINTMENT_PROFESSIONAL]: {
     PROFESSIONAL_NAME: string;
     CLIENT_NAME: string;

@@ -1,7 +1,7 @@
 import { PrismaService } from '@app/shared';
 import { WelcomeMessageDto } from '@app/shared/dto/messaging/in-app-notifications';
 import { SendWelcomeMailDto } from '@app/shared/dto/messaging/mail-notifications';
-import { DaysOfWeek } from '@app/shared/enum';
+import { DaysOfWeek, SendMailTypeEnum } from '@app/shared/enum';
 import {
   MESSAGING_QUEUES,
   PAYMENT_QUEUES,
@@ -36,7 +36,7 @@ export class RegisterProfessionalUserUseCase {
 
     const slug = this.makeSlugFromName(business.name);
 
-    const [existingUser, existingBusiness] = await Promise.all([
+    const [existingUser, existingBusiness, mailValidation] = await Promise.all([
       this.prismaService.user.findUnique({
         where: { uq_user_email_type: { email, user_type: 'PROFESSIONAL' } },
         select: { id: true },
@@ -45,8 +45,21 @@ export class RegisterProfessionalUserUseCase {
         where: { slug },
         select: { id: true },
       }),
+      this.prismaService.mailValidation.findFirst({
+        where: {
+          email,
+          type: SendMailTypeEnum.CREATE_ACCOUNT_PROFESSIONAL,
+          validated: true,
+          active: false,
+          created_at: {
+            gte: new Date(Date.now() - 15 * 60 * 1000), // 15 minutos
+          },
+        },
+        select: { id: true },
+      }),
     ]);
 
+    if (!mailValidation) throw new BadRequestException('Email não validado');
     if (existingUser) throw new BadRequestException('Email já está em uso');
     if (existingBusiness)
       throw new BadRequestException('Negócio já cadastrado com esse nome');
