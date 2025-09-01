@@ -5,11 +5,11 @@ import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
 import { codeGenerator } from '@app/shared/utils';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { MailBaseService } from '../mail-base.service';
 
 @Injectable()
-export class SendCodeValidationMailUseCase implements OnApplicationBootstrap {
+export class SendCodeValidationMailUseCase {
   private readonly logger = new Logger(SendCodeValidationMailUseCase.name);
 
   private fiveMinutesInMs = 5 * 60 * 1000;
@@ -19,19 +19,13 @@ export class SendCodeValidationMailUseCase implements OnApplicationBootstrap {
     private prisma: PrismaService,
   ) {}
 
-  async onApplicationBootstrap() {
-    // await this.execute({
-    //   to: 'alanagabriele43@gmail.com',
-    //   // to: 'chziegler445@gmail.com',
-    // });
-  }
   @RabbitSubscribe({
     exchange: RABBIT_EXCHANGE,
     routingKey:
       MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_CODE_VALIDATION_MAIL_QUEUE,
     queue: MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_CODE_VALIDATION_MAIL_QUEUE,
   })
-  async execute({ to }: SendCodeValidationMailDto) {
+  async execute({ to, type }: SendCodeValidationMailDto) {
     try {
       const [template, _] = await Promise.all([
         this.prisma.mailTemplate.findFirst({
@@ -48,7 +42,7 @@ export class SendCodeValidationMailUseCase implements OnApplicationBootstrap {
         }),
         this.prisma.mailValidation.updateMany({
           where: {
-            type: SendMailTypeEnum.VALIDATION_CODE,
+            type,
             active: true,
           },
           data: { active: false },
@@ -82,7 +76,7 @@ export class SendCodeValidationMailUseCase implements OnApplicationBootstrap {
           email: to,
           code,
           expires_at: new Date(Date.now() + this.fiveMinutesInMs),
-          type: SendMailTypeEnum.VALIDATION_CODE,
+          type,
           message_id: response.messageId,
         },
       });
