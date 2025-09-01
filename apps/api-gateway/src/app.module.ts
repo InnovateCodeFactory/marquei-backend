@@ -12,8 +12,8 @@ import { SeedModule } from './seed/seed.module';
 @Module({
   imports: [
     SharedModule,
-    ClientModule,
     ProfessionalModule,
+    ClientModule,
     WebhooksModule,
     PlansModule,
     SeedModule,

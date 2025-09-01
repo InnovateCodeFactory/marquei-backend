@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BusinessController } from './business.controller';
 import {
+  FilterBusinessesUseCase,
   FindNearbyBusinessesUseCase,
   GetAvailableTimesForServiceAndProfessionalUseCase,
   GetBusinessBySlugUseCase,
@@ -18,6 +19,7 @@ import {
     GetProfessionalsForAppointmentUseCase,
     GetAvailableTimesForServiceAndProfessionalUseCase,
     GetBusinessCategoriesUseCase,
+    FilterBusinessesUseCase,
   ],
 })
 export class BusinessModule {}

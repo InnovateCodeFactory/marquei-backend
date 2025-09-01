@@ -127,3 +127,17 @@ export function getFirstName(name: string): string {
   const names = name.split(' ');
   return names.length > 0 ? names?.[0] : '';
 }
+
+export const buildAddress = (r: {
+  street: string | null;
+  number: string | null;
+  neighbourhood: string | null;
+  city: string | null;
+  uf: string | null;
+  complement: string | null;
+}) => {
+  const line1 = [r.street, r.number].filter(Boolean).join(', ');
+  const line2 = [r.neighbourhood, r.city, r.uf].filter(Boolean).join(' - ');
+  const comp = r.complement ? ` (${r.complement})` : '';
+  return [line1, line2].filter(Boolean).join(' • ') + comp;
+};

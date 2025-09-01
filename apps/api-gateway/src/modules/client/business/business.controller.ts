@@ -3,12 +3,14 @@ import { ResponseHandlerService } from '@app/shared/services';
 import { Body, Controller, Get, Post, Query, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { FilterBusinessesDto } from './dto/requests/filter-businesses.dto';
 import { FindNearbyBusinessesDto } from './dto/requests/find-nearby-businesses.dto';
 import { GetAvailableTimesForServiceAndProfessionalDto } from './dto/requests/get-available-times-for-service-and-professional.dto';
 import { GetBusinessBySlugDto } from './dto/requests/get-business-by-slug.dto';
 import { GetProfessionalsForAppointmentDto } from './dto/requests/get-professionals.dto';
 import { GetServicesDto } from './dto/requests/get-services.dto';
 import {
+  FilterBusinessesUseCase,
   FindNearbyBusinessesUseCase,
   GetAvailableTimesForServiceAndProfessionalUseCase,
   GetBusinessBySlugUseCase,
@@ -28,6 +30,7 @@ export class BusinessController {
     private readonly getProfessionalsForAppointmentUseCase: GetProfessionalsForAppointmentUseCase,
     private readonly getAvailableTimesForServiceAndProfessionalUseCase: GetAvailableTimesForServiceAndProfessionalUseCase,
     private readonly getBusinessCategoriesUseCase: GetBusinessCategoriesUseCase,
+    private readonly filterBusinessesUseCase: FilterBusinessesUseCase,
   ) {}
 
   @Post('nearby')
@@ -101,6 +104,19 @@ export class BusinessController {
   async getBusinessCategories(@Res() res: Response) {
     return this.responseHandler.handle({
       method: () => this.getBusinessCategoriesUseCase.execute(),
+      res,
+    });
+  }
+
+  @Get('filter')
+  @IsPublic()
+  @ApiOperation({ summary: 'Filter businesses' })
+  async filterBusinesses(
+    @Res() res: Response,
+    @Query() query: FilterBusinessesDto,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.filterBusinessesUseCase.execute(query),
       res,
     });
   }

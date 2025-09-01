@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/shared';
+import { buildAddress } from '@app/shared/utils';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { FindNearbyBusinessesDto } from '../dto/requests/find-nearby-businesses.dto';
 
@@ -124,20 +125,6 @@ export class FindNearbyBusinessesUseCase implements OnModuleInit {
       if (meters < 1000) return `${Math.round(meters)}m`;
       const km = meters / 1000;
       return `${Number(km.toFixed(1))}km`;
-    };
-
-    const buildAddress = (r: {
-      street: string | null;
-      number: string | null;
-      neighbourhood: string | null;
-      city: string | null;
-      uf: string | null;
-      complement: string | null;
-    }) => {
-      const line1 = [r.street, r.number].filter(Boolean).join(', ');
-      const line2 = [r.neighbourhood, r.city, r.uf].filter(Boolean).join(' - ');
-      const comp = r.complement ? ` (${r.complement})` : '';
-      return [line1, line2].filter(Boolean).join(' • ') + comp;
     };
 
     const totalCount = Number(countRows[0]?.total ?? 0);

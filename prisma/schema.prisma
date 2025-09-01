@@ -53,50 +53,53 @@ model User {
 }
 
 model Business {
-  id                      String                    @id @default(cuid())
-  name                    String
-  slug                    String                    @unique
-  description             String?
-  logo                    String?
-  coverImage              String?
-  latitude                Float // Latitude para localização
-  longitude               Float // Longitude para localização
-  location                Unsupported("geography")? @map("location")
-  opening_hours           Json
-  website                 String?
-  instagram               String?
-  email                   String?
-  is_active               Boolean                   @default(true)
-  is_verified             Boolean                   @default(false)
-  is_featured             Boolean                   @default(false)
-  rating                  Float                     @default(0.0)
-  reviews_count           Int                       @default(0)
-  average_price           Float                     @default(0.0) // preço médio dos serviços
-  stripe_customer_id      String? // ID do cliente no Stripe, se aplicável
-  phone                   String?
-  zipCode                 String?
-  street                  String?
-  neighbourhood           String?
-  number                  String?
-  complement              String?
-  city                    String?
-  uf                      String?
-  ownerId                 String
-  owner                   User                      @relation("BusinessOwners", fields: [ownerId], references: [id])
-  professionals           ProfessionalProfile[]
-  services                Service[]
-  created_at              DateTime                  @default(now())
-  updated_at              DateTime                  @updatedAt
-  BusinessCategory        BusinessCategory?         @relation(fields: [businessCategoryId], references: [id])
-  businessCategoryId      String?
-  BusinessServiceType     BusinessServiceType?      @relation(fields: [businessServiceTypeId], references: [id])
-  businessServiceTypeId   String?
-  BusinessSubscription    BusinessSubscription[]
-  CurrentSelectedBusiness CurrentSelectedBusiness[]
-  ProfessionalStatement   ProfessionalStatement[]
-  BusinessCustomer        BusinessCustomer[]
+  id                       String                    @id @default(cuid())
+  name                     String
+  slug                     String                    @unique
+  description              String?
+  logo                     String?
+  coverImage               String?
+  latitude                 Float // Latitude para localização
+  longitude                Float // Longitude para localização
+  location                 Unsupported("geography")? @map("location")
+  opening_hours            Json
+  website                  String?
+  instagram                String?
+  email                    String?
+  public_type              BusinessPublicType        @default(BOTH)
+  business_category_custom String? // categoria customizada, se aplicável
+  is_active                Boolean                   @default(true)
+  is_verified              Boolean                   @default(false)
+  is_featured              Boolean                   @default(false)
+  rating                   Float                     @default(0.0)
+  reviews_count            Int                       @default(0)
+  average_price            Float                     @default(0.0) // preço médio dos serviços
+  stripe_customer_id       String? // ID do cliente no Stripe, se aplicável
+  phone                    String?
+  zipCode                  String?
+  street                   String?
+  neighbourhood            String?
+  number                   String?
+  complement               String?
+  city                     String?
+  uf                       String?
+  ownerId                  String
+  owner                    User                      @relation("BusinessOwners", fields: [ownerId], references: [id])
+  professionals            ProfessionalProfile[]
+  services                 Service[]
+  created_at               DateTime                  @default(now())
+  updated_at               DateTime                  @updatedAt
+  BusinessCategory         BusinessCategory?         @relation(fields: [businessCategoryId], references: [id])
+  businessCategoryId       String?
+  BusinessServiceType      BusinessServiceType?      @relation(fields: [businessServiceTypeId], references: [id])
+  businessServiceTypeId    String?
+  BusinessSubscription     BusinessSubscription[]
+  CurrentSelectedBusiness  CurrentSelectedBusiness[]
+  ProfessionalStatement    ProfessionalStatement[]
+  BusinessCustomer         BusinessCustomer[]
 
   @@index([slug], name: "idx_business_slug")
+  @@index([name], name: "idx_business_name")
   @@index([ownerId], name: "idx_business_owner")
   @@index([businessCategoryId], name: "idx_business_category")
   @@index([businessServiceTypeId], name: "idx_business_service_type")
@@ -266,10 +269,13 @@ model BusinessCustomer {
 }
 
 model BusinessCategory {
-  id          String     @id @default(cuid())
-  name        String     @unique
-  description String?
-  businesses  Business[]
+  id              String     @id @default(cuid())
+  name            String     @unique
+  description     String?
+  order           Int? // para ordenação na exibição
+  icon_path       String? // caminho ou URL do ícone
+  icon_path_light String? // caminho ou URL do ícone
+  businesses      Business[]
 
   @@index([name], name: "idx_business_category_name")
 }
@@ -517,4 +523,10 @@ enum BenefitKey {
 enum StatementType {
   INCOME
   OUTCOME
+}
+
+enum BusinessPublicType {
+  MALE
+  FEMALE
+  BOTH
 }
