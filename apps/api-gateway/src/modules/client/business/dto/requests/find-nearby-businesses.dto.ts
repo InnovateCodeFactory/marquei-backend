@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class FindNearbyBusinessesDto {
   @IsNumber()
@@ -41,4 +41,12 @@ export class FindNearbyBusinessesDto {
     example: 5,
   })
   limit?: number;
+
+  @IsString()
+  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'Category ID to filter businesses by category',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  category_id?: string;
 }

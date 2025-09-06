@@ -24,8 +24,12 @@ export class GetBusinessCategoriesUseCase {
 
     return categories?.map((cat) => ({
       ...cat,
-      icon_path: `${this.fileSystem.getPublicUrl({ key: cat.icon_path })}`,
-      icon_path_light: `${this.fileSystem.getPublicUrl({ key: cat.icon_path_light })}`,
+      icon_path: cat.icon_path
+        ? `${this.fileSystem.getPublicUrl({ key: cat.icon_path })}`
+        : null,
+      icon_path_light: cat.icon_path_light
+        ? `${this.fileSystem.getPublicUrl({ key: cat.icon_path_light })}`
+        : null,
     }));
   }
 }
