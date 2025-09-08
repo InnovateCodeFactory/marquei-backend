@@ -1,18 +1,23 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
-import { CurrentCustomer } from '@app/shared/types/app-request';
+import { AppRequest, CurrentCustomer } from '@app/shared/types/app-request';
 import {
   BadRequestException,
   Controller,
+  Get,
   Post,
+  Req,
   Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
-import { UploadProfilePictureUseCase } from './use-cases';
+import {
+  GetProfileDetailsUseCase,
+  UploadProfilePictureUseCase,
+} from './use-cases';
 
 @Controller('client/profile')
 @ApiTags('Client Profile')
@@ -20,6 +25,7 @@ export class ProfileController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,
     private readonly uploadProfilePictureUseCase: UploadProfilePictureUseCase,
+    private readonly getProfileDetailsUseCase: GetProfileDetailsUseCase,
   ) {}
 
   @Post('profile-image')
@@ -34,6 +40,7 @@ export class ProfileController {
       },
     }),
   )
+  @ApiOperation({ summary: 'Upload profile image' })
   async uploadProfileImage(
     @UploadedFile() file: Express.Multer.File,
     @CurrentUserDecorator() user: CurrentCustomer,
@@ -41,6 +48,16 @@ export class ProfileController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.uploadProfilePictureUseCase.execute(file, user),
+      res,
+      successStatus: 201,
+    });
+  }
+
+  @Get('me')
+  @ApiOperation({ summary: 'Get profile details' })
+  async getProfileDetails(@Req() req: AppRequest, @Res() res: Response) {
+    return await this.responseHandler.handle({
+      method: () => this.getProfileDetailsUseCase.execute(req),
       res,
     });
   }

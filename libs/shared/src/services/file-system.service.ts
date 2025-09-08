@@ -116,6 +116,8 @@ export class FileSystemService {
   }
 
   getPublicUrl({ key }: { key: string }) {
+    if (!key) return null;
+
     const base = this.customDomain;
     return `${base.replace(/\/+$/, '')}/${key.replace(/^\/+/, '')}`;
   }

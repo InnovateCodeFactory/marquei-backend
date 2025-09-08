@@ -9,6 +9,7 @@ services:
         APP_NAME: api-gateway
         APP_PORT: 3000
     container_name: api-gateway
+    restart: always
     ports:
       - '3000:3000'
     environment:
@@ -25,6 +26,7 @@ services:
         APP_NAME: messaging
         APP_PORT: 3001
     container_name: messaging
+    restart: always
     environment:
       - PORT=3001
     networks:
@@ -39,6 +41,7 @@ services:
         APP_NAME: payment
         APP_PORT: 3002
     container_name: payment
+    restart: always
     environment:
       - PORT=3002
     networks:

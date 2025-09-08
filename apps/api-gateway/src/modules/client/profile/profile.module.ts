@@ -1,9 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ProfileController } from './profile.controller';
-import { UploadProfilePictureUseCase } from './use-cases';
+import {
+  GetProfileDetailsUseCase,
+  UploadProfilePictureUseCase,
+} from './use-cases';
 
 @Module({
   controllers: [ProfileController],
-  providers: [UploadProfilePictureUseCase],
+  providers: [UploadProfilePictureUseCase, GetProfileDetailsUseCase],
 })
 export class ProfileModule {}
