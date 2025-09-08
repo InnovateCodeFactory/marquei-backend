@@ -87,6 +87,7 @@ export class RegisterProfessionalUserUseCase {
         complement: business.complement,
         neighbourhood: business.neighbourhood,
         uf: business.uf,
+        public_type: business.publicType as any,
         owner: {
           create: {
             email,

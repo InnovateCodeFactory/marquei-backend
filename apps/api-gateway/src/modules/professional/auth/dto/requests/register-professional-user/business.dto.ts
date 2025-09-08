@@ -1,6 +1,8 @@
+import { PUBLIC_TYPE_BUSINESS } from '@app/shared/enum';
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsString,
@@ -58,4 +60,8 @@ export class BusinessDto {
   @ValidateNested({ each: true })
   @Type(() => OpeningHourDto)
   openingHours: OpeningHourDto[];
+
+  @IsEnum(PUBLIC_TYPE_BUSINESS)
+  @IsNotEmpty()
+  publicType: string;
 }
