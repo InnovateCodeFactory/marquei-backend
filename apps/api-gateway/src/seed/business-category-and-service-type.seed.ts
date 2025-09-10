@@ -34,6 +34,9 @@ export class BusinessCategoryAndServiceTypeSeed implements OnModuleInit {
         {
           name: 'Esportes & Movimento',
         },
+        {
+          name: 'Outro',
+        },
       ],
     });
     this.logger.debug('Business categories created');

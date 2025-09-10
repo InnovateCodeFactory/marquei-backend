@@ -100,6 +100,9 @@ export class RegisterProfessionalUserUseCase {
         BusinessCategory: {
           connect: { id: business.category },
         },
+        ...(business.business_category_custom && {
+          business_category_custom: business.business_category_custom,
+        }),
         BusinessServiceType: {
           connect: { id: business.placeType },
         },
