@@ -37,6 +37,8 @@ export type EnvSchemaType = {
   MAIL_PASS: string;
   MAIL_HOST: string;
   MAIL_PORT: number;
+
+  ENCRYPTION_KEY: string;
 };
 
 export const envValidationSchema = Joi.object<EnvSchemaType>({
@@ -82,4 +84,6 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
   MAIL_PASS: Joi.string().required(),
   MAIL_HOST: Joi.string().required(),
   MAIL_PORT: Joi.number().positive().integer().required(),
+
+  ENCRYPTION_KEY: Joi.string().length(32).required(),
 });

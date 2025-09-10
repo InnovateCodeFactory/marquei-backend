@@ -3,8 +3,10 @@ import { ResponseHandlerService } from '@app/shared/services';
 import { AppRequest, CurrentCustomer } from '@app/shared/types/app-request';
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
+  Patch,
   Post,
   Req,
   Res,
@@ -14,7 +16,9 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { EditProfileDto } from './dto/requests/edit-profile.dto';
 import {
+  EditProfileUseCase,
   GetProfileDetailsUseCase,
   UploadProfilePictureUseCase,
 } from './use-cases';
@@ -26,6 +30,7 @@ export class ProfileController {
     private readonly responseHandler: ResponseHandlerService,
     private readonly uploadProfilePictureUseCase: UploadProfilePictureUseCase,
     private readonly getProfileDetailsUseCase: GetProfileDetailsUseCase,
+    private readonly editProfileUseCase: EditProfileUseCase,
   ) {}
 
   @Post('profile-image')
@@ -58,6 +63,19 @@ export class ProfileController {
   async getProfileDetails(@Req() req: AppRequest, @Res() res: Response) {
     return await this.responseHandler.handle({
       method: () => this.getProfileDetailsUseCase.execute(req),
+      res,
+    });
+  }
+
+  @Patch('me')
+  @ApiOperation({ summary: 'Edit profile' })
+  async editProfile(
+    @Req() req: AppRequest,
+    @Body() dto: EditProfileDto,
+    @Res() res: Response,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.editProfileUseCase.execute(dto, req),
       res,
     });
   }

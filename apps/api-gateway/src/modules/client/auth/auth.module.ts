@@ -5,8 +5,8 @@ import {
   CustomerFirstAccessUseCase,
   LoginUseCase,
 } from './use-cases';
-import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
 import { LogoutUseCase } from './use-cases/logout.use-case';
+import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
 
 @Module({
   controllers: [AuthController],
