@@ -72,7 +72,7 @@ export function formatAppointmentStatus(status: string): string {
     case AppointmentStatus.COMPLETED:
       return 'Concluído';
     case AppointmentStatus.PENDING:
-      return 'Pendente';
+      return 'Pendente confirmação';
     default:
       return 'Desconhecido';
   }

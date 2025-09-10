@@ -202,6 +202,7 @@ model Appointment {
   scheduled_at DateTime
   status       AppointmentStatus
   notes        String?
+  events       Json              @default(dbgenerated("'[]'::jsonb"))
 
   professional   ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
   service        Service             @relation(fields: [service_id], references: [id])
