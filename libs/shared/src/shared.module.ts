@@ -7,6 +7,7 @@ import { DatabaseModule } from './modules/database/database.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { RmqModule } from './modules/rmq/rmq.module';
 import {
+  EncryptionService,
   FileSystemService,
   HashingService,
   ResponseHandlerService,
@@ -43,6 +44,7 @@ import {
     HashingService,
     FileSystemService,
     TokenService,
+    EncryptionService,
   ],
   exports: [
     ConfigModule,
@@ -55,6 +57,7 @@ import {
     JwtModule,
     FileSystemService,
     TokenService,
+    EncryptionService,
   ],
 })
 export class LibsSharedModule {}

@@ -1,6 +1,6 @@
 export type CurrentUser = {
   id: string;
-  user_type: string;
+  user_type: 'CUSTOMER' | 'PROFESSIONAL';
   push_token?: string | null;
   personId?: string | null;
   current_selected_business_slug?: string;
@@ -12,7 +12,7 @@ export type CurrentUser = {
 
 export type CurrentCustomer = {
   id: string;
-  user_type: string;
+  user_type: 'CUSTOMER' | 'PROFESSIONAL';
   push_token?: string | null;
   personId?: string | null;
 };

@@ -229,7 +229,7 @@ model Person {
 
   // Dados básicos
   name          String
-  birthdate     String? // mantenho como String se preferir
+  birthdate     DateTime @db.Date // mantenho como String se preferir
   profile_image String?
 
   // Auditoria
