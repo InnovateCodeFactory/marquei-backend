@@ -4,8 +4,9 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  Length,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 export class RateBusinessDto {
@@ -27,7 +28,8 @@ export class RateBusinessDto {
   comment?: string;
 
   @IsInt()
-  @Length(1, 5)
+  @Min(1)
+  @Max(5)
   @ApiProperty({
     description: 'Rating score from 1 to 5',
     example: 5,
