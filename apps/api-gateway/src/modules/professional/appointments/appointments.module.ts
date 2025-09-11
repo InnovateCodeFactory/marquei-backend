@@ -6,6 +6,7 @@ import {
   GetAppointmentsUseCase,
   GetAvailableTimesUseCase,
 } from './use-cases';
+import { CancelAppointmentUseCase } from './use-cases/cancel-appointment.use-case';
 
 @Module({
   controllers: [AppointmentsController],
@@ -14,6 +15,7 @@ import {
     GetAvailableTimesUseCase,
     CreateAppointmentUseCase,
     GetAppointmentsUseCase,
+    CancelAppointmentUseCase,
   ],
 })
 export class AppointmentsModule {}

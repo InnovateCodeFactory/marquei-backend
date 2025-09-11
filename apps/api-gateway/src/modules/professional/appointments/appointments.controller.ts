@@ -4,6 +4,7 @@ import { CurrentUser } from '@app/shared/types/app-request';
 import { Body, Controller, Get, Post, Query, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { CancelAppointmentDto } from './dto/requests/cancel-appointment.dto';
 import { CreateAppointmentDto } from './dto/requests/create-appointment.dto';
 import { GetAvailableTimesDto } from './dto/requests/get-available-times.dto';
 import {
@@ -11,6 +12,7 @@ import {
   GetAppointmentsUseCase,
   GetAvailableTimesUseCase,
 } from './use-cases';
+import { CancelAppointmentUseCase } from './use-cases/cancel-appointment.use-case';
 
 @Controller('professional/appointments')
 @ApiTags('Appointments')
@@ -20,6 +22,7 @@ export class AppointmentsController {
     private readonly getAvailableTimesUseCase: GetAvailableTimesUseCase,
     private readonly createAppointmentUseCase: CreateAppointmentUseCase,
     private readonly getAppointmentsUseCase: GetAppointmentsUseCase,
+    private readonly cancelAppointmentUseCase: CancelAppointmentUseCase,
   ) {}
 
   @Get('get-available-times')
@@ -68,6 +71,22 @@ export class AppointmentsController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.getAppointmentsUseCase.execute(user),
+      res,
+    });
+  }
+
+  @Post('cancel-appointment')
+  @ApiOperation({
+    summary: 'Cancel an appointment',
+    description: 'Cancels an existing appointment by its ID.',
+  })
+  async cancelAppointment(
+    @Res() res: Response,
+    @CurrentUserDecorator() user: CurrentUser,
+    @Body() body: CancelAppointmentDto,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.cancelAppointmentUseCase.execute(body, user),
       res,
     });
   }

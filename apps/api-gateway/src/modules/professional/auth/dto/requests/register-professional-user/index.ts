@@ -1,3 +1,4 @@
+import { removeSpecialCharacters } from '@app/shared/utils';
 import { Transform, Type } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 import { BusinessDto } from './business.dto';
@@ -17,12 +18,12 @@ export class RegisterProfessionalUserDto {
 
   @IsString()
   @IsNotEmpty()
-  @Transform(({ value }) => value.replace(/\D/g, '')) // Remove caracteres especiais
+  @Transform(({ value }) => removeSpecialCharacters(value))
   phone: string;
 
   @IsString()
   @IsNotEmpty()
-  @Transform(({ value }) => value.replace(/\D/g, '')) // Remove caracteres especiais
+  @Transform(({ value }) => removeSpecialCharacters(value))
   documentNumber: string;
 
   @ValidateNested()

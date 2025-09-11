@@ -1,8 +1,12 @@
-import { Type } from 'class-transformer';
+import { PUBLIC_TYPE_BUSINESS } from '@app/shared/enum';
+import { removeSpecialCharacters } from '@app/shared/utils';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
@@ -18,11 +22,16 @@ export class BusinessDto {
   category: string;
 
   @IsString()
+  @IsOptional()
+  business_category_custom: string;
+
+  @IsString()
   @IsNotEmpty()
   placeType: string;
 
   @IsString()
   @IsNotEmpty()
+  @Transform(({ value }) => removeSpecialCharacters(value))
   zipCode: string;
 
   @IsString()
@@ -58,4 +67,8 @@ export class BusinessDto {
   @ValidateNested({ each: true })
   @Type(() => OpeningHourDto)
   openingHours: OpeningHourDto[];
+
+  @IsEnum(PUBLIC_TYPE_BUSINESS)
+  @IsNotEmpty()
+  publicType: string;
 }

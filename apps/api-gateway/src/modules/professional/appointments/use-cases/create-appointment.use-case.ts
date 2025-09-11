@@ -54,17 +54,17 @@ export class CreateAppointmentUseCase {
 
     if (!service) {
       throw new UnauthorizedException(
-        'This service does not belong to the selected business',
+        'O serviço não pertence ao negócio selecionado',
       );
     }
     if (!professional) {
       throw new UnauthorizedException(
-        'This professional does not belong to the selected business',
+        'O profissional não pertence ao negócio selecionado',
       );
     }
     if (!bc) {
       throw new BadRequestException(
-        'Customer not found for the selected business',
+        'O cliente informado não pertence ao negócio selecionado',
       );
     }
 
@@ -91,6 +91,15 @@ export class CreateAppointmentUseCase {
         service: { connect: { id: service_id } },
         customerPerson: { connect: { id: bc.personId } }, // 👈 vínculo do cliente
         notes: notes || null,
+        events: {
+          push: {
+            type: 'PENDING',
+            created_at: new Date(),
+            by_professional: true,
+            by_user_id: user.id,
+            reason: null,
+          },
+        },
       },
     });
 
