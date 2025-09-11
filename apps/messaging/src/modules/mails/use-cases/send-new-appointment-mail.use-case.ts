@@ -5,7 +5,7 @@ import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { MailBaseService } from '../../mail-base.service';
+import { MailBaseService } from '../mail-base.service';
 
 @Injectable()
 export class SendNewAppointmentMailUseCase implements OnApplicationBootstrap {

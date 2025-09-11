@@ -9,10 +9,10 @@ export class CreateMailTemplateUseCase implements OnModuleInit {
 
   async onModuleInit() {
     // await this.execute({
-    //   description: 'Notificação de novo agendamento para profissional',
-    //   subject: 'Novo agendamento!',
-    //   pre_header: '',
-    //   type: SendMailTypeEnum.NEW_APPOINTMENT_PROFESSIONAL,
+    //   description: 'Notificação de agendamento cancelado para o cliente',
+    //   subject: 'Agendamento Cancelado',
+    //   pre_header: 'Seu agendamento foi cancelado',
+    //   type: SendMailTypeEnum.APPOINTMENT_CANCELLATION_CUSTOMER,
     //   from: MailsOptionsFromEnum.MARQUEI_GENERAL,
     //   html: ` `,
     // });

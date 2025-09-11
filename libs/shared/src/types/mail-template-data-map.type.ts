@@ -33,10 +33,24 @@ export type MailTemplateDataMap = {
     APPT_DATE: string;
     APPT_TIME: string;
   };
-  [SendMailTypeEnum.APPOINTMENT_CANCELLATION]: {
+  [SendMailTypeEnum.APPOINTMENT_CANCELLATION_PROFESSIONAL]: {
     CLIENT_NAME: string;
+    PROFESSIONAL_NAME: string;
     SERVICE_NAME: string;
     APPT_DATE: string;
     APPT_TIME: string;
+    DURATION: string;
+    PRICE: string;
+    PREHEADER: string;
+  };
+  [SendMailTypeEnum.APPOINTMENT_CANCELLATION_CUSTOMER]: {
+    CLIENT_NAME: string;
+    PROFESSIONAL_NAME: string;
+    SERVICE_NAME: string;
+    APPT_DATE: string;
+    APPT_TIME: string;
+    DURATION: string;
+    PRICE: string;
+    PREHEADER: string;
   };
 };
