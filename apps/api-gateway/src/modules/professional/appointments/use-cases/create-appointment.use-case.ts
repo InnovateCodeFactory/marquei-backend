@@ -91,17 +91,19 @@ export class CreateAppointmentUseCase {
         service: { connect: { id: service_id } },
         customerPerson: { connect: { id: bc.personId } }, // 👈 vínculo do cliente
         notes: notes || null,
-        events: {
-          push: {
+        events: [
+          {
             type: 'PENDING',
             created_at: new Date(),
             by_professional: true,
             by_user_id: user.id,
             reason: null,
           },
-        },
+        ],
       },
     });
+
+    // to do - enviar email e push notification (se tiver o app) para o cliente
 
     return null;
   }

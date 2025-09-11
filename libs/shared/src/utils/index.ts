@@ -72,7 +72,7 @@ export function formatAppointmentStatus(status: string): string {
     case AppointmentStatus.COMPLETED:
       return 'Concluído';
     case AppointmentStatus.PENDING:
-      return 'Pendente confirmação';
+      return 'Pendente';
     default:
       return 'Desconhecido';
   }
@@ -141,3 +141,12 @@ export const buildAddress = (r: {
   const comp = r.complement ? ` (${r.complement})` : '';
   return [line1, line2].filter(Boolean).join(' • ') + comp;
 };
+
+export function formatDurationToHoursAndMinutes(duration: number) {
+  const durationHours = Math.floor(duration / 60);
+  const durationMinutes = duration % 60;
+
+  return durationHours > 0
+    ? `${durationHours}h ${durationMinutes}min`
+    : `${durationMinutes}min`;
+}
