@@ -47,6 +47,7 @@ model User {
   CurrentSelectedBusiness CurrentSelectedBusiness[]
   guest                   Guest?                    @relation(name: "UserGuest")
   UploadedMedia           UploadedMedia[]
+  BusinessRating          BusinessRating[]
 
   @@unique([email, user_type], name: "uq_user_email_type")
   @@index([email, user_type], name: "idx_user_email_user_type")
@@ -97,12 +98,29 @@ model Business {
   CurrentSelectedBusiness  CurrentSelectedBusiness[]
   ProfessionalStatement    ProfessionalStatement[]
   BusinessCustomer         BusinessCustomer[]
+  BusinessRating           BusinessRating[]
 
   @@index([slug], name: "idx_business_slug")
   @@index([name], name: "idx_business_name")
   @@index([ownerId], name: "idx_business_owner")
   @@index([businessCategoryId], name: "idx_business_category")
   @@index([businessServiceTypeId], name: "idx_business_service_type")
+}
+
+model BusinessRating {
+  id         String   @id @default(cuid())
+  rating     Int // 1 a 5
+  review     String? // comentário opcional
+  created_at DateTime @default(now())
+
+  business   Business @relation(fields: [businessId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+  businessId String
+  userId     String
+
+  @@unique([businessId, userId], name: "uq_business_user_rating") // um usuário só pode avaliar um negócio uma vez
+  @@index([businessId], name: "idx_business_rating_business")
+  @@index([userId], name: "idx_business_rating_user")
 }
 
 model CurrentSelectedBusiness {
