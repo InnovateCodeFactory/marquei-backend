@@ -1,6 +1,7 @@
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
+  runtime         = "nodejs"
 }
 
 datasource db {
@@ -47,6 +48,7 @@ model User {
   CurrentSelectedBusiness CurrentSelectedBusiness[]
   guest                   Guest?                    @relation(name: "UserGuest")
   UploadedMedia           UploadedMedia[]
+  BusinessRating          BusinessRating[]
 
   @@unique([email, user_type], name: "uq_user_email_type")
   @@index([email, user_type], name: "idx_user_email_user_type")
@@ -73,6 +75,11 @@ model Business {
   is_featured              Boolean                   @default(false)
   rating                   Float                     @default(0.0)
   reviews_count            Int                       @default(0)
+  total_one_star           Int                       @default(0)
+  total_two_star           Int                       @default(0)
+  total_three_star         Int                       @default(0)
+  total_four_star          Int                       @default(0)
+  total_five_star          Int                       @default(0)
   average_price            Float                     @default(0.0) // preço médio dos serviços
   stripe_customer_id       String? // ID do cliente no Stripe, se aplicável
   phone                    String?
@@ -97,12 +104,29 @@ model Business {
   CurrentSelectedBusiness  CurrentSelectedBusiness[]
   ProfessionalStatement    ProfessionalStatement[]
   BusinessCustomer         BusinessCustomer[]
+  BusinessRating           BusinessRating[]
 
   @@index([slug], name: "idx_business_slug")
   @@index([name], name: "idx_business_name")
   @@index([ownerId], name: "idx_business_owner")
   @@index([businessCategoryId], name: "idx_business_category")
   @@index([businessServiceTypeId], name: "idx_business_service_type")
+}
+
+model BusinessRating {
+  id         String   @id @default(cuid())
+  rating     Int // 1 a 5
+  review     String? // comentário opcional
+  created_at DateTime @default(now())
+
+  business      Business @relation(fields: [business_slug], references: [slug])
+  user          User     @relation(fields: [userId], references: [id])
+  business_slug String
+  userId        String
+
+  @@unique([business_slug, userId], name: "uq_business_user_rating") // um usuário só pode avaliar um negócio uma vez
+  @@index([business_slug], name: "idx_business_rating_business")
+  @@index([userId], name: "idx_business_rating_user")
 }
 
 model CurrentSelectedBusiness {
