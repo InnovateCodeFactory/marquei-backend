@@ -35,7 +35,7 @@ COPY prisma /app/apps/${APP_NAME}/prisma
 
 # Gera Prisma Client do app específico
 WORKDIR /app/apps/${APP_NAME}
-RUN npx prisma generate
+RUN prisma generate
 
 # Build da aplicação
 WORKDIR /app
