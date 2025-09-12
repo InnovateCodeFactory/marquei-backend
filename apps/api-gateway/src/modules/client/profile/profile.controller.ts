@@ -17,9 +17,11 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { EditProfileDto } from './dto/requests/edit-profile.dto';
+import { ReportBugDto } from './dto/requests/report-bug.dto';
 import {
   EditProfileUseCase,
   GetProfileDetailsUseCase,
+  ReportBugUseCase,
   UploadProfilePictureUseCase,
 } from './use-cases';
 
@@ -31,6 +33,7 @@ export class ProfileController {
     private readonly uploadProfilePictureUseCase: UploadProfilePictureUseCase,
     private readonly getProfileDetailsUseCase: GetProfileDetailsUseCase,
     private readonly editProfileUseCase: EditProfileUseCase,
+    private readonly reportBugUseCase: ReportBugUseCase,
   ) {}
 
   @Post('profile-image')
@@ -77,6 +80,20 @@ export class ProfileController {
     return await this.responseHandler.handle({
       method: () => this.editProfileUseCase.execute(dto, req),
       res,
+    });
+  }
+
+  @Post('report-bug')
+  @ApiOperation({ summary: 'Report a bug' })
+  async reportBug(
+    @Req() req: AppRequest,
+    @Body() dto: ReportBugDto,
+    @Res() res: Response,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.reportBugUseCase.execute(dto, req),
+      res,
+      successStatus: 201,
     });
   }
 }

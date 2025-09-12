@@ -49,6 +49,7 @@ model User {
   guest                   Guest?                    @relation(name: "UserGuest")
   UploadedMedia           UploadedMedia[]
   BusinessRating          BusinessRating[]
+  BugReports              BugReports[]
 
   @@unique([email, user_type], name: "uq_user_email_type")
   @@index([email, user_type], name: "idx_user_email_user_type")
@@ -478,6 +479,18 @@ model MailValidation {
 
   @@index([email], name: "idx_mail_validation_email")
   @@index([code], name: "idx_mail_validation_code")
+}
+
+model BugReports {
+  id          String   @id @default(cuid())
+  description String   @db.Text
+  user        User     @relation(fields: [userId], references: [id])
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  userId String
+
+  @@index([userId], name: "idx_bug_report_user")
 }
 
 enum UploadedMediaSource {

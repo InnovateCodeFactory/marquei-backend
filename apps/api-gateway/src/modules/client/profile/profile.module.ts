@@ -3,6 +3,7 @@ import { ProfileController } from './profile.controller';
 import {
   EditProfileUseCase,
   GetProfileDetailsUseCase,
+  ReportBugUseCase,
   UploadProfilePictureUseCase,
 } from './use-cases';
 
@@ -12,6 +13,7 @@ import {
     UploadProfilePictureUseCase,
     GetProfileDetailsUseCase,
     EditProfileUseCase,
+    ReportBugUseCase,
   ],
 })
 export class ProfileModule {}
