@@ -129,10 +129,10 @@ export function codeGenerator({
   let result = '';
   const characters =
     !onlyNumbers && !onlyLetters
-      ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+      ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
       : onlyNumbers
         ? '0123456789'
-        : 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        : 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
   const charactersLength = characters.length;
   let counter = 0;
   while (counter < length) {
