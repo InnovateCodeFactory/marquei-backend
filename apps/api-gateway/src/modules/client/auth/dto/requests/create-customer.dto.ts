@@ -1,4 +1,6 @@
+import { removeSpecialCharacters, removeWhitespaces } from '@app/shared/utils';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class CreateUserCustomerDto {
@@ -28,6 +30,9 @@ export class CreateUserCustomerDto {
 
   @IsString()
   @IsNotEmpty()
+  @Transform(({ value }) =>
+    removeWhitespaces(removeSpecialCharacters(value)?.trim()),
+  )
   @ApiProperty({
     description: 'Phone number of the customer',
     example: '+1234567890',

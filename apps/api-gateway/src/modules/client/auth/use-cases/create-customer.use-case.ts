@@ -84,7 +84,7 @@ export class CreateCustomerUseCase {
           id: true,
           personId: true,
           name: true,
-          person: { select: { phone: true } },
+          person: { select: { phone: true, profile_image: true } },
         },
       });
 
@@ -135,6 +135,7 @@ export class CreateCustomerUseCase {
           personId: user.personId,
           id: user.id,
           has_push_token: false,
+          avatar_url: user.person.profile_image,
         },
       };
     });

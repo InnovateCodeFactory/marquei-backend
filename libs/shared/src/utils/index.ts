@@ -25,6 +25,10 @@ export function removeSpecialCharacters(value: string): string {
   return value?.replace(/[^\w\s]/gi, '');
 }
 
+export function removeWhitespaces(value: string): string {
+  return value?.replace(/\s+/g, '');
+}
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
