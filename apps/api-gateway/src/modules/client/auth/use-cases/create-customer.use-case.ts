@@ -1,13 +1,10 @@
 import { PrismaService } from '@app/shared';
 import { SendWelcomeMailDto } from '@app/shared/dto/messaging/mail-notifications';
-import { EnvSchemaType } from '@app/shared/environment';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { HashingService, TokenService } from '@app/shared/services';
 import { getFirstName } from '@app/shared/utils';
 import { ConflictException, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import { CreateUserCustomerDto } from '../dto/requests/create-customer.dto';
 
 @Injectable()
@@ -15,8 +12,6 @@ export class CreateCustomerUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly hashingService: HashingService,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService<EnvSchemaType>,
     private readonly rmqService: RmqService,
     private readonly tokenService: TokenService,
   ) {}
@@ -125,10 +120,11 @@ export class CreateCustomerUseCase {
           MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_WELCOME_CUSTOMER_MAIL_QUEUE,
       });
 
-      const { accessToken, refreshToken } = await this.tokenService.issueTokenPair({
-        id: user.id,
-        user_type: 'CUSTOMER',
-      });
+      const { accessToken, refreshToken } =
+        await this.tokenService.issueTokenPair({
+          id: user.id,
+          user_type: 'CUSTOMER',
+        });
 
       return {
         token: accessToken,
