@@ -466,19 +466,44 @@ model MailTemplate {
 }
 
 model MailValidation {
-  id           String    @id @default(cuid())
-  email        String
-  code         String
-  type         String
-  active       Boolean   @default(true)
-  expires_at   DateTime
-  message_id   String?
-  validated    Boolean   @default(false)
-  validated_at DateTime?
-  created_at   DateTime  @default(now())
+  id              String                @id @default(cuid())
+  request_id      String                @unique
+  email           String
+  message_id      String?
+  code_ciphertext String
+  code_iv         String
+  type            String
+  status          EmailValidationStatus @default(PENDING)
+  user_type       UserType
+  attempts        Int                   @default(0)
+  active          Boolean               @default(true)
+  expires_at      DateTime
+  validated       Boolean               @default(false)
+  validated_at    DateTime?
+  created_at      DateTime              @default(now())
+
+  events MailValidationEvent[]
 
   @@index([email], name: "idx_mail_validation_email")
-  @@index([code], name: "idx_mail_validation_code")
+  @@index([request_id], name: "idx_mail_validation_request")
+}
+
+model MailValidationEvent {
+  id               String         @id @default(cuid())
+  mailValidationId String
+  validation       MailValidation @relation(fields: [mailValidationId], references: [id], onDelete: Cascade)
+
+  event_type      EmailValidationEventType
+  message         String?                  @db.VarChar(255)
+  code_ciphertext String
+  code_iv         String
+  attempt_no      Int?
+  ip              String?                  @db.VarChar(64)
+  user_agent      String?
+  metadata        Json?
+  created_at      DateTime                 @default(now())
+
+  @@index([mailValidationId, created_at], name: "idx_mail_event_stream")
 }
 
 model WhatsAppValidation {
@@ -531,6 +556,25 @@ model BugReports {
   userId String
 
   @@index([userId], name: "idx_bug_report_user")
+}
+
+enum EmailValidationStatus {
+  PENDING
+  SENT
+  FAILED
+  VALIDATED
+}
+
+enum EmailValidationEventType {
+  CREATED
+  SENT_REQUEST
+  DELIVERY_CONFIRMED
+  VALIDATION_ATTEMPT
+  VALIDATION_SUCCESS
+  VALIDATION_FAILED
+  EXPIRED
+  BLOCKED
+  SYSTEM_ERROR
 }
 
 enum WhatsAppValidationEventType {
