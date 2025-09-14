@@ -9,7 +9,11 @@ import {
   getTwoNames,
 } from '@app/shared/utils';
 import { Price } from '@app/shared/value-objects';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { format } from 'date-fns';
 import { CancelAppointmentDto } from '../dto/requests/cancel-appointment.dto';
 
@@ -37,6 +41,7 @@ export class CancelAppointmentUseCase {
                 name: true,
               },
             },
+            business_id: true,
           },
         },
         service: {
@@ -58,6 +63,15 @@ export class CancelAppointmentUseCase {
 
     if (!appointment) {
       throw new BadRequestException('Agendamento não encontrado');
+    }
+
+    if (
+      appointment.professional?.business_id !==
+      user.current_selected_business_id
+    ) {
+      throw new ForbiddenException(
+        'O profissional não pode cancelar este agendamento',
+      );
     }
 
     if (appointment.status === 'CANCELED') {
@@ -82,19 +96,20 @@ export class CancelAppointmentUseCase {
             serviceName: appointment?.service?.name,
             apptDate: format(appointment?.scheduled_at, 'dd/MM/yyyy'),
             apptTime: format(appointment?.scheduled_at, 'HH:mm'),
-            clientName: getTwoNames(appointment?.customerPerson?.name),
+            toName: getTwoNames(appointment?.customerPerson?.name),
             duration: formatDurationToHoursAndMinutes(
               appointment?.service?.duration,
             ),
             price: new Price(
               appointment?.service?.price_in_cents,
             )?.toCurrency(),
-            professionalName: getTwoNames(appointment.professional?.User?.name),
+            byName: getTwoNames(appointment.professional?.User?.name),
+            byTypeLabel: 'profissional',
             to: appointment.customerPerson?.email,
           }),
           routingKey:
             MESSAGING_QUEUES.MAIL_NOTIFICATIONS
-              .SEND_CANCEL_APPOINTMENT_CUSTOMER_MAIL_QUEUE,
+              .SEND_CANCEL_APPOINTMENT_MAIL_QUEUE,
         }),
     ]);
 

@@ -1,6 +1,7 @@
 export class SendCancelAppointmentMailDto {
-  professionalName: string;
-  clientName: string;
+  toName: string;
+  byName: string;
+  byTypeLabel: 'profissional' | 'cliente';
   serviceName: string;
   apptDate: string;
   apptTime: string;

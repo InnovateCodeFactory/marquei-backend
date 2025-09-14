@@ -1,18 +1,16 @@
 import { PrismaService } from '@app/shared';
-import { SendCancelAppointmentMailDto } from '@app/shared/dto/messaging/mail-notifications/send-cancel-appointment.dto';
+import { SendRescheduleAppointmentMailDto } from '@app/shared/dto/messaging/mail-notifications/send-reschedule-appointment.dto';
 import { SendMailTypeEnum } from '@app/shared/enum';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { MailBaseService } from '../../mail-base.service';
 
 @Injectable()
-export class SendCancelAppointmentCustomerMailUseCase
-  implements OnApplicationBootstrap
-{
+export class SendRescheduleAppointmentMailUseCase {
   private readonly logger = new Logger(
-    SendCancelAppointmentCustomerMailUseCase.name,
+    SendRescheduleAppointmentMailUseCase.name,
   );
 
   constructor(
@@ -20,37 +18,38 @@ export class SendCancelAppointmentCustomerMailUseCase
     private prisma: PrismaService,
   ) {}
 
-  async onApplicationBootstrap() {
-    // await this.execute({
-    //   // to: 'alanagabriele43@gmail.com',
-    //   firstName: 'Carlos',
-    //   to: 'chziegler445@gmail.com',
-    // });
-  }
-
   @RabbitSubscribe({
     exchange: RABBIT_EXCHANGE,
     routingKey:
       MESSAGING_QUEUES.MAIL_NOTIFICATIONS
-        .SEND_CANCEL_APPOINTMENT_CUSTOMER_MAIL_QUEUE,
+        .SEND_RESCHEDULE_APPOINTMENT_MAIL_QUEUE,
     queue:
       MESSAGING_QUEUES.MAIL_NOTIFICATIONS
-        .SEND_CANCEL_APPOINTMENT_CUSTOMER_MAIL_QUEUE,
+        .SEND_RESCHEDULE_APPOINTMENT_MAIL_QUEUE,
   })
   async execute({
     to,
     apptDate,
     apptTime,
-    clientName,
+    toName,
     duration,
     price,
-    professionalName,
+    byName,
+    clientNotes,
     serviceName,
-  }: SendCancelAppointmentMailDto) {
+    byTypeLabel,
+  }: SendRescheduleAppointmentMailDto) {
+    if (!to || !toName || !apptDate || !apptTime || !serviceName) {
+      this.logger.error(
+        'Parâmetros obrigatórios ausentes para envio de e-mail',
+      );
+      return;
+    }
+    console.log('entrou no use case de envio de email');
     try {
       const template = await this.prisma.mailTemplate.findFirst({
         where: {
-          type: SendMailTypeEnum.APPOINTMENT_CANCELLATION_CUSTOMER,
+          type: SendMailTypeEnum.APPOINTMENT_RESCHEDULE,
           active: true,
         },
         select: {
@@ -60,20 +59,23 @@ export class SendCancelAppointmentCustomerMailUseCase
           pre_header: true,
         },
       });
-      if (!template) throw new Error('Template de email não encontrado');
+      if (!template)
+        return this.logger.error('Template de email não encontrado');
 
       const html = this.mailBaseService.fillTemplate({
-        type: SendMailTypeEnum.APPOINTMENT_CANCELLATION_CUSTOMER,
+        type: SendMailTypeEnum.APPOINTMENT_RESCHEDULE,
         template: template.html,
         data: {
-          PROFESSIONAL_NAME: professionalName,
-          CLIENT_NAME: clientName,
+          TO_NAME: toName,
+          BY_NAME: byName,
           SERVICE_NAME: serviceName,
           APPT_DATE: apptDate,
           APPT_TIME: apptTime,
           DURATION: duration,
           PRICE: price,
+          BY_TYPE_LABEL: byTypeLabel,
           PREHEADER: template.pre_header || '',
+          CLIENT_NOTES: clientNotes || '-',
         },
       });
 
@@ -84,11 +86,9 @@ export class SendCancelAppointmentCustomerMailUseCase
         from: template.from,
       });
 
-      if (!response) throw new Error('Erro ao enviar email');
+      if (!response) return this.logger.error('Erro ao enviar email');
 
-      this.logger.debug(
-        `Email de agendamento cancelado enviado para o cliente: ${to}`,
-      );
+      this.logger.debug(`Email de agendamento remarcado enviado para: ${to}`);
 
       return;
     } catch (error) {

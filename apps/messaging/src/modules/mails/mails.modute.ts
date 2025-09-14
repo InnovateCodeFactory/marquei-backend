@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { MailBaseService } from './mail-base.service';
 import {
   CreateMailTemplateUseCase,
-  SendCancelAppointmentCustomerMailUseCase,
-  SendCancelAppointmentProfessionalMailUseCase,
+  SendCancelAppointmentMailUseCase,
   SendCodeValidationMailUseCase,
   SendNewAppointmentMailUseCase,
+  SendRescheduleAppointmentMailUseCase,
   SendWelcomeCustomerMailUseCase,
   SendWelcomeProfessionalMailUseCase,
 } from './use-cases';
@@ -14,17 +14,17 @@ import {
   imports: [],
   providers: [
     //professional
-    SendCancelAppointmentProfessionalMailUseCase,
     SendWelcomeProfessionalMailUseCase,
 
     //customer
     SendWelcomeCustomerMailUseCase,
-    SendCancelAppointmentCustomerMailUseCase,
     //common
     MailBaseService,
     CreateMailTemplateUseCase,
     SendCodeValidationMailUseCase,
     SendNewAppointmentMailUseCase,
+    SendCancelAppointmentMailUseCase,
+    SendRescheduleAppointmentMailUseCase,
   ],
 })
 export class MailsModule {}

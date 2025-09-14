@@ -1,15 +1,16 @@
-export class SendNewAppointmentProfessionalDto {
+export class SendRescheduleAppointmentMailDto {
   toName: string;
   byName: string;
+  byTypeLabel: 'profissional' | 'cliente';
   serviceName: string;
   apptDate: string;
   apptTime: string;
   price: string;
-  clientNotes: string;
   to: string;
   duration: string;
+  clientNotes?: string;
 
-  constructor(obj: SendNewAppointmentProfessionalDto) {
+  constructor(obj: SendRescheduleAppointmentMailDto) {
     Object.assign(this, obj);
   }
 }

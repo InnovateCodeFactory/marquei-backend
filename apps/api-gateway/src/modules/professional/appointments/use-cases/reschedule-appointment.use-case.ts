@@ -1,8 +1,20 @@
 import { PrismaService } from '@app/shared';
+import { SendRescheduleAppointmentMailDto } from '@app/shared/dto/messaging/mail-notifications';
+import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { AppRequest } from '@app/shared/types/app-request';
-import { getClientIp } from '@app/shared/utils';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  formatDurationToHoursAndMinutes,
+  getClientIp,
+  getTwoNames,
+} from '@app/shared/utils';
+import { Price } from '@app/shared/value-objects';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import { format } from 'date-fns';
 import { RescheduleAppointmentDto } from '../dto/requests/reschedule-appointment.dto';
 
 @Injectable()
@@ -21,17 +33,19 @@ export class RescheduleAppointmentUseCase {
       select: {
         id: true,
         status: true,
+        notes: true,
         professional: {
           select: {
             userId: true,
             User: {
               select: {
                 name: true,
-                CurrentSelectedBusiness: { select: { businessId: true } },
               },
             },
+            business_id: true,
           },
         },
+
         service: {
           select: {
             name: true,
@@ -49,16 +63,14 @@ export class RescheduleAppointmentUseCase {
       },
     });
 
-    console.log({ appointment });
-
-    // if (
-    //   appointment.professional?.User?.CurrentSelectedBusiness?.businessId !==
-    //   user.current_selected_business_id
-    // ) {
-    //   throw new BadRequestException(
-    //     'Profissional não possui um negócio selecionado',
-    //   );
-    // }
+    if (
+      appointment.professional?.business_id !==
+      user.current_selected_business_id
+    ) {
+      throw new ForbiddenException(
+        'O profissional não pode remarcar este agendamento',
+      );
+    }
 
     if (!appointment) {
       throw new BadRequestException('Agendamento não encontrado');
@@ -90,28 +102,26 @@ export class RescheduleAppointmentUseCase {
           },
         },
       }),
-      // appointment.customerPerson?.email &&
-      //   this.rmqService.publishToQueue({
-      //     payload: new SendCancelAppointmentMailDto({
-      //       serviceName: appointment?.service?.name,
-      //       apptDate: format(appointment?.scheduled_at, 'dd/MM/yyyy'),
-      //       apptTime: format(appointment?.scheduled_at, 'HH:mm'),
-      //       clientName: getTwoNames(appointment?.customerPerson?.name),
-      //       duration: formatDurationToHoursAndMinutes(
-      //         appointment?.service?.duration,
-      //       ),
-      //       price: new Price(
-      //         appointment?.service?.price_in_cents,
-      //       )?.toCurrency(),
-      //       professionalName: getTwoNames(appointment.professional?.User?.name),
-      //       to: appointment.customerPerson?.email,
-      //     }),
-      //     routingKey:
-      //       MESSAGING_QUEUES.MAIL_NOTIFICATIONS
-      //         .SEND_CANCEL_APPOINTMENT_CUSTOMER_MAIL_QUEUE,
-      //   }),
+      this.rmqService.publishToQueue({
+        payload: new SendRescheduleAppointmentMailDto({
+          serviceName: appointment?.service?.name,
+          apptDate: format(appointment?.scheduled_at, 'dd/MM/yyyy'),
+          apptTime: format(appointment?.scheduled_at, 'HH:mm'),
+          toName: getTwoNames(appointment?.customerPerson?.name),
+          duration: formatDurationToHoursAndMinutes(
+            appointment?.service?.duration,
+          ),
+          price: new Price(appointment?.service?.price_in_cents)?.toCurrency(),
+          byName: getTwoNames(appointment.professional?.User?.name),
+          to: appointment.customerPerson?.email,
+          clientNotes: appointment.notes || '-',
+          byTypeLabel: 'profissional',
+        }),
+        routingKey:
+          MESSAGING_QUEUES.MAIL_NOTIFICATIONS
+            .SEND_RESCHEDULE_APPOINTMENT_MAIL_QUEUE,
+      }),
     ]);
-
     return;
   }
 }
