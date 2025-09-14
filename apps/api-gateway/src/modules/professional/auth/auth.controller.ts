@@ -1,17 +1,19 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
-import { SendMailTypeEnum } from '@app/shared/enum';
+import { SendMailTypeEnum, UserTypeEnum } from '@app/shared/enum';
 import { ResponseHandlerService } from '@app/shared/services';
-import { CurrentUser } from '@app/shared/types/app-request';
-import { Body, Controller, Post, Res } from '@nestjs/common';
+import { AppRequest, CurrentUser } from '@app/shared/types/app-request';
+import { getClientIp } from '@app/shared/utils';
+import { Body, Controller, Post, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { MailService } from 'apps/api-gateway/src/shared/services';
+import { MailValidationService } from 'apps/api-gateway/src/shared/services';
 import { Response } from 'express';
 import { FirstAccessDto } from './dto/requests/firts-access.dto';
 import { LoginDto } from './dto/requests/login.dto';
 import { RefreshTokenDto } from './dto/requests/refresh-token.dto';
 import { RegisterProfessionalUserDto } from './dto/requests/register-professional-user';
 import { RegisterPushTokenDto } from './dto/requests/register-push-token.dto';
+import { ValidateMailCodeDto } from './dto/requests/validate-mail-code.dto';
 import { LoginUseCase, RegisterProfessionalUserUseCase } from './use-cases';
 import { FirstAccessUseCase } from './use-cases/first-access.use-case';
 import { LogoutUseCase } from './use-cases/logout.use-case';
@@ -30,7 +32,7 @@ export class AuthController {
     private readonly logoutUseCase: LogoutUseCase,
 
     private readonly responseHandler: ResponseHandlerService,
-    private readonly mailService: MailService,
+    private readonly mailService: MailValidationService,
   ) {}
 
   @Post('login')
@@ -134,6 +136,7 @@ export class AuthController {
         this.mailService.sendCode({
           to: body.email,
           type: SendMailTypeEnum.CREATE_ACCOUNT_PROFESSIONAL,
+          user_type: UserTypeEnum.PROFESSIONAL,
         }),
       res,
     });
@@ -146,14 +149,19 @@ export class AuthController {
   @IsPublic()
   async validateCode(
     @Res() res: Response,
-    @Body() body: { email: string; code: string },
+    @Body() body: ValidateMailCodeDto,
+    @Req() req: AppRequest,
   ) {
+    const ip = getClientIp(req);
+    const user_agent = req.headers['user-agent'];
+
     return this.responseHandler.handle({
       method: () =>
         this.mailService.validateCode({
-          email: body.email,
+          ip,
+          user_agent,
           code: body.code,
-          type: SendMailTypeEnum.CREATE_ACCOUNT_PROFESSIONAL,
+          request_id: body.request_id,
         }),
       res,
     });

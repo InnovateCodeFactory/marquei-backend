@@ -3,20 +3,30 @@ import { SendCodeValidationMailDto } from '@app/shared/dto/messaging/mail-notifi
 import { SendMailTypeEnum } from '@app/shared/enum';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
+import { EncryptionService } from '@app/shared/services';
 import { codeGenerator } from '@app/shared/utils';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { MailBaseService } from '../mail-base.service';
 
+// alinhar com seu enum do Prisma ou central (se existir). Aqui deixo local.
+enum MailValidationStatusEnum {
+  PENDING = 'PENDING',
+  SENT = 'SENT',
+  FAILED = 'FAILED',
+  VALIDATED = 'VALIDATED',
+}
+
+const TOKEN_EXPIRATION_MS = 5 * 60 * 1000; // 5 minutos
+
 @Injectable()
 export class SendCodeValidationMailUseCase {
   private readonly logger = new Logger(SendCodeValidationMailUseCase.name);
 
-  private fiveMinutesInMs = 5 * 60 * 1000;
-
   constructor(
     private readonly mailBaseService: MailBaseService,
-    private prisma: PrismaService,
+    private readonly prisma: PrismaService,
+    private readonly encryptionService: EncryptionService,
   ) {}
 
   @RabbitSubscribe({
@@ -25,34 +35,79 @@ export class SendCodeValidationMailUseCase {
       MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_CODE_VALIDATION_MAIL_QUEUE,
     queue: MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_CODE_VALIDATION_MAIL_QUEUE,
   })
-  async execute({ to, type }: SendCodeValidationMailDto) {
+  async execute({
+    to,
+    type,
+    request_id,
+    user_type,
+  }: SendCodeValidationMailDto): Promise<void> {
+    // validações básicas
+    if (!to || !type || !request_id) {
+      this.logger.error(
+        'Parâmetros obrigatórios ausentes para envio de e-mail',
+      );
+      return;
+    }
+
+    const email = this.normalizeEmail(to);
+    const code = codeGenerator({ length: 6, onlyNumbers: true });
+    const expiresAt = new Date(Date.now() + TOKEN_EXPIRATION_MS);
+
+    let createdId: string | undefined;
+
+    // 1) Desativar anteriores + criar novo registro (PENDING) em transação
     try {
-      const [template, _] = await Promise.all([
-        this.prisma.mailTemplate.findFirst({
+      await this.prisma.$transaction(async (tx) => {
+        // desativa tokens ativos anteriores para mesmo email+tipo+user_type (se essa for a regra)
+        await tx.mailValidation.updateMany({
           where: {
-            type: SendMailTypeEnum.VALIDATION_CODE,
-            active: true,
-          },
-          select: {
-            subject: true,
-            html: true,
-            from: true,
-            pre_header: true,
-          },
-        }),
-        this.prisma.mailValidation.updateMany({
-          where: {
+            email,
             type,
             active: true,
-            email: to,
+            // se quiser considerar user_type no agrupamento:
+            user_type,
           },
           data: { active: false },
-        }),
-      ]);
+        });
 
-      if (!template) throw new Error('Template de email não encontrado');
+        const { encryptedData, iv } = this.encryptionService.encrypt(code);
 
-      const code = codeGenerator({ length: 6, onlyNumbers: true });
+        const created = await tx.mailValidation.create({
+          data: {
+            request_id, // único
+            email,
+            type,
+            user_type,
+            code_ciphertext: encryptedData,
+            code_iv: iv,
+            status: MailValidationStatusEnum.PENDING,
+            active: true,
+            expires_at: expiresAt,
+            // message_id só após enviar
+          },
+          select: { id: true },
+        });
+
+        createdId = created.id;
+      });
+    } catch (err) {
+      this.logger.error(
+        `Falha ao preparar registro de validação por e-mail (${email}): ${String(err)}`,
+      );
+      return;
+    }
+
+    // 2) Envio do e-mail FORA da transação (I/O externo)
+    try {
+      // Carrega template ativo do tipo VALIDATION_CODE
+      const template = await this.prisma.mailTemplate.findFirst({
+        where: { type: SendMailTypeEnum.VALIDATION_CODE, active: true },
+        select: { subject: true, html: true, from: true, pre_header: true },
+      });
+
+      if (!template) {
+        throw new Error('Template de e-mail não encontrado');
+      }
 
       const html = this.mailBaseService.fillTemplate({
         type: SendMailTypeEnum.VALIDATION_CODE,
@@ -64,29 +119,42 @@ export class SendCodeValidationMailUseCase {
       });
 
       const response = await this.mailBaseService.sendMail({
-        to,
+        to: email,
         subject: template.subject,
         html,
         from: template.from,
       });
 
-      if (!response) throw new Error('Erro ao enviar email');
+      if (!response?.messageId) {
+        throw new Error('Envio de e-mail sem messageId');
+      }
 
-      await this.prisma.mailValidation.create({
+      // sucesso → SENT
+      await this.prisma.mailValidation.update({
+        where: { id: createdId! },
         data: {
-          email: to,
-          code,
-          expires_at: new Date(Date.now() + this.fiveMinutesInMs),
-          type,
           message_id: response.messageId,
+          status: MailValidationStatusEnum.SENT,
         },
       });
 
-      this.logger.debug(`Email de código de verificação enviado para: ${to}`);
+      this.logger.debug(
+        `Token de validação por e-mail enviado (SENT) para ${email}; msgId=${response.messageId}`,
+      );
+    } catch (err) {
+      // falha → FAILED (mas mantém o registro criado, para auditoria e reenvio)
+      await this.prisma.mailValidation.update({
+        where: { id: createdId! },
+        data: { status: MailValidationStatusEnum.FAILED },
+      });
 
-      return;
-    } catch (error) {
-      this.logger.error(error);
+      this.logger.error(
+        `Falha ao enviar token por e-mail para ${email} (status=FAILED): ${String(err)}`,
+      );
     }
+  }
+
+  private normalizeEmail(raw: string): string {
+    return raw.trim().toLowerCase();
   }
 }
