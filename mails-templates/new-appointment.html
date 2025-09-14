@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
-    <title>Agendamento cancelado</title>
+    <title>Novo agendamento</title>
     <style>
       html,
       body {
@@ -50,6 +50,9 @@
           width: 160px !important;
           height: auto !important;
         }
+        .btn a {
+          font-size: 16px !important;
+        }
       }
 
       /* Dark mode seguro (mantém cartão e header claros) */
@@ -76,25 +79,9 @@
     </style>
   </head>
   <body class="body-bg" style="background: #f3f5ff; margin: 0; padding: 0">
-    {PREHEADER}
+    <!-- Preheader -->
+    {PRE_HEADER}
 
-    <div
-      style="
-        display: none !important;
-        visibility: hidden;
-        opacity: 0;
-        overflow: hidden;
-        height: 0;
-        width: 0;
-        max-height: 0;
-        max-width: 0;
-        color: #fff;
-      "
-    >
-      {SERVICE_NAME} em {APPT_DATE} às {APPT_TIME} cancelado por {CLIENT_NAME}.
-    </div>
-
-    <!-- Wrapper -->
     <table
       role="presentation"
       width="100%"
@@ -105,7 +92,6 @@
     >
       <tr>
         <td align="center" style="padding: 28px 16px">
-          <!-- Card -->
           <table
             role="presentation"
             width="600"
@@ -121,7 +107,7 @@
               overflow: hidden;
             "
           >
-            <!-- Header claro -->
+            <!-- Header -->
             <tr>
               <td
                 class="header"
@@ -167,7 +153,7 @@
                 <h1
                   class="title"
                   style="
-                    margin: 0 0 12px 0;
+                    margin: 0 0 16px 0;
                     font-family:
                       -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
                       Arial, 'Helvetica Neue', sans-serif;
@@ -176,7 +162,7 @@
                     color: #111827;
                   "
                 >
-                  Agendamento cancelado
+                  Novo agendamento
                 </h1>
                 <p
                   class="text"
@@ -190,8 +176,8 @@
                     color: #334155;
                   "
                 >
-                  Olá, {PROFESSIONAL_NAME}. O cliente <b>{CLIENT_NAME}</b>
-                  cancelou o agendamento abaixo.
+                  Olá, {TO_NAME}! Você tem um novo agendamento feito por
+                  <b>{BY_NAME}</b>.
                 </p>
 
                 <!-- Resumo -->
@@ -259,6 +245,7 @@
                             <b>Duração:</b> {DURATION}
                           </td>
                         </tr>
+
                         <tr>
                           <td
                             style="
@@ -273,27 +260,51 @@
                             <b>Preço:</b> {PRICE}
                           </td>
                         </tr>
+                        <tr>
+                          <td
+                            style="
+                              padding: 6px 0;
+                              font-family:
+                                -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                                Roboto, Arial, 'Helvetica Neue', sans-serif;
+                              font-size: 14px;
+                              color: #111827;
+                            "
+                          >
+                            <b>Observação do cliente:</b> {CLIENT_NOTES}
+                          </td>
+                        </tr>
                       </table>
                     </td>
                   </tr>
                 </table>
 
-                <!-- Dicas -->
-                <p
-                  class="muted"
-                  style="
-                    margin: 0 0 6px 0;
-                    text-align: center;
-                    font-family:
-                      -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-                      Arial, 'Helvetica Neue', sans-serif;
-                    font-size: 12px;
-                    line-height: 1.7;
-                    color: #6b7280;
-                  "
+                <!-- Divider -->
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  border="0"
+                  style="margin: 24px 0"
                 >
-                  O horário foi liberado na sua agenda.
-                </p>
+                  <tr>
+                    <td
+                      class="divider"
+                      style="
+                        border-top: 1px solid #e6e8f0;
+                        height: 1px;
+                        line-height: 1px;
+                        font-size: 0;
+                      "
+                    >
+                      &nbsp;
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Dicas operacionais -->
+
                 <p
                   class="muted"
                   style="
@@ -307,8 +318,8 @@
                     color: #6b7280;
                   "
                 >
-                  Se necessário, entre em contato com o cliente para alinhar um
-                  novo horário.
+                  Em caso de imprevisto, acesse o aplicativo para reagendar ou
+                  cancelar.
                 </p>
               </td>
             </tr>

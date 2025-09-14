@@ -1,5 +1,5 @@
 import { PrismaService } from '@app/shared';
-import { SendCancelAppointmentMailDto } from '@app/shared/dto/messaging/mail-notifications/send-cancel-appointment.dto';
+import { SendNewAppointmentProfessionalDto } from '@app/shared/dto/messaging/mail-notifications/send-new-appointment-professional.dto';
 import { SendMailTypeEnum } from '@app/shared/enum';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
@@ -8,12 +8,8 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { MailBaseService } from '../../mail-base.service';
 
 @Injectable()
-export class SendCancelAppointmentProfessionalMailUseCase
-  implements OnApplicationBootstrap
-{
-  private readonly logger = new Logger(
-    SendCancelAppointmentProfessionalMailUseCase.name,
-  );
+export class SendNewAppointmentMailUseCase implements OnApplicationBootstrap {
+  private readonly logger = new Logger(SendNewAppointmentMailUseCase.name);
 
   constructor(
     private readonly mailBaseService: MailBaseService,
@@ -22,35 +18,45 @@ export class SendCancelAppointmentProfessionalMailUseCase
 
   async onApplicationBootstrap() {
     // await this.execute({
-    //   // to: 'alanagabriele43@gmail.com',
-    //   firstName: 'Carlos',
     //   to: 'chziegler445@gmail.com',
+    //   apptDate: '27/08/2025',
+    //   apptTime: '14:00',
+    //   clientName: 'Alana Gabriele',
+    //   clientNotes: 'Quero muito relaxar!',
+    //   price: 'R$ 00,00',
+    //   professionalName: 'Carlos Henrique',
+    //   serviceName: 'Massagem Relaxante',
+    //   duration: '1h30min',
     // });
   }
 
   @RabbitSubscribe({
     exchange: RABBIT_EXCHANGE,
     routingKey:
-      MESSAGING_QUEUES.MAIL_NOTIFICATIONS
-        .SEND_CANCEL_APPOINTMENT_PROFESSIONAL_MAIL_QUEUE,
-    queue:
-      MESSAGING_QUEUES.MAIL_NOTIFICATIONS
-        .SEND_CANCEL_APPOINTMENT_PROFESSIONAL_MAIL_QUEUE,
+      MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_NEW_APPOINTMENT_MAIL_QUEUE,
+    queue: MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_NEW_APPOINTMENT_MAIL_QUEUE,
   })
   async execute({
-    to,
     apptDate,
     apptTime,
-    clientName,
-    duration,
+    byName,
+    clientNotes,
     price,
-    professionalName,
+    toName,
     serviceName,
-  }: SendCancelAppointmentMailDto) {
+    to,
+    duration,
+  }: SendNewAppointmentProfessionalDto) {
+    if (!to || !toName || !apptDate || !apptTime || !serviceName) {
+      this.logger.error(
+        'Parâmetros obrigatórios ausentes para envio de e-mail',
+      );
+      return;
+    }
     try {
       const template = await this.prisma.mailTemplate.findFirst({
         where: {
-          type: SendMailTypeEnum.APPOINTMENT_CANCELLATION_PROFESSIONAL,
+          type: SendMailTypeEnum.NEW_APPOINTMENT,
           active: true,
         },
         select: {
@@ -63,16 +69,17 @@ export class SendCancelAppointmentProfessionalMailUseCase
       if (!template) throw new Error('Template de email não encontrado');
 
       const html = this.mailBaseService.fillTemplate({
-        type: SendMailTypeEnum.APPOINTMENT_CANCELLATION_PROFESSIONAL,
+        type: SendMailTypeEnum.NEW_APPOINTMENT,
         template: template.html,
         data: {
-          PROFESSIONAL_NAME: professionalName,
-          CLIENT_NAME: clientName,
           SERVICE_NAME: serviceName,
-          APPT_DATE: apptDate,
+          TO_NAME: toName,
+          BY_NAME: byName,
           APPT_TIME: apptTime,
-          DURATION: duration,
+          APPT_DATE: apptDate,
           PRICE: price,
+          CLIENT_NOTES: clientNotes,
+          DURATION: duration,
           PREHEADER: template.pre_header || '',
         },
       });
@@ -86,9 +93,7 @@ export class SendCancelAppointmentProfessionalMailUseCase
 
       if (!response) throw new Error('Erro ao enviar email');
 
-      this.logger.debug(
-        `Email de agendamento cancelado enviado para o profissional: ${to}`,
-      );
+      this.logger.debug(`Email de novo agendamento enviado para ${to}`);
 
       return;
     } catch (error) {

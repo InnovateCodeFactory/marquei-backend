@@ -28,26 +28,20 @@ export const MESSAGING_QUEUES = {
     // PROFESSIONAL MAIL QUEUES
     SEND_WELCOME_PROFESSIONAL_MAIL_QUEUE:
       'messaging.mail_notifications.send_welcome_professional_mail_queue',
-    SEND_NEW_APPOINTMENT_PROFESSIONAL_MAIL_QUEUE:
-      'messaging.mail_notifications.send_new_appointment_professional_mail_queue',
-    SEND_CANCEL_APPOINTMENT_PROFESSIONAL_MAIL_QUEUE:
-      'messaging.mail_notifications.send_cancel_appointment_professional_mail_queue',
-    SEND_RESCHEDULE_APPOINTMENT_PROFESSIONAL_MAIL_QUEUE:
-      'messaging.mail_notifications.send_reschedule_appointment_professional_mail_queue',
 
     // CUSTOMER MAIL QUEUES
     SEND_WELCOME_CUSTOMER_MAIL_QUEUE:
       'messaging.mail_notifications.send_welcome_customer_mail_queue',
-    SEND_NEW_APPOINTMENT_CUSTOMER_MAIL_QUEUE:
-      'messaging.mail_notifications.send_new_appointment_customer_mail_queue',
-    SEND_CANCEL_APPOINTMENT_CUSTOMER_MAIL_QUEUE:
-      'messaging.mail_notifications.send_cancel_appointment_customer_mail_queue',
-    SEND_RESCHEDULE_APPOINTMENT_CUSTOMER_MAIL_QUEUE:
-      'messaging.mail_notifications.send_reschedule_appointment_customer_mail_queue',
 
     // COMMON MAIL QUEUES
     SEND_CODE_VALIDATION_MAIL_QUEUE:
       'messaging.mail_notifications.send_code_validation_mail_queue',
+    SEND_NEW_APPOINTMENT_MAIL_QUEUE:
+      'messaging.mail_notifications.send_new_appointment_mail_queue',
+    SEND_CANCEL_APPOINTMENT_MAIL_QUEUE:
+      'messaging.mail_notifications.send_cancel_appointment_mail_queue',
+    SEND_RESCHEDULE_APPOINTMENT_MAIL_QUEUE:
+      'messaging.mail_notifications.send_reschedule_appointment_mail_queue',
   },
   WHATSAPP_NOTIFICATIONS: {
     SEND_VALIDATION_TOKEN_QUEUE:

@@ -76,24 +76,7 @@
     </style>
   </head>
   <body class="body-bg" style="background: #f3f5ff; margin: 0; padding: 0">
-    <!-- Preheader invisível -->
     {PREHEADER}
-    <div
-      style="
-        display: none !important;
-        visibility: hidden;
-        opacity: 0;
-        overflow: hidden;
-        height: 0;
-        width: 0;
-        max-height: 0;
-        max-width: 0;
-        color: #fff;
-      "
-    >
-      {SERVICE_NAME} em {APPT_DATE} às {APPT_TIME} cancelado por
-      {PROFESSIONAL_NAME}.
-    </div>
 
     <!-- Wrapper -->
     <table
@@ -177,7 +160,7 @@
                     color: #111827;
                   "
                 >
-                  Seu agendamento foi cancelado
+                  Agendamento cancelado😕
                 </h1>
                 <p
                   class="text"
@@ -191,7 +174,7 @@
                     color: #334155;
                   "
                 >
-                  Olá, {CLIENT_NAME}. O profissional <b>{PROFESSIONAL_NAME}</b>
+                  Olá, {TO_NAME}! O {BY_TYPE_LABEL} <b>{BY_NAME}</b>
                   cancelou o agendamento abaixo.
                 </p>
 
@@ -279,22 +262,7 @@
                   </tr>
                 </table>
 
-                <!-- Ajuda/Próximos passos -->
-                <p
-                  class="muted"
-                  style="
-                    margin: 0 0 6px 0;
-                    text-align: center;
-                    font-family:
-                      -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-                      Arial, 'Helvetica Neue', sans-serif;
-                    font-size: 12px;
-                    line-height: 1.7;
-                    color: #6b7280;
-                  "
-                >
-                  Você pode reagendar pelo aplicativo quando quiser.
-                </p>
+                <!-- Dicas -->
                 <p
                   class="muted"
                   style="
@@ -308,7 +276,8 @@
                     color: #6b7280;
                   "
                 >
-                  Se precisar de ajuda, responda este e-mail.
+                  Se necessário, acesse o aplicativo para marcar um novo
+                  horário.
                 </p>
               </td>
             </tr>

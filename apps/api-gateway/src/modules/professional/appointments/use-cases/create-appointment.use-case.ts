@@ -106,7 +106,7 @@ export class CreateAppointmentUseCase {
       },
     });
 
-    // to do - enviar email e push notification (se tiver o app) para o cliente
+    // TODO - enviar email e push notification (se tiver o app) para o cliente
 
     return null;
   }

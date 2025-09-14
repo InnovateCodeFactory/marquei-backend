@@ -130,8 +130,8 @@ export class CreateAppointmentUseCase {
       }),
       this.rmqService.publishToQueue({
         payload: new SendNewAppointmentProfessionalDto({
-          professionalName: getTwoNames(appointment.professional.User.name),
-          clientName: getTwoNames(appointment.customerPerson.name),
+          toName: getTwoNames(appointment.professional.User.name),
+          byName: getTwoNames(appointment.customerPerson.name),
           serviceName: appointment.service.name,
           apptDate: format(payload.appointment_date, 'dd/MM/yyyy'),
           apptTime: format(payload.appointment_date, 'HH:mm'),
@@ -141,8 +141,7 @@ export class CreateAppointmentUseCase {
           duration: durationFormatted,
         }),
         routingKey:
-          MESSAGING_QUEUES.MAIL_NOTIFICATIONS
-            .SEND_NEW_APPOINTMENT_PROFESSIONAL_MAIL_QUEUE,
+          MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_NEW_APPOINTMENT_MAIL_QUEUE,
       }),
     ]);
 

@@ -7,7 +7,7 @@ import { EncryptionService } from '@app/shared/services';
 import { codeGenerator } from '@app/shared/utils';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger } from '@nestjs/common';
-import { MailBaseService } from '../mail-base.service';
+import { MailBaseService } from '../../mail-base.service';
 
 // alinhar com seu enum do Prisma ou central (se existir). Aqui deixo local.
 enum MailValidationStatusEnum {
@@ -41,7 +41,6 @@ export class SendCodeValidationMailUseCase {
     request_id,
     user_type,
   }: SendCodeValidationMailDto): Promise<void> {
-    // validações básicas
     if (!to || !type || !request_id) {
       this.logger.error(
         'Parâmetros obrigatórios ausentes para envio de e-mail',
@@ -99,7 +98,6 @@ export class SendCodeValidationMailUseCase {
 
     // 2) Envio do e-mail FORA da transação (I/O externo)
     try {
-      // Carrega template ativo do tipo VALIDATION_CODE
       const template = await this.prisma.mailTemplate.findFirst({
         where: { type: SendMailTypeEnum.VALIDATION_CODE, active: true },
         select: { subject: true, html: true, from: true, pre_header: true },
