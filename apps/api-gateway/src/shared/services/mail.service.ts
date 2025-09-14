@@ -51,7 +51,7 @@ export class MailValidationService {
     type,
     request_id,
     user_type,
-  }: SendCodeValidationMailDto): Promise<void> {
+  }: SendCodeValidationMailDto) {
     if (!to || !type) {
       throw new BadRequestException('Parâmetros obrigatórios ausentes');
     }
@@ -71,6 +71,10 @@ export class MailValidationService {
     this.logger.debug(
       `Solicitado envio de código por e-mail: to=${to}, type=${type}`,
     );
+
+    return {
+      request_id,
+    };
   }
 
   // -----------------------------------------------------------------------
