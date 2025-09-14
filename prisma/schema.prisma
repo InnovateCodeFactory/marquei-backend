@@ -256,6 +256,8 @@ model AppointmentEvent {
   ip              String?              @db.VarChar(64)
   user_agent      String?
   created_at      DateTime             @default(now())
+
+  @@index([appointmentId], name: "idx_appointment_event_appointment")
 }
 
 // Vincular pessoa como user do tipo Customer e vincular como cliente das empresas
