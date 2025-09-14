@@ -507,7 +507,7 @@ model MailValidation {
 model MailValidationEvent {
   id               String         @id @default(cuid())
   mailValidationId String
-  validation       MailValidation @relation(fields: [mailValidationId], references: [id], onDelete: Cascade)
+  validation       MailValidation @relation(fields: [mailValidationId], references: [id], onDelete: Restrict)
 
   event_type      EmailValidationEventType
   message         String?                  @db.VarChar(255)
