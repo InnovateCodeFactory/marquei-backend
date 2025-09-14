@@ -1,0 +1,7 @@
+-- DropIndex
+DROP INDEX "idx_logs_datetime";
+
+-- AlterTable
+ALTER TABLE "Logs" ADD COLUMN     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ALTER COLUMN "datetime" DROP DEFAULT,
+ALTER COLUMN "datetime" SET DATA TYPE TEXT;

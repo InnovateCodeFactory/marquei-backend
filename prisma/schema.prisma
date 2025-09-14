@@ -574,6 +574,36 @@ model BugReports {
   @@index([userId], name: "idx_bug_report_user")
 }
 
+model Logs {
+  id           String   @id @default(cuid())
+  body         Json?
+  query        Json?
+  method       String   @db.VarChar(10)
+  endpoint     String
+  response     Json?
+  success      Boolean
+  user_id      String?
+  device_token String?
+  datetime     String
+  latencyMs    Int?
+  created_at   DateTime @default(now())
+
+  @@index([user_id], name: "idx_logs_taxnumber")
+  @@index([device_token], name: "idx_logs_device_token")
+}
+
+// export type Logs = {
+//   body: unknown; // Request body
+//   method: string; // HTTP method
+//   endpoint: string; // URL
+//   response: unknown; // Response body
+//   success: boolean; // true|false
+//   taxNumber?: string; // req.user?.taxNumber
+//   datetime: string; // ISO string
+//   integration?: 'bmp' | 'celcoin' | 'qitech';
+//   latencyMs?: number; // Latency in milliseconds
+// };
+
 enum EmailValidationStatus {
   PENDING
   SENT
