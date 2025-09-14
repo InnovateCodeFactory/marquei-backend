@@ -1,6 +1,25 @@
 import { AppointmentStatus } from '@prisma/client';
 import { formatDate as formatDateFns, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Request } from 'express';
+import { AppRequest } from '../types/app-request';
+
+export function getClientIp(req: Request | AppRequest): string | undefined {
+  const cfIp = req.headers['cf-connecting-ip'];
+
+  const xff = req.headers['x-forwarded-for'];
+  const xffValue = Array.isArray(xff) ? xff[0] : xff;
+
+  const remoteAddr = req.socket?.remoteAddress;
+
+  return (
+    (typeof cfIp === 'string' ? cfIp : undefined) ||
+    (typeof xffValue === 'string'
+      ? xffValue.split(',')[0].trim()
+      : undefined) ||
+    remoteAddr
+  );
+}
 
 export function removeSpecialCharacters(value: string): string {
   return value?.replace(/[^\w\s]/gi, '');

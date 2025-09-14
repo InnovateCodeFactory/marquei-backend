@@ -44,6 +44,7 @@ export class SendCodeValidationMailUseCase {
           where: {
             type,
             active: true,
+            email: to,
           },
           data: { active: false },
         }),

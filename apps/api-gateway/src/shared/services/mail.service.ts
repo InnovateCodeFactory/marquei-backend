@@ -49,7 +49,7 @@ export class MailService {
       throw new BadRequestException('Código expirado. Solicite um novo');
     }
 
-    await this.prisma.mailValidation.updateMany({
+    await this.prisma.mailValidation.update({
       where: {
         id: record.id,
       },

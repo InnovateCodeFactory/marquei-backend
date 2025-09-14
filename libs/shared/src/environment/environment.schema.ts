@@ -39,6 +39,11 @@ export type EnvSchemaType = {
   MAIL_PORT: number;
 
   ENCRYPTION_KEY: string;
+
+  WHATSAPP_API_URL: string;
+  WHATSAPP_API_USERNAME: string;
+  WHATSAPP_API_PASSWORD: string;
+  WHATSAPP_API_SESSION_ID: string;
 };
 
 export const envValidationSchema = Joi.object<EnvSchemaType>({
@@ -86,4 +91,9 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
   MAIL_PORT: Joi.number().positive().integer().required(),
 
   ENCRYPTION_KEY: Joi.string().length(32).required(),
+
+  WHATSAPP_API_URL: Joi.string().uri().required(),
+  WHATSAPP_API_USERNAME: Joi.string().required(),
+  WHATSAPP_API_PASSWORD: Joi.string().required(),
+  WHATSAPP_API_SESSION_ID: Joi.string().required(),
 });

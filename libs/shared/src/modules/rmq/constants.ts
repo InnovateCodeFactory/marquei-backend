@@ -49,5 +49,8 @@ export const MESSAGING_QUEUES = {
     SEND_CODE_VALIDATION_MAIL_QUEUE:
       'messaging.mail_notifications.send_code_validation_mail_queue',
   },
-  SMS_NOTIFICATIONS: {},
+  WHATSAPP_NOTIFICATIONS: {
+    SEND_VALIDATION_TOKEN_QUEUE:
+      'messaging.whatsapp_notifications.send_validation_token_queue',
+  },
 };
