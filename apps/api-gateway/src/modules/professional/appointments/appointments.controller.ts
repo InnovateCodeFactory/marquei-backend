@@ -1,18 +1,20 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
-import { CurrentUser } from '@app/shared/types/app-request';
-import { Body, Controller, Get, Post, Query, Res } from '@nestjs/common';
+import { AppRequest, CurrentUser } from '@app/shared/types/app-request';
+import { Body, Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CancelAppointmentDto } from './dto/requests/cancel-appointment.dto';
 import { CreateAppointmentDto } from './dto/requests/create-appointment.dto';
 import { GetAvailableTimesDto } from './dto/requests/get-available-times.dto';
+import { RescheduleAppointmentDto } from './dto/requests/reschedule-appointment.dto';
 import {
   CreateAppointmentUseCase,
   GetAppointmentsUseCase,
   GetAvailableTimesUseCase,
 } from './use-cases';
 import { CancelAppointmentUseCase } from './use-cases/cancel-appointment.use-case';
+import { RescheduleAppointmentUseCase } from './use-cases/reschedule-appointment.use-case';
 
 @Controller('professional/appointments')
 @ApiTags('Appointments')
@@ -23,6 +25,7 @@ export class AppointmentsController {
     private readonly createAppointmentUseCase: CreateAppointmentUseCase,
     private readonly getAppointmentsUseCase: GetAppointmentsUseCase,
     private readonly cancelAppointmentUseCase: CancelAppointmentUseCase,
+    private readonly rescheduleAppointmentUseCase: RescheduleAppointmentUseCase,
   ) {}
 
   @Get('get-available-times')
@@ -50,11 +53,11 @@ export class AppointmentsController {
   })
   async createAppointment(
     @Res() res: Response,
-    @CurrentUserDecorator() user: CurrentUser,
+    @Req() req: AppRequest,
     @Body() body: CreateAppointmentDto,
   ) {
     return await this.responseHandler.handle({
-      method: () => this.createAppointmentUseCase.execute(body, user),
+      method: () => this.createAppointmentUseCase.execute(body, req),
       res,
     });
   }
@@ -82,11 +85,27 @@ export class AppointmentsController {
   })
   async cancelAppointment(
     @Res() res: Response,
-    @CurrentUserDecorator() user: CurrentUser,
+    @Req() req: AppRequest,
     @Body() body: CancelAppointmentDto,
   ) {
     return await this.responseHandler.handle({
-      method: () => this.cancelAppointmentUseCase.execute(body, user),
+      method: () => this.cancelAppointmentUseCase.execute(body, req),
+      res,
+    });
+  }
+
+  @Post('reschedule-appointment')
+  @ApiOperation({
+    summary: 'Reschedule an appointment',
+    description: 'Reschedules an existing appointment to a new date and time.',
+  })
+  async rescheduleAppointment(
+    @Res() res: Response,
+    @Req() req: AppRequest,
+    @Body() body: RescheduleAppointmentDto,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.rescheduleAppointmentUseCase.execute(body, req),
       res,
     });
   }

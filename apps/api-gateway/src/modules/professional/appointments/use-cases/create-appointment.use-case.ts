@@ -1,5 +1,6 @@
 import { PrismaService } from '@app/shared';
-import { CurrentUser } from '@app/shared/types/app-request';
+import { AppRequest } from '@app/shared/types/app-request';
+import { getClientIp } from '@app/shared/utils';
 import {
   BadRequestException,
   Injectable,
@@ -11,7 +12,9 @@ import { CreateAppointmentDto } from '../dto/requests/create-appointment.dto';
 export class CreateAppointmentUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(payload: CreateAppointmentDto, user: CurrentUser) {
+  async execute(payload: CreateAppointmentDto, req: AppRequest) {
+    const { user, headers } = req;
+
     if (!user?.current_selected_business_id) {
       throw new UnauthorizedException('User not authorized');
     }
@@ -91,15 +94,15 @@ export class CreateAppointmentUseCase {
         service: { connect: { id: service_id } },
         customerPerson: { connect: { id: bc.personId } }, // 👈 vínculo do cliente
         notes: notes || null,
-        events: [
-          {
-            type: 'PENDING',
-            created_at: new Date(),
+        events: {
+          create: {
+            event_type: 'CREATED',
             by_professional: true,
             by_user_id: user.id,
-            reason: null,
+            ip: getClientIp(req),
+            user_agent: headers['user-agent'],
           },
-        ],
+        },
       },
     });
 

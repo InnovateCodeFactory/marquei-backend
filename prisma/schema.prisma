@@ -227,7 +227,6 @@ model Appointment {
   scheduled_at DateTime
   status       AppointmentStatus
   notes        String?
-  events       Json              @default(dbgenerated("'[]'::jsonb"))
 
   professional   ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
   service        Service             @relation(fields: [service_id], references: [id])
@@ -238,10 +237,25 @@ model Appointment {
   professionalProfileId String
   ProfessionalStatement ProfessionalStatement[]
   personId              String
+  events                AppointmentEvent[]
 
   @@index([service_id], name: "idx_appointment_service")
   @@index([professionalProfileId, scheduled_at], name: "idx_professional_date")
   @@index([personId], name: "idx_appointment_person")
+}
+
+model AppointmentEvent {
+  id            String      @id @default(cuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+
+  event_type      AppointmentEventType
+  by_professional Boolean
+  by_user_id      String
+  reason          String?
+  ip              String?              @db.VarChar(64)
+  user_agent      String?
+  created_at      DateTime             @default(now())
 }
 
 // Vincular pessoa como user do tipo Customer e vincular como cliente das empresas
@@ -506,7 +520,7 @@ model WhatsAppValidation {
 model WhatsAppValidationEvent {
   id                   String             @id @default(cuid())
   whatsAppValidationId String
-  validation           WhatsAppValidation @relation(fields: [whatsAppValidationId], references: [id], onDelete: Cascade)
+  validation           WhatsAppValidation @relation(fields: [whatsAppValidationId], references: [id], onDelete: Restrict)
 
   event_type      WhatsAppValidationEventType
   message         String?                     @db.VarChar(255)
@@ -571,6 +585,13 @@ enum AppointmentStatus {
   CONFIRMED
   CANCELED
   COMPLETED
+}
+
+enum AppointmentEventType {
+  CREATED
+  RESCHEDULED
+  CANCELED
+  CONFIRMED
 }
 
 enum BillingPeriod {

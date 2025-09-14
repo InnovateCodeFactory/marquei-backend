@@ -2,9 +2,10 @@ import { PrismaService } from '@app/shared';
 import { SendCancelAppointmentMailDto } from '@app/shared/dto/messaging/mail-notifications/send-cancel-appointment.dto';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
-import { CurrentUser } from '@app/shared/types/app-request';
+import { AppRequest } from '@app/shared/types/app-request';
 import {
   formatDurationToHoursAndMinutes,
+  getClientIp,
   getTwoNames,
 } from '@app/shared/utils';
 import { Price } from '@app/shared/value-objects';
@@ -19,8 +20,9 @@ export class CancelAppointmentUseCase {
     private readonly rmqService: RmqService,
   ) {}
 
-  async execute(body: CancelAppointmentDto, user: CurrentUser) {
-    const { appointment_id } = body;
+  async execute(body: CancelAppointmentDto, req: AppRequest) {
+    const { appointment_id, reason } = body;
+    const { user, headers } = req;
 
     const appointment = await this.prisma.appointment.findUnique({
       where: { id: appointment_id },
@@ -51,7 +53,6 @@ export class CancelAppointmentUseCase {
             email: true,
           },
         },
-        events: true,
       },
     });
 
@@ -63,24 +64,16 @@ export class CancelAppointmentUseCase {
       throw new BadRequestException('Agendamento já está cancelado');
     }
 
-    const newEvent = {
-      type: 'CANCELED' as const,
-      created_at: new Date(),
-      by_professional: true,
-      by_user_id: user.id,
-      reason: body.reason ?? null,
-    };
-    const events = Array.isArray(appointment?.events)
-      ? appointment!.events
-      : [];
-    events.push(newEvent as any);
-
     await Promise.all([
-      this.prisma.appointment.update({
-        where: { id: appointment_id },
+      this.prisma.appointmentEvent.create({
         data: {
-          status: 'CANCELED',
-          events,
+          appointmentId: appointment.id,
+          by_professional: true,
+          event_type: 'CANCELED',
+          by_user_id: user.id,
+          reason,
+          ip: getClientIp(req),
+          user_agent: headers['user-agent'],
         },
       }),
       appointment.customerPerson?.email &&
