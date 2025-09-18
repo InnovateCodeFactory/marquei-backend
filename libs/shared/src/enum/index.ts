@@ -1,4 +1,5 @@
 export * from './appointment-status.enum';
+export * from './business-public-type.enum';
 export * from './days-of-week.enum';
 export * from './mail-intent.enum';
 export * from './mail-options-from.enum';

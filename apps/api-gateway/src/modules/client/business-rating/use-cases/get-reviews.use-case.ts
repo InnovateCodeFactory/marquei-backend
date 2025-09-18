@@ -26,9 +26,14 @@ export class GetReviewsUseCase {
       throw new NotFoundException('Estabelecimento não encontrado');
     }
 
+    const where = {
+      business_slug: query.business_slug,
+      review: { not: null },
+    };
+
     const [reviews, total] = await Promise.all([
       this.prisma.businessRating.findMany({
-        where: { business_slug: query.business_slug },
+        where,
         skip,
         take: limit,
         orderBy: { created_at: 'desc' },
@@ -47,7 +52,7 @@ export class GetReviewsUseCase {
         },
       }),
       this.prisma.businessRating.count({
-        where: { business_slug: query.business_slug },
+        where,
       }),
     ]);
 

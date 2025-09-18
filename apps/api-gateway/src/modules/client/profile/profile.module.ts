@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ProfileController } from './profile.controller';
 import {
+  EditPreferredContentUseCase,
   EditProfileUseCase,
   GetProfileDetailsUseCase,
   ReportBugUseCase,
@@ -14,6 +15,7 @@ import {
     GetProfileDetailsUseCase,
     EditProfileUseCase,
     ReportBugUseCase,
+    EditPreferredContentUseCase,
   ],
 })
 export class ProfileModule {}

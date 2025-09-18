@@ -1,3 +1,4 @@
+export * from './edit-preferred-content.use-case';
 export * from './edit-profile.use-case';
 export * from './get-profile-details.use-case';
 export * from './report-bug.use-case';

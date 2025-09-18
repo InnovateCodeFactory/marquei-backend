@@ -61,7 +61,7 @@ export class FilterBusinessesUseCase {
       slug: b.slug,
       logo: b.logo,
       coverImage: b.coverImage,
-      rating: b.rating,
+      rating: b.rating?.toFixed(1),
       ratings_count: b.reviews_count,
       address: buildAddress(b),
       is_verified: b.is_verified,

@@ -1,30 +1,35 @@
 services:
   rabbitmq:
-    container_name: 'rabbitmq'
-    image: bitnami/rabbitmq:latest
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
     environment:
-      - RABBITMQ_USERNAME=${RABBITMQ_USER}
-      - RABBITMQ_PASSWORD=${RABBITMQ_PASS}
-      - RABBITMQ_PORT_NUMBER=${RABBITMQ_PORT}
-      - RABBITMQ_MANAGEMENT_ALLOW_WEB_ACCESS=true
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
     ports:
-      - '${RABBITMQ_PORT}:${RABBITMQ_PORT}'
-      - '${RABBITMQ_DASH_PORT}:${RABBITMQ_DASH_PORT}'
+      - '${RABBITMQ_PORT:-5672}:5672'
+      - '${RABBITMQ_DASH_PORT:-15672}:15672'
     volumes:
-      - rabbitmq:/bitnami
+      - rabbitmq:/var/lib/rabbitmq
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', 'check_running']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
-    container_name: 'redis'
-    image: bitnami/redis:latest
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASS}
+    image: redis:7-alpine
+    container_name: redis
+    command: ['redis-server', '--requirepass', '${REDIS_PASS}']
     ports:
-      - '${REDIS_PORT}:${REDIS_PORT}'
+      - '${REDIS_PORT:-6379}:6379'
     volumes:
       - redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASS}', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   rabbitmq:
-    driver: local
   redis:
-    driver: local

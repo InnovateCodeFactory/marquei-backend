@@ -38,11 +38,9 @@ model User {
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
 
-  // NOVO: vínculo canônico para o tipo customer
   personId String? @unique
   person   Person? @relation("UserPerson", fields: [personId], references: [id])
 
-  // ...demais relações existentes inalteradas...
   businesses              Business[]                @relation("BusinessOwners")
   professional_profile    ProfessionalProfile[]
   CurrentSelectedBusiness CurrentSelectedBusiness[]
@@ -272,6 +270,8 @@ model Person {
   name          String
   birthdate     DateTime? @db.Date // mantenho como String se preferir
   profile_image String?
+
+  preferred_content_genre BusinessPublicType? // masculino, feminino, ambos
 
   // Auditoria
   created_at DateTime @default(now())
@@ -591,18 +591,6 @@ model Logs {
   @@index([user_id], name: "idx_logs_taxnumber")
   @@index([device_token], name: "idx_logs_device_token")
 }
-
-// export type Logs = {
-//   body: unknown; // Request body
-//   method: string; // HTTP method
-//   endpoint: string; // URL
-//   response: unknown; // Response body
-//   success: boolean; // true|false
-//   taxNumber?: string; // req.user?.taxNumber
-//   datetime: string; // ISO string
-//   integration?: 'bmp' | 'celcoin' | 'qitech';
-//   latencyMs?: number; // Latency in milliseconds
-// };
 
 enum EmailValidationStatus {
   PENDING

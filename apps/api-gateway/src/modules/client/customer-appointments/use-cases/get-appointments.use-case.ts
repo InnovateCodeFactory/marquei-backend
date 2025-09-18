@@ -1,6 +1,6 @@
 import { PrismaService } from '@app/shared';
 import { AppointmentStatusEnum } from '@app/shared/enum';
-import { CurrentCustomer } from '@app/shared/types/app-request';
+import { CurrentUser } from '@app/shared/types/app-request';
 import { formatDuration, getTwoNames } from '@app/shared/utils';
 import { Price } from '@app/shared/value-objects';
 import { Injectable } from '@nestjs/common';
@@ -25,7 +25,7 @@ type Row = {
 export class GetCustomerAppointmentsUseCase {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async execute(query: GetCustomerAppointmentsDto, user: CurrentCustomer) {
+  async execute(query: GetCustomerAppointmentsDto, user: CurrentUser) {
     const { page, limit, search, status } = query;
 
     const pageNumber = parseInt(String(page), 10) || 1;

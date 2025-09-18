@@ -1,6 +1,6 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
-import { AppRequest, CurrentCustomer } from '@app/shared/types/app-request';
+import { AppRequest, CurrentUser } from '@app/shared/types/app-request';
 import { Body, Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
@@ -49,7 +49,7 @@ export class CustomerAppointmentsController {
   @ApiOperation({ summary: 'Get all appointments for the customer' })
   async getAppointments(
     @Res() res: Response,
-    @CurrentUserDecorator() user: CurrentCustomer,
+    @CurrentUserDecorator() user: CurrentUser,
     @Query() query: GetCustomerAppointmentsDto,
   ) {
     return await this.responseHandler.handle({

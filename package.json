@@ -16,7 +16,9 @@
     "db:push": "prisma db push",
     "prisma:generate": "prisma generate",
     "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe",
-    "deploy-prod": "git checkout main && git merge develop && git push && git checkout develop"
+    "deploy-prod": "git checkout main && git merge develop && git push && git checkout develop",
+    "seed-business": "ts-node --transpile-only apps/api-gateway/src/seed/business.seed.ts",
+    "seed-customers": "ts-node --transpile-only apps/api-gateway/src/seed/customers-and-ratings.seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",

@@ -1,6 +1,6 @@
 import { PrismaService } from '@app/shared';
 import { FileSystemService } from '@app/shared/services';
-import { CurrentCustomer } from '@app/shared/types/app-request';
+import { CurrentUser } from '@app/shared/types/app-request';
 import { removeSpecialCharacters } from '@app/shared/utils';
 import { Injectable } from '@nestjs/common';
 
@@ -11,7 +11,7 @@ export class UploadProfilePictureUseCase {
     private readonly fileSystem: FileSystemService,
   ) {}
 
-  async execute(file: Express.Multer.File, user: CurrentCustomer) {
+  async execute(file: Express.Multer.File, user: CurrentUser) {
     const ext = (file.mimetype?.split('/')?.[1] ?? 'png').toLowerCase();
     const key = `marquei/avatars/${user?.id}/${Date.now()}-${Math.random()
       .toString(36)

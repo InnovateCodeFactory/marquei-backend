@@ -39,10 +39,9 @@ export class FindNearbyBusinessesUseCase {
     const {
       latitude,
       longitude,
-      radius = 20_000,
+      radius = 30_000,
       page = 1,
       limit = 5,
-      category_id,
     } = payload;
 
     const offset = (page - 1) * limit;

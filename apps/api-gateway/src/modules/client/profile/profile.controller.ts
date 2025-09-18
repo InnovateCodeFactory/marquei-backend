@@ -1,6 +1,6 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
-import { AppRequest, CurrentCustomer } from '@app/shared/types/app-request';
+import { AppRequest, CurrentUser } from '@app/shared/types/app-request';
 import {
   BadRequestException,
   Body,
@@ -16,9 +16,11 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { EditPreferredContentDto } from './dto/requests/edit-preffered-content.dto';
 import { EditProfileDto } from './dto/requests/edit-profile.dto';
 import { ReportBugDto } from './dto/requests/report-bug.dto';
 import {
+  EditPreferredContentUseCase,
   EditProfileUseCase,
   GetProfileDetailsUseCase,
   ReportBugUseCase,
@@ -34,6 +36,7 @@ export class ProfileController {
     private readonly getProfileDetailsUseCase: GetProfileDetailsUseCase,
     private readonly editProfileUseCase: EditProfileUseCase,
     private readonly reportBugUseCase: ReportBugUseCase,
+    private readonly editPreferredContentUseCase: EditPreferredContentUseCase,
   ) {}
 
   @Post('profile-image')
@@ -51,7 +54,7 @@ export class ProfileController {
   @ApiOperation({ summary: 'Upload profile image' })
   async uploadProfileImage(
     @UploadedFile() file: Express.Multer.File,
-    @CurrentUserDecorator() user: CurrentCustomer,
+    @CurrentUserDecorator() user: CurrentUser,
     @Res() res: Response,
   ) {
     return await this.responseHandler.handle({
@@ -94,6 +97,19 @@ export class ProfileController {
       method: () => this.reportBugUseCase.execute(dto, req),
       res,
       successStatus: 201,
+    });
+  }
+
+  @Patch('preferred-content')
+  @ApiOperation({ summary: 'Edit preferred content' })
+  async editPreferredContent(
+    @Req() req: AppRequest,
+    @Body() dto: EditPreferredContentDto,
+    @Res() res: Response,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.editPreferredContentUseCase.execute(dto, req),
+      res,
     });
   }
 }
