@@ -104,6 +104,7 @@ model Business {
   ProfessionalStatement    ProfessionalStatement[]
   BusinessCustomer         BusinessCustomer[]
   BusinessRating           BusinessRating[]
+  Favorites                Favorite[]
 
   @@index([slug], name: "idx_business_slug")
   @@index([name], name: "idx_business_name")
@@ -282,8 +283,23 @@ model Person {
   businessLinks     BusinessCustomer[]
   Appointment       Appointment[]
   InAppNotification InAppNotification[]
+  favorites         Favorite[]
 
   @@index([email], name: "idx_person_email")
+}
+
+model Favorite {
+  id         String   @id @default(cuid())
+  personId   String
+  businessId String
+  created_at DateTime @default(now())
+
+  person   Person   @relation(fields: [personId], references: [id])
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@unique([personId, businessId], name: "uq_favorite_person_business")
+  @@index([personId], name: "idx_favorite_person")
+  @@index([businessId], name: "idx_favorite_business")
 }
 
 model BusinessCustomer {

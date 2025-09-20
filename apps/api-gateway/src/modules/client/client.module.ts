@@ -5,6 +5,7 @@ import { BusinessModule } from './business/business.module';
 import { CustomerAppointmentsModule } from './customer-appointments/customer-appointments.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { ProfileModule } from './profile/profile.module';
+import { FavoritesModule } from './favorites/favorites.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ProfileModule } from './profile/profile.module';
     ProfileModule,
     BusinessRatingModule,
     OnboardingModule,
+    FavoritesModule,
   ],
 })
 export class ClientModule {}
