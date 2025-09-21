@@ -1,5 +1,7 @@
 export * from './edit-preferred-content.use-case';
 export * from './edit-profile.use-case';
+export * from './get-general-links.use-case';
+export * from './get-general-link-by-key.use-case';
 export * from './get-profile-details.use-case';
 export * from './report-bug.use-case';
 export * from './upload-profile-picture.use-case';

@@ -608,6 +608,33 @@ model Logs {
   @@index([device_token], name: "idx_logs_device_token")
 }
 
+model SystemGeneralSettings {
+  id                           Int     @id @default(1) // Singleton
+  contact_email                String? // Email de contato geral
+  contact_phone                String? // Telefone de contato geral
+  terms_of_service_url         String? // URL dos termos de serviço
+  privacy_policy_url           String? // URL da política de privacidade
+  help_center_url              String? // URL do centro de ajuda ou FAQ
+  facebook_url                 String? // URL do Facebook
+  instagram_url                String? // URL do Instagram
+  twitter_url                  String? // URL do Twitter
+  linkedin_url                 String? // URL do LinkedIn
+  whatsapp_number              String? // Número do WhatsApp para contato
+  marquei_app_store_url        String? // URL da App Store (iOS)
+  marquei_play_store_url       String? // URL do Google Play (Android)
+  marquei_pro_app_store_url    String? // URL da App Store (iOS)
+  marquei_pro_play_store_url   String? // URL do Google Play (Android)
+  default_business_image       String? // Imagem padrão para negócios sem logo/capa
+  default_business_cover_image String? // Imagem padrão para negócios sem logo/capa
+  default_user_image           String? // Imagem padrão para usuários sem avatar
+  default_professional_image   String? // Imagem padrão para profissionais sem avatar
+  maintenance_mode             Boolean @default(false) // Modo de manutenção ativo?
+  maintenance_message          String? // Mensagem exibida durante o modo de manutenção
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
 enum EmailValidationStatus {
   PENDING
   SENT

@@ -3,6 +3,8 @@ import { ProfileController } from './profile.controller';
 import {
   EditPreferredContentUseCase,
   EditProfileUseCase,
+  GetGeneralLinksUseCase,
+  GetGeneralLinkByKeyUseCase,
   GetProfileDetailsUseCase,
   ReportBugUseCase,
   UploadProfilePictureUseCase,
@@ -16,6 +18,8 @@ import {
     EditProfileUseCase,
     ReportBugUseCase,
     EditPreferredContentUseCase,
+    GetGeneralLinksUseCase,
+    GetGeneralLinkByKeyUseCase,
   ],
 })
 export class ProfileModule {}
