@@ -1,5 +1,6 @@
 import { PrismaService } from '@app/shared';
 import { CurrentUser } from '@app/shared/types/app-request';
+import { formatPhoneNumber } from '@app/shared/utils';
 import { Injectable } from '@nestjs/common';
 import { FindCustomersDto } from '../dto/requests/find-customers.dto';
 
@@ -70,7 +71,7 @@ export class FindCustomersUseCase {
       id: bc.id, // id do vínculo no negócio
       name: bc.person.name,
       email: bc.person.email,
-      phone: bc.person.phone,
+      phone: formatPhoneNumber(bc.person.phone),
       verified: bc.verified,
       notes: bc.notes ?? undefined,
     }));

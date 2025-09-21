@@ -1,4 +1,6 @@
+import { removeSpecialCharacters } from '@app/shared/utils';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateCustomerDto {
@@ -12,6 +14,7 @@ export class CreateCustomerDto {
 
   @IsString()
   @IsNotEmpty()
+  @Transform(({ value }) => removeSpecialCharacters(value))
   @ApiProperty({
     description: 'The phone number of the customer',
     example: '+1234567890',

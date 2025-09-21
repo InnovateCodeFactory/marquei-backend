@@ -74,16 +74,34 @@ export function generateRandomString(length: number): string {
 }
 
 export function formatPhoneNumber(value: string) {
-  const cleanedValue = value?.replace(/\D/g, '');
+  if (!value) return '';
 
-  if (cleanedValue?.length > 10)
-    return cleanedValue
-      ?.replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{5})(\d{4})/, '$1-$2');
+  // remove tudo que não é número
+  let cleaned = value.replace(/\D/g, '');
 
-  return cleanedValue
-    ?.replace(/(\d{2})(\d)/, '($1) $2')
-    .replace(/(\d{4})(\d{4})/, '$1-$2');
+  // remove prefixo 55 se tiver sobrado
+  if (cleaned.startsWith('55') && cleaned.length > 11) {
+    cleaned = cleaned.slice(2);
+  }
+
+  // celular (11 dígitos: DDD + 9 + número)
+  if (cleaned.length === 11) {
+    const ddd = cleaned.slice(0, 2);
+    const p1 = cleaned.slice(2, 7);
+    const p2 = cleaned.slice(7);
+    return `+55 (${ddd}) ${p1}-${p2}`;
+  }
+
+  // fixo (10 dígitos: DDD + número)
+  if (cleaned.length === 10) {
+    const ddd = cleaned.slice(0, 2);
+    const p1 = cleaned.slice(2, 6);
+    const p2 = cleaned.slice(6);
+    return `+55 (${ddd}) ${p1}-${p2}`;
+  }
+
+  // fallback — se não for 10 ou 11 dígitos
+  return `+55 ${cleaned}`;
 }
 
 export function formatAppointmentStatus(status: string): string {

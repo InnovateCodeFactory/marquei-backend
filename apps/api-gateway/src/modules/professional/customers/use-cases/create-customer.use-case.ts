@@ -7,11 +7,18 @@ import {
 } from '@nestjs/common';
 import { CreateCustomerDto } from '../dto/requests/create-customer.dto';
 
-function toE164(phone?: string | null) {
+export function toE164(phone?: string | null) {
   if (!phone) return null;
-  // implemente sua normalização real
-  const digits = phone.replace(/\D/g, '');
-  return digits ? `+55${digits}`.replace(/^(\+55)?0+/, '+55') : null;
+  // caso 1: já vem com +55
+  if (phone.startsWith('+55')) {
+    return `+55${phone.slice(2)}`; // garante que não tenha +550...
+  }
+  // caso 2: começa com 55 mas sem +
+  if (phone.startsWith('55')) {
+    return `+${phone}`;
+  }
+  // caso 3: número local → assume Brasil
+  return `+55${phone}`;
 }
 
 function normalizeInput(dto: CreateCustomerDto) {
