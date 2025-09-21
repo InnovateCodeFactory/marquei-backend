@@ -4,9 +4,13 @@ import { AppRequest, CurrentUser } from '@app/shared/types/app-request';
 import { Body, Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { CancelCustomerAppointmentDto } from './dto/requests/cancel-appointment.dto';
+import { ConfirmAppointmentDto } from './dto/requests/confirm-appointment.dto';
 import { CreateCustomerAppointmentDto } from './dto/requests/create-customer-appointment.dto';
 import { GetCustomerAppointmentsDto } from './dto/requests/get-customer-appointments.dto';
 import {
+  CancelCustomerAppointmentUseCase,
+  ConfirmCustomerAppointmentUseCase,
   CreateAppointmentUseCase,
   GetCustomerAppointmentsUseCase,
   GetNextAppointmentUseCase,
@@ -20,6 +24,8 @@ export class CustomerAppointmentsController {
     private readonly createAppointmentUseCase: CreateAppointmentUseCase,
     private readonly getNextAppointmentUseCase: GetNextAppointmentUseCase,
     private readonly getCustomerAppointmentsUseCase: GetCustomerAppointmentsUseCase,
+    private readonly confirmCustomerAppointmentUseCase: ConfirmCustomerAppointmentUseCase,
+    private readonly cancelCustomerAppointmentUseCase: CancelCustomerAppointmentUseCase,
   ) {}
 
   @Post('create-appointment')
@@ -42,6 +48,34 @@ export class CustomerAppointmentsController {
     return await this.responseHandler.handle({
       method: () => this.getNextAppointmentUseCase.execute(req),
       res,
+    });
+  }
+
+  @Post('confirm-appointment')
+  @ApiOperation({ summary: 'Confirm a pending appointment (customer)' })
+  async confirmAppointment(
+    @Res() res: Response,
+    @Body() body: ConfirmAppointmentDto,
+    @Req() req: AppRequest,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.confirmCustomerAppointmentUseCase.execute(body, req),
+      res,
+      successStatus: 201,
+    });
+  }
+
+  @Post('cancel-appointment')
+  @ApiOperation({ summary: 'Cancel an appointment (customer)' })
+  async cancelAppointment(
+    @Res() res: Response,
+    @Body() body: CancelCustomerAppointmentDto,
+    @Req() req: AppRequest,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.cancelCustomerAppointmentUseCase.execute(body, req),
+      res,
+      successStatus: 201,
     });
   }
 

@@ -8,6 +8,7 @@ import {
   Get,
   Patch,
   Post,
+  Query,
   Req,
   Res,
   UploadedFile,
@@ -18,10 +19,13 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { EditPreferredContentDto } from './dto/requests/edit-preffered-content.dto';
 import { EditProfileDto } from './dto/requests/edit-profile.dto';
+import { GetGeneralLinkDto } from './dto/requests/get-general-link.dto';
 import { ReportBugDto } from './dto/requests/report-bug.dto';
 import {
   EditPreferredContentUseCase,
   EditProfileUseCase,
+  GetGeneralLinkByKeyUseCase,
+  GetGeneralLinksUseCase,
   GetProfileDetailsUseCase,
   ReportBugUseCase,
   UploadProfilePictureUseCase,
@@ -37,6 +41,8 @@ export class ProfileController {
     private readonly editProfileUseCase: EditProfileUseCase,
     private readonly reportBugUseCase: ReportBugUseCase,
     private readonly editPreferredContentUseCase: EditPreferredContentUseCase,
+    private readonly getGeneralLinksUseCase: GetGeneralLinksUseCase,
+    private readonly getGeneralLinkByKeyUseCase: GetGeneralLinkByKeyUseCase,
   ) {}
 
   @Post('profile-image')
@@ -109,6 +115,27 @@ export class ProfileController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.editPreferredContentUseCase.execute(dto, req),
+      res,
+    });
+  }
+
+  @Get('general-links')
+  @ApiOperation({ summary: 'Get system general links' })
+  async getGeneralLinks(@Res() res: Response) {
+    return await this.responseHandler.handle({
+      method: () => this.getGeneralLinksUseCase.execute(),
+      res,
+    });
+  }
+
+  @Get('general-link')
+  @ApiOperation({ summary: 'Get a specific system link by key' })
+  async getGeneralLink(
+    @Res() res: Response,
+    @Query() query: GetGeneralLinkDto,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.getGeneralLinkByKeyUseCase.execute(query),
       res,
     });
   }
