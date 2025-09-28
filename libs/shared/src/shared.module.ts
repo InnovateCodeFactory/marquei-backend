@@ -58,6 +58,7 @@ import {
     FileSystemService,
     TokenService,
     EncryptionService,
+    ScheduleModule,
   ],
 })
 export class LibsSharedModule {}

@@ -1,9 +1,10 @@
 import { PrismaService } from '@app/shared';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { formatDate, getTwoNames } from '@app/shared/utils';
+import { getTwoNames } from '@app/shared/utils';
 import { Price } from '@app/shared/value-objects';
+import { tz } from '@date-fns/tz';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { addHours, addMinutes } from 'date-fns';
+import { addMinutes, format } from 'date-fns';
 import { GetCustomerDetailsDto } from '../dto/requests/get-customer-details.dto';
 
 @Injectable()
@@ -11,7 +12,7 @@ export class GetCustomerAppointmentsUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute({ id }: GetCustomerDetailsDto, user: CurrentUser) {
-    // id aqui é o BusinessCustomer.id (vínculo no negócio)
+    // id = BusinessCustomer.id (vínculo no negócio)
     const bc = await this.prisma.businessCustomer.findUnique({
       where: { id },
       select: { personId: true },
@@ -20,21 +21,22 @@ export class GetCustomerAppointmentsUseCase {
 
     const appointments = await this.prisma.appointment.findMany({
       where: {
-        personId: bc.personId, // 👈 cliente do agendamento
-        professional: {
-          business_id: user.current_selected_business_id, // 👈 só do negócio selecionado
-        },
+        personId: bc.personId, // cliente do agendamento
+        professional: { business_id: user.current_selected_business_id }, // só do negócio atual
       },
-      orderBy: { created_at: 'desc' },
+      orderBy: { start_at_utc: 'desc' },
       select: {
         id: true,
         status: true,
-        scheduled_at: true,
+        start_at_utc: true,
+        end_at_utc: true,
+        timezone: true,
+        duration_minutes: true,
         service: {
           select: {
             name: true,
             price_in_cents: true,
-            duration: true,
+            duration: true, // fallback
           },
         },
         professional: {
@@ -45,35 +47,41 @@ export class GetCustomerAppointmentsUseCase {
       },
     });
 
-    const arr = appointments.map((appointment) => {
-      // ajuste de fuso se necessário
-      const scheduledAtTz = addHours(appointment.scheduled_at, 3);
-      const hourStart = formatDate(scheduledAtTz, 'HH:mm');
-      const scheduledEnd = addMinutes(
-        scheduledAtTz,
-        appointment.service.duration,
-      );
-      const hourEnd = formatDate(scheduledEnd, 'HH:mm');
+    const data = appointments.map((appt) => {
+      const zoneId = appt.timezone || 'America/Sao_Paulo';
+      const IN_TZ = tz(zoneId);
+
+      // duração “fotografada” no appointment (fallback para service.duration)
+      const durationMin = appt.duration_minutes ?? appt.service.duration;
+
+      // start/end em UTC -> formatados no fuso local do agendamento
+      const hourStart = format(appt.start_at_utc, 'HH:mm', { in: IN_TZ });
+
+      // se tiver end_at_utc usa direto; senão calcula a partir do start + duration
+      const endInstant =
+        appt.end_at_utc ??
+        (addMinutes(appt.start_at_utc, durationMin, { in: IN_TZ }) as Date);
+      const hourEnd = format(endInstant, 'HH:mm', { in: IN_TZ });
 
       return {
-        id: appointment.id,
-        status: appointment.status,
+        id: appt.id,
+        status: appt.status,
         date: {
-          day: formatDate(appointment.scheduled_at, 'dd'),
-          month: formatDate(appointment.scheduled_at, 'MMM'),
+          day: format(appt.start_at_utc, 'dd', { in: IN_TZ }),
+          month: format(appt.start_at_utc, 'MMM', { in: IN_TZ }),
           hour: hourStart,
           hour_end: hourEnd,
         },
         service: {
-          name: appointment.service.name,
-          price: new Price(appointment.service.price_in_cents).toCurrency(),
+          name: appt.service.name,
+          price: new Price(appt.service.price_in_cents).toCurrency(),
         },
         professional: {
-          name: getTwoNames(appointment.professional.User.name),
+          name: getTwoNames(appt.professional.User.name),
         },
       };
     });
 
-    return arr;
+    return data;
   }
 }

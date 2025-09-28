@@ -9,6 +9,7 @@ import {
   getTwoNames,
 } from '@app/shared/utils';
 import { Price } from '@app/shared/value-objects';
+import { tz } from '@date-fns/tz';
 import {
   BadRequestException,
   ForbiddenException,
@@ -33,25 +34,25 @@ export class CancelAppointmentUseCase {
       select: {
         id: true,
         status: true,
+        // UTC + contexto do agendamento
+        start_at_utc: true,
+        timezone: true,
+        duration_minutes: true,
+
         professional: {
           select: {
             userId: true,
-            User: {
-              select: {
-                name: true,
-              },
-            },
+            User: { select: { name: true } },
             business_id: true,
           },
         },
         service: {
           select: {
             name: true,
-            duration: true,
+            duration: true, // fallback se não houver duration_minutes
             price_in_cents: true,
           },
         },
-        scheduled_at: true,
         customerPerson: {
           select: {
             name: true,
@@ -78,7 +79,8 @@ export class CancelAppointmentUseCase {
       throw new BadRequestException('Agendamento já está cancelado');
     }
 
-    await Promise.all([
+    // Transação: grava evento e atualiza status
+    await this.prisma.$transaction([
       this.prisma.appointmentEvent.create({
         data: {
           appointmentId: appointment.id,
@@ -90,28 +92,39 @@ export class CancelAppointmentUseCase {
           user_agent: headers['user-agent'],
         },
       }),
-      appointment.customerPerson?.email &&
-        this.rmqService.publishToQueue({
-          payload: new SendCancelAppointmentMailDto({
-            serviceName: appointment?.service?.name,
-            apptDate: format(appointment?.scheduled_at, 'dd/MM/yyyy'),
-            apptTime: format(appointment?.scheduled_at, 'HH:mm'),
-            toName: getTwoNames(appointment?.customerPerson?.name),
-            duration: formatDurationToHoursAndMinutes(
-              appointment?.service?.duration,
-            ),
-            price: new Price(
-              appointment?.service?.price_in_cents,
-            )?.toCurrency(),
-            byName: getTwoNames(appointment.professional?.User?.name),
-            byTypeLabel: 'profissional',
-            to: appointment.customerPerson?.email,
-          }),
-          routingKey:
-            MESSAGING_QUEUES.MAIL_NOTIFICATIONS
-              .SEND_CANCEL_APPOINTMENT_MAIL_QUEUE,
-        }),
+      this.prisma.appointment.update({
+        where: { id: appointment.id },
+        data: { status: 'CANCELED' },
+      }),
     ]);
+
+    // Notificação por email (se houver)
+    if (appointment.customerPerson?.email) {
+      const zoneId = appointment.timezone || 'America/Sao_Paulo';
+      const IN_TZ = tz(zoneId);
+
+      const durationMin =
+        appointment.duration_minutes ?? appointment.service.duration;
+
+      await this.rmqService.publishToQueue({
+        payload: new SendCancelAppointmentMailDto({
+          serviceName: appointment.service.name,
+          apptDate: format(appointment.start_at_utc, 'dd/MM/yyyy', {
+            in: IN_TZ,
+          }),
+          apptTime: format(appointment.start_at_utc, 'HH:mm', { in: IN_TZ }),
+          toName: getTwoNames(appointment.customerPerson.name),
+          duration: formatDurationToHoursAndMinutes(durationMin),
+          price: new Price(appointment.service.price_in_cents).toCurrency(),
+          byName: getTwoNames(appointment.professional.User.name),
+          byTypeLabel: 'profissional',
+          to: appointment.customerPerson.email,
+        }),
+        routingKey:
+          MESSAGING_QUEUES.MAIL_NOTIFICATIONS
+            .SEND_CANCEL_APPOINTMENT_MAIL_QUEUE,
+      });
+    }
 
     return;
   }

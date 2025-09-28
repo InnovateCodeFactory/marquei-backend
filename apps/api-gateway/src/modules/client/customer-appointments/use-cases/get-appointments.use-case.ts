@@ -3,6 +3,7 @@ import { AppointmentStatusEnum } from '@app/shared/enum';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { formatDuration, getTwoNames } from '@app/shared/utils';
 import { Price } from '@app/shared/value-objects';
+import { tz } from '@date-fns/tz';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { format } from 'date-fns';
@@ -13,10 +14,15 @@ type Row = {
   id: string;
   notes: string | null;
   status: AppointmentStatusEnum;
-  scheduled_at: Date;
+
+  start_at_utc: Date;
+  end_at_utc: Date | null; // se você sempre preencher, pode ser Date
+  duration_minutes: number | null; // fallback para s.duration se null
+  timezone: string | null; // fallback "America/Sao_Paulo"
+
   professional_name: string;
   service_name: string;
-  duration: number;
+  service_duration: number; // s.duration (fallback)
   price_in_cents: number;
   business_name: string;
 };
@@ -32,11 +38,10 @@ export class GetCustomerAppointmentsUseCase {
     const limitNumber = parseInt(String(limit), 10) || 10;
     const skip = (pageNumber - 1) * limitNumber;
 
-    // Filtros dinâmicos (com Prisma.sql para manter parametrização)
+    // Filtros dinâmicos
     const statusFilter =
       status && status !== AppointmentStatusEnum.ALL
-        ? // $1::"AppointmentStatus" é válido no Postgres
-          Prisma.sql`AND a."status" = ${status}::"AppointmentStatus"`
+        ? Prisma.sql`AND a."status" = ${status}::"AppointmentStatus"`
         : Prisma.sql``;
 
     const searchTrimmed = search?.trim() ?? '';
@@ -48,16 +53,19 @@ export class GetCustomerAppointmentsUseCase {
           )`
         : Prisma.sql``;
 
-    // Query de dados
+    // Query principal
     const appointments = await this.prismaService.$queryRaw<Row[]>(Prisma.sql`
       SELECT
         a.id,
         a.notes,
         a.status,
-        a.scheduled_at,
+        a.start_at_utc,
+        a.end_at_utc,
+        a.duration_minutes,
+        a.timezone,
         u.name AS professional_name,
         s.name AS service_name,
-        s.duration,
+        s.duration AS service_duration,
         s.price_in_cents,
         b.name AS business_name
       FROM "Appointment" a
@@ -68,48 +76,56 @@ export class GetCustomerAppointmentsUseCase {
       WHERE a."personId" = ${user.personId}
       ${statusFilter}
       ${searchFilter}
-      ORDER BY a.scheduled_at DESC
+      ORDER BY a.start_at_utc DESC
       LIMIT ${limitNumber} OFFSET ${skip}
     `);
 
-    // Count consistente com os mesmos filtros (unaccent + status)
-    const countRows = await this.prismaService.$queryRaw<
-      { count: bigint }[]
-    >(Prisma.sql`
-      SELECT COUNT(*)::bigint AS count
-      FROM "Appointment" a
-      JOIN "Service" s ON a."service_id" = s.id
-      JOIN "ProfessionalProfile" p ON a."professionalProfileId" = p.id
-      JOIN "User" u ON p."userId" = u.id
-      JOIN "Business" b ON s."businessId" = b.id
-      WHERE a."personId" = ${user.personId}
-      ${statusFilter}
-      ${searchFilter}
-    `);
+    // Count com mesmos filtros
+    const countRows = await this.prismaService.$queryRaw<{ count: bigint }[]>(
+      Prisma.sql`
+        SELECT COUNT(*)::bigint AS count
+        FROM "Appointment" a
+        JOIN "Service" s ON a."service_id" = s.id
+        JOIN "ProfessionalProfile" p ON a."professionalProfileId" = p.id
+        JOIN "User" u ON p."userId" = u.id
+        JOIN "Business" b ON s."businessId" = b.id
+        WHERE a."personId" = ${user.personId}
+        ${statusFilter}
+        ${searchFilter}
+      `,
+    );
 
     const totalCount = Number(countRows[0]?.count ?? 0);
 
-    const items = appointments.map((a) => ({
-      id: a.id,
-      professional: {
-        // veio como professional_name do SELECT (u.name)
-        name: getTwoNames(a.professional_name),
-      },
-      service: {
-        name: a.service_name,
-        duration: formatDuration(a.duration),
-        price: new Price(a.price_in_cents).toCurrency(),
-      },
-      date: {
-        day: format(a.scheduled_at, 'dd', { locale: ptBR }),
-        month: format(a.scheduled_at, 'MMM', { locale: ptBR }),
-        hour: format(a.scheduled_at, 'HH:mm', { locale: ptBR }),
-      },
-      status: a.status,
-      // se quiser expor depois:
-      // notes: a.notes,
-      // businessName: a.business_name,
-    }));
+    const items = appointments.map((a) => {
+      const zoneId = a.timezone || 'America/Sao_Paulo';
+      const IN_TZ = tz(zoneId);
+
+      // duração “fotografada” no appointment (fallback para service.duration)
+      const durationMin = a.duration_minutes ?? a.service_duration;
+
+      return {
+        id: a.id,
+        professional: {
+          name: getTwoNames(a.professional_name),
+        },
+        service: {
+          name: a.service_name,
+          duration: formatDuration(durationMin),
+          price: new Price(a.price_in_cents).toCurrency(),
+        },
+        date: {
+          day: format(a.start_at_utc, 'dd', { locale: ptBR, in: IN_TZ }),
+          month: format(a.start_at_utc, 'MMM', { locale: ptBR, in: IN_TZ }),
+          hour: format(a.start_at_utc, 'HH:mm', { locale: ptBR, in: IN_TZ }),
+        },
+        status: a.status,
+        // se quiser expor depois:
+        // notes: a.notes,
+        // businessName: a.business_name,
+        // end_local: format(a.end_at_utc ?? addMinutes(a.start_at_utc, durationMin) as Date, 'HH:mm', { in: IN_TZ }),
+      };
+    });
 
     return {
       items,

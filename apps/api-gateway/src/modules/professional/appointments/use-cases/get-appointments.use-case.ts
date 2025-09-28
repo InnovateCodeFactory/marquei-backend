@@ -2,14 +2,14 @@ import { PrismaService } from '@app/shared';
 import { CurrentUser } from '@app/shared/types/app-request';
 import {
   formatAppointmentStatus,
-  formatDate,
   formatDuration,
   formatPhoneNumber,
   getTwoNames,
 } from '@app/shared/utils';
 import { Price } from '@app/shared/value-objects';
+import { tz } from '@date-fns/tz';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { addHours, addMinutes } from 'date-fns';
+import { addMinutes, format } from 'date-fns';
 
 @Injectable()
 export class GetAppointmentsUseCase {
@@ -36,7 +36,7 @@ export class GetAppointmentsUseCase {
       );
     }
 
-    // 2) Busca agendamentos
+    // 2) Busca agendamentos (novo esquema UTC)
     const appointments = await this.prisma.appointment.findMany({
       where: {
         professionalProfileId: prof.id,
@@ -45,9 +45,15 @@ export class GetAppointmentsUseCase {
       select: {
         id: true,
         notes: true,
-        scheduled_at: true,
         status: true,
-        customerPerson: { select: { id: true, name: true, phone: true } }, // 👈 Person do cliente
+
+        // UTC + contexto
+        start_at_utc: true,
+        end_at_utc: true,
+        timezone: true,
+        duration_minutes: true,
+
+        customerPerson: { select: { id: true, name: true, phone: true } },
         professional: {
           select: { User: { select: { name: true, id: true } } },
         },
@@ -55,15 +61,15 @@ export class GetAppointmentsUseCase {
           select: {
             id: true,
             name: true,
-            duration: true,
+            duration: true, // fallback se não houver duration_minutes
             price_in_cents: true,
           },
         },
       },
-      orderBy: { scheduled_at: 'asc' },
+      orderBy: { start_at_utc: 'asc' },
     });
 
-    // 3) Mapear personId -> BusinessCustomer.id (no negócio atual) para manter navegação p/ detalhes
+    // 3) Mapear personId -> BusinessCustomer.id (no negócio atual)
     const personIds = Array.from(
       new Set(appointments.map((a) => a.customerPerson.id)),
     );
@@ -72,52 +78,62 @@ export class GetAppointmentsUseCase {
         personId: { in: personIds },
         businessId: currentUser.current_selected_business_id,
       },
-      select: { id: true, personId: true, phone: true }, // phone “sombra” do vínculo, se quiser priorizar
+      select: { id: true, personId: true, phone: true },
     });
     const bcByPersonId = new Map(bcs.map((b) => [b.personId, b]));
 
-    // 4) Formata saída (prioriza telefone do vínculo; se não houver, usa phone global da Person)
+    // 4) Formatação com timezone do agendamento
     const formatted = appointments.map((a) => {
-      const scheduledAtWithTimezone = addHours(a.scheduled_at, 3);
-      const hourStart = formatDate(scheduledAtWithTimezone, 'HH:mm');
-      const scheduledEnd = addMinutes(
-        scheduledAtWithTimezone,
-        a.service.duration,
-      );
-      const hourEnd = formatDate(scheduledEnd, 'HH:mm');
+      const zoneId = a.timezone || 'America/Sao_Paulo';
+      const IN_TZ = tz(zoneId);
+
+      const durationMin = a.duration_minutes ?? a.service.duration;
+
+      const startUtc = a.start_at_utc;
+      const endUtc =
+        a.end_at_utc ?? (addMinutes(startUtc, durationMin) as Date);
+
+      const hourStart = format(startUtc, 'HH:mm', { in: IN_TZ });
+      const hourEnd = format(endUtc, 'HH:mm', { in: IN_TZ });
 
       const bc = bcByPersonId.get(a.customerPerson.id);
       const phoneRaw = bc?.phone ?? a.customerPerson.phone;
 
       return {
         id: a.id,
+
         customer: {
-          id: bc?.id ?? null, // 👈 BusinessCustomer.id (para telas de detalhe do cliente no negócio)
+          id: bc?.id ?? null, // BusinessCustomer.id para telas de detalhe
           name: a.customerPerson.name,
           phone: phoneRaw ? formatPhoneNumber(phoneRaw) : null,
         },
+
         notes: a.notes,
+
         professional: {
           id: a.professional.User.id,
           name: getTwoNames(a.professional.User.name),
         },
-        start_date: addHours(a.scheduled_at, 3),
-        end_date: addHours(
-          new Date(a.scheduled_at.getTime() + a.service.duration * 60 * 1000),
-          3,
-        ),
+
+        // Instantes corretos em UTC (o front pode formatar no fuso se precisar)
+        start_date: startUtc,
+        end_date: endUtc,
+
+        // Labels já prontos no fuso do agendamento
         date: {
-          day: formatDate(a.scheduled_at, 'dd'),
-          month: formatDate(a.scheduled_at, 'MMM'),
+          day: format(startUtc, 'dd', { in: IN_TZ }),
+          month: format(startUtc, 'MMM', { in: IN_TZ }),
           hour: hourStart,
           hour_end: hourEnd,
         },
+
         service: {
           id: a.service.id,
           name: a.service.name,
-          duration: formatDuration(Number(a.service.duration), 'short'),
+          duration: formatDuration(Number(durationMin), 'short'),
           price_in_formatted: new Price(a.service.price_in_cents).toCurrency(),
         },
+
         status: formatAppointmentStatus(a.status),
       };
     });

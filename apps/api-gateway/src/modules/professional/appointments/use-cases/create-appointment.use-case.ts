@@ -1,12 +1,16 @@
 import { PrismaService } from '@app/shared';
 import { AppRequest } from '@app/shared/types/app-request';
 import { getClientIp } from '@app/shared/utils';
+import { TZDate } from '@date-fns/tz';
 import {
   BadRequestException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { addMinutes } from 'date-fns';
 import { CreateAppointmentDto } from '../dto/requests/create-appointment.dto';
+
+const BUSINESS_TZ_ID = 'America/Sao_Paulo';
 
 @Injectable()
 export class CreateAppointmentUseCase {
@@ -20,24 +24,22 @@ export class CreateAppointmentUseCase {
     }
 
     const {
-      appointment_date,
-      customer_id,
+      appointment_date, // string ou Date representando horário LOCAL do negócio
+      customer_id, // BusinessCustomer.id
       professional_id,
       service_id,
       notes,
     } = payload;
 
-    // Validate all entities in parallel
+    // 1) Validar pertencimento ao negócio (em paralelo)
     const [service, professional, bc] = await Promise.all([
-      // 1) Service do negócio?
       this.prisma.service.findFirst({
         where: {
           id: service_id,
           businessId: user.current_selected_business_id,
         },
-        select: { id: true },
+        select: { id: true, duration: true },
       }),
-      // 2) Professional do negócio?
       this.prisma.professionalProfile.findFirst({
         where: {
           id: professional_id,
@@ -45,7 +47,6 @@ export class CreateAppointmentUseCase {
         },
         select: { id: true },
       }),
-      // 3) BusinessCustomer do negócio? (customer_id = BusinessCustomer.id)
       this.prisma.businessCustomer.findFirst({
         where: {
           id: customer_id,
@@ -71,28 +72,47 @@ export class CreateAppointmentUseCase {
       );
     }
 
-    // 4) Horário já tomado para o mesmo profissional?
-    const isTheDateTaken = await this.prisma.appointment.findFirst({
+    if (!service.duration || service.duration <= 0) {
+      throw new BadRequestException('Duração do serviço inválida.');
+    }
+
+    // 2) Interpretar a entrada como horário LOCAL (America/Sao_Paulo)
+    const startLocal = this.toTZDateLocal(appointment_date);
+    const endLocal = addMinutes(startLocal, service.duration) as TZDate;
+
+    // Para persistir/consultar em UTC, use como Date normal (mesmo instante):
+    const startUtc: Date = new Date(startLocal);
+    const endUtc: Date = new Date(endLocal);
+
+    // 3) Checar conflito por SOBREPOSIÇÃO no mesmo profissional
+    // overlap se: (db.start < new.end) AND (db.end > new.start)
+    const overlapping = await this.prisma.appointment.findFirst({
       where: {
-        scheduled_at: new Date(appointment_date),
         professionalProfileId: professional_id,
+        start_at_utc: { lt: endUtc },
+        end_at_utc: { gt: startUtc },
       },
       select: { id: true },
     });
-    if (isTheDateTaken) {
+
+    if (overlapping) {
       throw new BadRequestException(
-        'Já existe um agendamento para essa data e horário com esse profissional.',
+        'Já existe um agendamento que conflita com esse horário para este profissional.',
       );
     }
 
-    // 5) Cria agendamento vinculando a Person do cliente
+    // 4) Criar o agendamento no novo formato
     await this.prisma.appointment.create({
       data: {
         status: 'PENDING',
-        scheduled_at: new Date(appointment_date),
+        start_at_utc: startUtc,
+        end_at_utc: endUtc,
+        duration_minutes: service.duration,
+        timezone: BUSINESS_TZ_ID,
+        start_offset_minutes: startLocal.getTimezoneOffset(),
         professional: { connect: { id: professional_id } },
         service: { connect: { id: service_id } },
-        customerPerson: { connect: { id: bc.personId } }, // 👈 vínculo do cliente
+        customerPerson: { connect: { id: bc.personId } },
         notes: notes || null,
         events: {
           create: {
@@ -106,8 +126,33 @@ export class CreateAppointmentUseCase {
       },
     });
 
-    // TODO - enviar email e push notification (se tiver o app) para o cliente
-
+    // TODO: disparar e-mail/push para o cliente (se aplicável)
     return null;
+  }
+
+  /**
+   * Converte entrada (Date ou string) para TZDate no fuso do negócio (America/Sao_Paulo),
+   * interpretando a string como horário LOCAL (sem Z).
+   */
+  private toTZDateLocal(input: Date | string): TZDate {
+    if (input instanceof Date) {
+      return new TZDate(input, BUSINESS_TZ_ID);
+    }
+    // suporta "yyyy-MM-ddTHH:mm" ou "yyyy-MM-dd HH:mm" (sem Z)
+    const iso = input.replace(' ', 'T');
+    const m = /^(\d{4})-(\d{2})-(\d{2})[T ]?(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(
+      iso,
+    );
+    if (!m) {
+      const d = new Date(input);
+      if (isNaN(d.getTime())) {
+        throw new BadRequestException(
+          'Formato de data/hora inválido para appointment_date.',
+        );
+      }
+      return new TZDate(d, BUSINESS_TZ_ID);
+    }
+    const [, y, mo, d, hh, mm, ss] = m.map(Number) as unknown as number[];
+    return new TZDate(y, mo - 1, d, hh, mm, ss || 0, BUSINESS_TZ_ID);
   }
 }

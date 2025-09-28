@@ -10,14 +10,19 @@ import { AppRequest } from '@app/shared/types/app-request';
 import { getTwoNames } from '@app/shared/utils';
 import { NotificationMessageBuilder } from '@app/shared/utils/notification-message-builder';
 import { Price } from '@app/shared/value-objects';
+import { TZDate, tz } from '@date-fns/tz';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { format } from 'date-fns';
+import { addMinutes, format } from 'date-fns';
 import { CreateCustomerAppointmentDto } from '../dto/requests/create-customer-appointment.dto';
+
+const BUSINESS_TZ_ID = 'America/Sao_Paulo';
+const IN_TZ = tz(BUSINESS_TZ_ID);
 
 @Injectable()
 export class CreateAppointmentUseCase {
   private readonly logger = new Logger(CreateAppointmentUseCase.name);
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly rmqService: RmqService,
@@ -26,67 +31,66 @@ export class CreateAppointmentUseCase {
   async execute(payload: CreateCustomerAppointmentDto, request: AppRequest) {
     const { appointment_date, professional_id, service_id, notes } = payload;
 
-    const isTheDateTaken = await this.prismaService.appointment.findFirst({
+    // 1) Carrega duração do serviço (minutos)
+    const service = await this.prismaService.service.findUnique({
+      where: { id: service_id },
+      select: { duration: true, name: true, price_in_cents: true },
+    });
+    if (!service) {
+      throw new BadRequestException('Serviço inválido.');
+    }
+
+    // 2) Interpreta a data de entrada como HORÁRIO LOCAL do negócio (SP)
+    // Aceita Date ou string ISO (sem Z) vindo do app.
+    const startLocal = this.toTZDateLocal(appointment_date);
+    const endLocal = addMinutes(startLocal, service.duration) as TZDate;
+
+    // Para persistir/consultar em UTC, basta tratar TZDate como Date (mesmo instante):
+    const startUtc: Date = new Date(startLocal);
+    const endUtc: Date = new Date(endLocal);
+
+    // 3) Checagem de conflito por SOBREPOSIÇÃO no mesmo profissional:
+    // overlap se: (start_db < end_new) AND (end_db > start_new)
+    const overlapping = await this.prismaService.appointment.findFirst({
       where: {
-        scheduled_at: new Date(appointment_date),
         professionalProfileId: professional_id,
+        start_at_utc: { lt: endUtc },
+        end_at_utc: { gt: startUtc },
       },
-      select: {
-        id: true,
-      },
+      select: { id: true },
     });
 
-    if (isTheDateTaken) {
+    if (overlapping) {
       throw new BadRequestException(
-        'Já existe um agendamento para essa data e horário com esse profissional.',
+        'Já existe um agendamento que conflita com esse horário para este profissional.',
       );
     }
 
+    // 4) Cria o agendamento no novo formato (sempre UTC no banco)
     const appointment = await this.prismaService.appointment.create({
       data: {
-        scheduled_at: new Date(appointment_date),
-        professional: {
-          connect: {
-            id: professional_id,
-          },
-        },
+        start_at_utc: startUtc,
+        end_at_utc: endUtc,
+        duration_minutes: service.duration,
+        timezone: BUSINESS_TZ_ID,
+
+        professional: { connect: { id: professional_id } },
         status: 'PENDING',
-        service: {
-          connect: {
-            id: service_id,
-          },
-        },
+        service: { connect: { id: service_id } },
         notes: notes || null,
-        customerPerson: {
-          connect: {
-            id: request.user.personId,
-          },
-        },
+        customerPerson: { connect: { id: request.user.personId } },
+        start_offset_minutes: startLocal.getTimezoneOffset(),
       },
       select: {
-        customerPerson: {
-          select: {
-            name: true,
-          },
-        },
+        customerPerson: { select: { name: true } },
         professional: {
           select: {
-            User: {
-              select: {
-                push_token: true,
-                email: true,
-                name: true,
-              },
-            },
+            User: { select: { push_token: true, email: true, name: true } },
             business_id: true,
           },
         },
         service: {
-          select: {
-            name: true,
-            price_in_cents: true,
-            duration: true,
-          },
+          select: { name: true, price_in_cents: true, duration: true },
         },
       },
     });
@@ -95,17 +99,17 @@ export class CreateAppointmentUseCase {
       ? [appointment.professional.User.push_token]
       : [];
 
-    const { body, title } =
+    // 5) Mensagens (formatar no fuso local de SP)
+    const titleAndBody =
       NotificationMessageBuilder.buildAppointmentCreatedMessage({
         customer_name: getTwoNames(appointment.customerPerson.name),
-        dayAndMonth: format(payload.appointment_date, 'dd/MM'),
-        time: format(payload.appointment_date, 'HH:mm'),
+        dayAndMonth: format(startLocal, 'dd/MM', { in: IN_TZ }),
+        time: format(startLocal, 'HH:mm', { in: IN_TZ }),
         service_name: appointment.service.name,
       });
 
-    const durationHours = Math.floor(appointment.service.duration / 60);
-    const durationMinutes = appointment.service.duration % 60;
-
+    const durationHours = Math.floor(service.duration / 60);
+    const durationMinutes = service.duration % 60;
     const durationFormatted =
       durationHours > 0
         ? `${durationHours}h ${durationMinutes}min`
@@ -115,8 +119,8 @@ export class CreateAppointmentUseCase {
       this.rmqService.publishToQueue({
         payload: new SendPushNotificationDto({
           pushTokens,
-          body,
-          title,
+          body: titleAndBody.body,
+          title: titleAndBody.title,
         }),
         routingKey:
           MESSAGING_QUEUES.PUSH_NOTIFICATIONS.APPOINTMENT_CREATED_QUEUE,
@@ -132,10 +136,10 @@ export class CreateAppointmentUseCase {
         payload: new SendNewAppointmentProfessionalDto({
           toName: getTwoNames(appointment.professional.User.name),
           byName: getTwoNames(appointment.customerPerson.name),
-          serviceName: appointment.service.name,
-          apptDate: format(payload.appointment_date, 'dd/MM/yyyy'),
-          apptTime: format(payload.appointment_date, 'HH:mm'),
-          price: new Price(appointment.service.price_in_cents).toCurrency(),
+          serviceName: service.name,
+          apptDate: format(startLocal, 'dd/MM/yyyy', { in: IN_TZ }),
+          apptTime: format(startLocal, 'HH:mm', { in: IN_TZ }),
+          price: new Price(service.price_in_cents).toCurrency(),
           clientNotes: notes || '-',
           to: appointment?.professional.User.email,
           duration: durationFormatted,
@@ -145,11 +149,39 @@ export class CreateAppointmentUseCase {
       }),
     ]);
 
-    // TODO: Criar fila para verificar se o customer já é cliente da empresa, se não for, criar o vínculo
-
     return null;
   }
 
+  /**
+   * Converte a entrada (Date ou string) para TZDate no fuso do negócio (America/Sao_Paulo),
+   * interpretando a string como horário LOCAL (sem Z).
+   */
+  private toTZDateLocal(input: Date | string): TZDate {
+    if (input instanceof Date) {
+      // Se vier Date, usamos o mesmo instante, mas "visto" no fuso local:
+      return new TZDate(input, BUSINESS_TZ_ID);
+    }
+
+    // String: suportar "yyyy-MM-ddTHH:mm" ou "yyyy-MM-dd HH:mm"
+    const iso = input.replace(' ', 'T');
+    const m = /^(\d{4})-(\d{2})-(\d{2})[T ]?(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(
+      iso,
+    );
+    if (!m) {
+      // fallback: deixar o JS interpretar e então projetar no fuso
+      const d = new Date(input);
+      if (isNaN(d.getTime())) {
+        throw new BadRequestException(
+          'Formato de data/hora inválido para appointment_date.',
+        );
+      }
+      return new TZDate(d, BUSINESS_TZ_ID);
+    }
+    const [, y, mo, d, hh, mm, ss] = m.map(Number) as unknown as number[];
+    return new TZDate(y, mo - 1, d, hh, mm, ss || 0, BUSINESS_TZ_ID);
+  }
+
+  // Mantém seu handler como estava
   @RabbitSubscribe({
     exchange: RABBIT_EXCHANGE,
     queue: 'check-customer-appointment-created',
@@ -168,13 +200,8 @@ export class CreateAppointmentUseCase {
     try {
       const isCustomerAlreadyLinked =
         await this.prismaService.businessCustomer.findFirst({
-          where: {
-            businessId: business_id,
-            personId: person_id,
-          },
-          select: {
-            id: true,
-          },
+          where: { businessId: business_id, personId: person_id },
+          select: { id: true },
         });
 
       if (!isCustomerAlreadyLinked?.id) {
@@ -196,7 +223,7 @@ export class CreateAppointmentUseCase {
           `Customer with person ID ${person_id} linked to business ID ${business_id}`,
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Error processing check-customer-appointment-created message: ${error.message}`,
       );

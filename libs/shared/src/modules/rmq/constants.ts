@@ -48,3 +48,10 @@ export const MESSAGING_QUEUES = {
       'messaging.whatsapp_notifications.send_validation_token_queue',
   },
 };
+
+export const SCHEDULER_QUEUES = {
+  APPOINTMENTS: {
+    CLOSE_DUE_APPOINTMENTS_QUEUE:
+      'scheduler.appointments.close_due_appointments_queue',
+  },
+};

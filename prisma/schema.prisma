@@ -221,11 +221,19 @@ model ProfessionalStatement {
 }
 
 model Appointment {
-  id           String            @id @default(cuid())
-  service_id   String
-  scheduled_at DateTime
-  status       AppointmentStatus
-  notes        String?
+  id         String            @id @default(cuid())
+  service_id String
+  status     AppointmentStatus
+  notes      String?
+
+  // Sempre UTC
+  start_at_utc DateTime
+  end_at_utc   DateTime
+
+  // Contexto de fuso e fotografia da duração
+  timezone             String @default("America/Sao_Paulo")
+  start_offset_minutes Int // ex.: -180
+  duration_minutes     Int
 
   professional   ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
   service        Service             @relation(fields: [service_id], references: [id])
@@ -234,13 +242,14 @@ model Appointment {
   created_at            DateTime                @default(now())
   updated_at            DateTime                @updatedAt
   professionalProfileId String
-  ProfessionalStatement ProfessionalStatement[]
   personId              String
   events                AppointmentEvent[]
+  ProfessionalStatement ProfessionalStatement[]
 
   @@index([service_id], name: "idx_appointment_service")
-  @@index([professionalProfileId, scheduled_at], name: "idx_professional_date")
   @@index([personId], name: "idx_appointment_person")
+  @@index([professionalProfileId, start_at_utc], name: "idx_professional_start")
+  @@index([professionalProfileId, end_at_utc], name: "idx_professional_end")
 }
 
 model AppointmentEvent {
@@ -699,6 +708,13 @@ enum AppointmentEventType {
   RESCHEDULED
   CANCELED
   CONFIRMED
+  REMINDER_SENT
+  CHECKED_IN
+  COMPLETED
+  NO_SHOW
+  COMPLETED_AUTO
+  CANCELED_AUTO
+  REMINDER_FAILED
 }
 
 enum BillingPeriod {

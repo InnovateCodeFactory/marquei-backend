@@ -1,5 +1,6 @@
 import { PrismaService } from '@app/shared';
 import { CurrentUser } from '@app/shared/types/app-request';
+import { TZDate, tz } from '@date-fns/tz';
 import { Injectable } from '@nestjs/common';
 import {
   addDays,
@@ -9,10 +10,18 @@ import {
   format,
   isBefore,
   isEqual,
-  parseISO,
   startOfDay,
 } from 'date-fns';
 import { GetAvailableTimesDto } from '../dto/requests/get-available-times.dto';
+
+type OpeningHours = {
+  day: string; // 'MONDAY', 'TUESDAY', ...
+  closed: boolean;
+  times?: { startTime: string; endTime: string }[]; // 'HH:mm'
+}[];
+
+const BUSINESS_TZ_ID = 'America/Sao_Paulo';
+const IN_TZ = tz(BUSINESS_TZ_ID);
 
 @Injectable()
 export class GetAvailableTimesUseCase {
@@ -22,102 +31,155 @@ export class GetAvailableTimesUseCase {
     const { service_id, start_date, professional_id } = payload;
     const { current_selected_business_slug } = user;
 
-    const service = await this.prismaService.service.findUnique({
-      where: { id: service_id },
-      select: { duration: true },
-    });
+    // Dados básicos
+    const [service, business] = await Promise.all([
+      this.prismaService.service.findUnique({
+        where: { id: service_id },
+        select: { duration: true },
+      }),
+      this.prismaService.business.findUnique({
+        where: { slug: current_selected_business_slug },
+        select: { opening_hours: true, id: true },
+      }),
+    ]);
     if (!service) throw new Error('Serviço não encontrado');
-
-    const business = await this.prismaService.business.findUnique({
-      where: { slug: current_selected_business_slug },
-      select: { opening_hours: true, id: true },
-    });
     if (!business) throw new Error('Negócio não encontrado');
 
-    let openingHours: {
-      day: string;
-      closed: boolean;
-      times?: { startTime: string; endTime: string }[];
-    }[] = [];
+    // Opening hours
+    let openingHours: OpeningHours =
+      typeof business.opening_hours === 'string'
+        ? JSON.parse(business.opening_hours)
+        : (business.opening_hours as OpeningHours);
 
-    if (typeof business.opening_hours === 'string') {
-      openingHours = JSON.parse(business.opening_hours);
-    } else {
-      openingHours = business.opening_hours as typeof openingHours;
-    }
+    // Utilitário: cria TZDate local a partir de 'yyyy-MM-dd'
+    const parseYmdToTZDate = (ymd: string): TZDate => {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
+      if (!m) throw new Error('start_date inválida. Use yyyy-MM-dd');
+      const [, y, mo, d] = m.map(Number) as unknown as number[];
+      return new TZDate(y, mo - 1, d, 0, 0, 0, BUSINESS_TZ_ID);
+    };
 
-    const days = [];
+    const startLocalDay0 = parseYmdToTZDate(start_date);
+
+    const days: { date: string; availableSlots: string[] }[] = [];
 
     for (let i = 0; i < 3; i++) {
-      const currentDate = addDays(parseISO(start_date), i);
-      const dateStr = format(currentDate, 'yyyy-MM-dd');
-      const weekday = format(currentDate, 'EEEE').toUpperCase();
+      // Dia local corrente (TZDate)
+      const currentDateLocal =
+        i === 0 ? startLocalDay0 : (addDays(startLocalDay0, i) as TZDate);
+      const dateStr = format(currentDateLocal, 'yyyy-MM-dd', { in: IN_TZ });
+      const weekday = format(currentDateLocal, 'EEEE', {
+        in: IN_TZ,
+      }).toUpperCase();
 
-      const dayConfig = openingHours.find((day) => day.day === weekday);
+      const dayConfig = openingHours.find((d) => d.day === weekday);
 
       if (!dayConfig || dayConfig.closed || !dayConfig.times?.length) {
         days.push({ date: dateStr, availableSlots: [] });
         continue;
       }
 
-      const slots: string[] = [];
-      const now = new Date();
-      const isToday =
-        format(currentDate, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
+      // Agora no fuso local
+      const nowLocal = new TZDate(new Date(), BUSINESS_TZ_ID);
+      const isTodayLocal =
+        format(currentDateLocal, 'yyyy-MM-dd', { in: IN_TZ }) ===
+        format(nowLocal, 'yyyy-MM-dd', { in: IN_TZ });
 
-      for (const time of dayConfig.times) {
-        let startTime = new Date(`${dateStr}T${time.startTime}`);
-        const endTime = new Date(`${dateStr}T${time.endTime}`);
+      // Gera candidatos locais
+      const slotStartsLocal: TZDate[] = [];
+      for (const t of dayConfig.times) {
+        const [sh, sm] = t.startTime.split(':').map(Number);
+        const [eh, em] = t.endTime.split(':').map(Number);
+
+        let startLocal = new TZDate(
+          currentDateLocal.getFullYear(),
+          currentDateLocal.getMonth(),
+          currentDateLocal.getDate(),
+          sh,
+          sm ?? 0,
+          0,
+          BUSINESS_TZ_ID,
+        );
+        const endLocal = new TZDate(
+          currentDateLocal.getFullYear(),
+          currentDateLocal.getMonth(),
+          currentDateLocal.getDate(),
+          eh,
+          em ?? 0,
+          0,
+          BUSINESS_TZ_ID,
+        );
 
         while (
-          isBefore(addMinutes(startTime, service.duration), endTime) ||
-          isEqual(addMinutes(startTime, service.duration), endTime)
+          isBefore(addMinutes(startLocal, service.duration), endLocal) ||
+          isEqual(addMinutes(startLocal, service.duration), endLocal)
         ) {
-          if (!isToday || isBefore(now, startTime)) {
-            slots.push(format(startTime, 'HH:mm'));
+          if (!isTodayLocal || isBefore(nowLocal, startLocal)) {
+            slotStartsLocal.push(startLocal);
           }
-          startTime = addMinutes(startTime, service.duration);
+          startLocal = addMinutes(startLocal, service.duration) as TZDate;
         }
       }
 
+      if (slotStartsLocal.length === 0) {
+        days.push({ date: dateStr, availableSlots: [] });
+        continue;
+      }
+
+      // Janela local do dia → UTC (para buscar no banco)
+      const dayStartLocal = startOfDay(currentDateLocal) as TZDate;
+      const dayEndLocal = endOfDay(currentDateLocal) as TZDate;
+      const dayStartUtc: Date = new Date(dayStartLocal);
+      const dayEndUtc: Date = new Date(dayEndLocal);
+
+      // Busca appointments que INTERSECTAM o dia (em UTC)
       const appointments = await this.prismaService.appointment.findMany({
         where: {
           professionalProfileId: professional_id,
-          scheduled_at: {
-            gte: startOfDay(currentDate),
-            lte: endOfDay(currentDate),
-          },
+          start_at_utc: { lt: dayEndUtc },
+          end_at_utc: { gt: dayStartUtc },
         },
         select: {
-          scheduled_at: true,
+          start_at_utc: true,
+          end_at_utc: true,
+          timezone: true,
+          duration_minutes: true,
           service: { select: { duration: true } },
         },
+        orderBy: { start_at_utc: 'asc' },
       });
 
-      const busyRanges = appointments.map((appt) => {
-        const rawDate = appt.scheduled_at;
-
-        // Força a criação local manual — NÃO UTC
-        const [year, month, day, hour, minute, second] = rawDate
-          .toISOString()
-          .split(/[-T:.Z]/)
-          .map(Number);
-
-        const localDate = new Date(year, month - 1, day, hour, minute, second); // local time
-
-        const start = localDate;
-        const end = addMinutes(start, appt.service.duration);
-        return { start, end };
+      // Ranges ocupados em horário LOCAL (usar TZ do appointment se existir)
+      const busyRangesLocal = appointments.map((appt) => {
+        const apptZone = appt.timezone || BUSINESS_TZ_ID;
+        const apptIn = tz(apptZone);
+        const startLocal = new TZDate(appt.start_at_utc, apptZone);
+        const endLocal = appt.end_at_utc
+          ? new TZDate(appt.end_at_utc, apptZone)
+          : (addMinutes(
+              startLocal,
+              appt.duration_minutes ?? appt.service.duration,
+              { in: apptIn },
+            ) as TZDate);
+        return { start: startLocal, end: endLocal };
       });
 
-      const availableSlots = slots.filter((slot) => {
-        const start = new Date(`${dateStr}T${slot}`); // ← sem Z
-        const end = addMinutes(start, service.duration);
-
-        return !busyRanges.some((busy) =>
-          areIntervalsOverlapping({ start, end }, busy, { inclusive: false }),
-        );
-      });
+      // Filtra slots removendo overlaps (comparação 100% local)
+      const availableSlots = slotStartsLocal
+        .filter((slotStartLocal) => {
+          const slotEndLocal = addMinutes(
+            slotStartLocal,
+            service.duration,
+          ) as TZDate;
+          return !busyRangesLocal.some((b) =>
+            areIntervalsOverlapping(
+              { start: slotStartLocal, end: slotEndLocal },
+              b,
+              { inclusive: false },
+            ),
+          );
+        })
+        .map((slot) => format(slot, 'HH:mm', { in: IN_TZ }));
 
       days.push({ date: dateStr, availableSlots });
     }

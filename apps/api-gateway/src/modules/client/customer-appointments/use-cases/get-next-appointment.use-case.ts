@@ -2,6 +2,7 @@ import { PrismaService } from '@app/shared';
 import { AppRequest } from '@app/shared/types/app-request';
 import { formatDuration, getTwoNames } from '@app/shared/utils';
 import { Price } from '@app/shared/value-objects';
+import { tz } from '@date-fns/tz';
 import { Injectable } from '@nestjs/common';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -11,43 +12,44 @@ export class GetNextAppointmentUseCase {
   constructor(private readonly prismaService: PrismaService) {}
 
   async execute({ user }: AppRequest) {
-    // Arrumar payment para criar customerid no stripe
+    const nowUtc = new Date();
+
     const nextAppointment = await this.prismaService.appointment.findFirst({
       where: {
-        customerPerson: {
-          user: {
-            id: user.id,
-          },
-        },
+        customerPerson: { user: { id: user.id } },
         status: { in: ['PENDING', 'CONFIRMED'] },
-        scheduled_at: {
-          gte: new Date(),
-        },
+        start_at_utc: { gte: nowUtc },
       },
+      orderBy: { start_at_utc: 'asc' },
       select: {
         id: true,
-        scheduled_at: true,
+        start_at_utc: true,
+        end_at_utc: true,
+        status: true,
+        timezone: true, // ex.: "America/Sao_Paulo"
+        duration_minutes: true, // se você persistir isso
         professional: {
           select: {
-            User: {
-              select: {
-                name: true,
-              },
-            },
+            User: { select: { name: true } },
           },
         },
         service: {
           select: {
             name: true,
-            duration: true,
+            duration: true, // fallback se não houver duration_minutes
             price_in_cents: true,
           },
         },
-        status: true,
       },
     });
 
     if (!nextAppointment) return null;
+
+    const zoneId = nextAppointment.timezone || 'America/Sao_Paulo';
+    const IN_TZ = tz(zoneId);
+
+    const durationMin =
+      nextAppointment.duration_minutes ?? nextAppointment.service.duration;
 
     return {
       id: nextAppointment.id,
@@ -56,13 +58,22 @@ export class GetNextAppointmentUseCase {
       },
       service: {
         name: nextAppointment.service.name,
-        duration: formatDuration(nextAppointment.service.duration),
+        duration: formatDuration(durationMin),
         price: new Price(nextAppointment.service.price_in_cents).toCurrency(),
       },
       date: {
-        day: format(nextAppointment.scheduled_at, 'dd', { locale: ptBR }),
-        month: format(nextAppointment.scheduled_at, 'MMM', { locale: ptBR }),
-        hour: format(nextAppointment.scheduled_at, 'HH:mm', { locale: ptBR }),
+        day: format(nextAppointment.start_at_utc, 'dd', {
+          locale: ptBR,
+          in: IN_TZ,
+        }),
+        month: format(nextAppointment.start_at_utc, 'MMM', {
+          locale: ptBR,
+          in: IN_TZ,
+        }),
+        hour: format(nextAppointment.start_at_utc, 'HH:mm', {
+          locale: ptBR,
+          in: IN_TZ,
+        }),
       },
       status: nextAppointment.status,
     };
