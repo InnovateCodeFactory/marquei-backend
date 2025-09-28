@@ -259,7 +259,7 @@ model AppointmentEvent {
 
   event_type      AppointmentEventType
   by_professional Boolean
-  by_user_id      String
+  by_user_id      String?
   reason          String?
   ip              String?              @db.VarChar(64)
   user_agent      String?
