@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/shared';
+import { FileSystemService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { formatPhoneNumber } from '@app/shared/utils';
 import { Injectable } from '@nestjs/common';
@@ -6,7 +7,10 @@ import { FindCustomersDto } from '../dto/requests/find-customers.dto';
 
 @Injectable()
 export class FindCustomersUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fileSystem: FileSystemService,
+  ) {}
 
   async execute(
     { search, limit, page }: FindCustomersDto,
@@ -58,6 +62,7 @@ export class FindCustomersUseCase {
               name: true,
               email: true,
               phone: true,
+              profile_image: true,
             },
           },
         },
@@ -74,6 +79,9 @@ export class FindCustomersUseCase {
       phone: formatPhoneNumber(bc.person.phone),
       verified: bc.verified,
       notes: bc.notes ?? undefined,
+      profile_image: this.fileSystem.getPublicUrl({
+        key: bc.person.profile_image,
+      }),
     }));
 
     return {

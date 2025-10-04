@@ -1,9 +1,6 @@
 import { PrismaService } from '@app/shared';
-import { EnvSchemaType } from '@app/shared/environment';
 import { HashingService, TokenService } from '@app/shared/services';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from '../dto/requests/login.dto';
 
 @Injectable()
@@ -11,8 +8,6 @@ export class LoginUseCase {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly hashingService: HashingService,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService<EnvSchemaType>,
     private readonly tokenService: TokenService,
   ) {}
 
@@ -46,10 +41,11 @@ export class LoginUseCase {
     if (!user || !(await this.hashingService.compare(password, user?.password)))
       throw new BadRequestException('Credenciais inválidas');
 
-    const { accessToken, refreshToken } = await this.tokenService.issueTokenPair({
-      id: user.id,
-      user_type: 'PROFESSIONAL',
-    });
+    const { accessToken, refreshToken } =
+      await this.tokenService.issueTokenPair({
+        id: user.id,
+        user_type: 'PROFESSIONAL',
+      });
 
     return {
       token: accessToken,
