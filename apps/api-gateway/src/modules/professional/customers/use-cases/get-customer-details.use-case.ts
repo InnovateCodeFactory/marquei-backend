@@ -19,6 +19,8 @@ export class GetCustomerDetailsUseCase {
       select: {
         created_at: true,
         verified: true,
+        notes: true,
+
         person: {
           select: {
             id: true,
@@ -26,6 +28,7 @@ export class GetCustomerDetailsUseCase {
             email: true,
             phone: true,
             profile_image: true,
+            birthdate: true,
           },
         },
         business: { select: { id: true } },
@@ -62,11 +65,20 @@ export class GetCustomerDetailsUseCase {
       name: bc.person.name,
       email: bc.person.email,
       phone: bc.person.phone,
+      birthdate: bc.person?.birthdate
+        ? bc.person.birthdate
+            .toISOString()
+            .split('T')[0]
+            .split('-')
+            .reverse()
+            .join('/')
+        : null,
+      notes: bc.notes,
       verified: bc.verified,
       total_appointments_count: String(totalAppointments),
       pending_appointments_count: String(pendingAppointments),
       canceled_appointments_count: String(canceledAppointments),
-      id: bc.person.id,
+      id: id,
       created_at: formatDate(bc.created_at, "dd 'de' MMM'.' 'de' yyyy"),
       profile_image: this.fileSystem.getPublicUrl({
         key: bc.person.profile_image,

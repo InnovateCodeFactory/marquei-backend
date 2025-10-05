@@ -26,7 +26,7 @@ function normalizeInput(dto: CreateCustomerDto) {
     name: dto.name.trim(),
     email: dto.email ? dto.email.trim().toLowerCase() : null,
     phone: dto.phone ? toE164(dto.phone) : null,
-    birthdate: dto.birthdate ?? null,
+    birthdate: dto.birthdate ? new Date(dto.birthdate) : null,
     notes: dto.notes ?? null,
   };
 }
