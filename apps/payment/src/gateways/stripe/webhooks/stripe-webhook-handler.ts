@@ -56,6 +56,8 @@ export class StripeWebhookHandler {
           event: eventVerified,
           queue: PAYMENT_QUEUES.WEBHOOKS.STRIPE_INVOICE_WEBHOOK_QUEUE,
         });
+
+        return;
       }
 
       if (eventVerified.type?.startsWith('customer.subscription.')) {
@@ -63,6 +65,8 @@ export class StripeWebhookHandler {
           event: eventVerified,
           queue: PAYMENT_QUEUES.WEBHOOKS.STRIPE_CUSTOMER_SUBSCRIPTION_QUEUE,
         });
+
+        return;
       }
 
       this.logger.warn(
