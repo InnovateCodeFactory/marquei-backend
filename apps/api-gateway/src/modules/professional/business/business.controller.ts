@@ -1,7 +1,17 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { Body, Controller, Get, Post, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Res,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { SelectCurrentBusinessDto } from './dto/requests/select-current-business.dto';
@@ -10,8 +20,12 @@ import {
   GetCurrentSubscriptionUseCase,
   GetProfessionalsUseCase,
   GetProfilePresentationUseCase,
+  GetBusinessDetailsUseCase,
 } from './use-cases';
 import { SelectCurrentBusinessUseCase } from './use-cases/select-current-business.use-case';
+import { EditBusinessUseCase } from './use-cases/edit-business.use-case';
+import { UploadBusinessImagesUseCase } from './use-cases/upload-business-images.use-case';
+import { EditBusinessDto } from './dto/requests/edit-business.dto';
 
 @Controller('professional/business')
 @ApiTags('Business')
@@ -23,6 +37,9 @@ export class BusinessController {
     private readonly getCurrentSubscriptionUseCase: GetCurrentSubscriptionUseCase,
     private readonly getProfessionalsUseCase: GetProfessionalsUseCase,
     private readonly getProfilePresentationUseCase: GetProfilePresentationUseCase,
+    private readonly editBusinessUseCase: EditBusinessUseCase,
+    private readonly uploadBusinessImagesUseCase: UploadBusinessImagesUseCase,
+    private readonly getBusinessDetailsUseCase: GetBusinessDetailsUseCase,
   ) {}
 
   @Get('get-business-by-professional')
@@ -104,6 +121,71 @@ export class BusinessController {
     return await this.responseHandler.handle({
       method: () => this.getProfilePresentationUseCase.execute(currentUser),
       res,
+    });
+  }
+
+  @Get('me')
+  @ApiOperation({
+    summary: 'Get current business details',
+    description: 'Returns full editable details for the selected business.',
+  })
+  async getBusinessDetails(
+    @Res() res: Response,
+    @CurrentUserDecorator() currentUser: CurrentUser,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.getBusinessDetailsUseCase.execute(currentUser),
+      res,
+    });
+  }
+
+  @Patch()
+  @ApiOperation({
+    summary: 'Edit current business data',
+    description:
+      'Updates basic data of the currently selected business. Sends only changed fields.',
+  })
+  async editBusiness(
+    @Res() res: Response,
+    @CurrentUserDecorator() currentUser: CurrentUser,
+    @Body() payload: EditBusinessDto,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.editBusinessUseCase.execute(currentUser, payload),
+      res,
+    });
+  }
+
+  @Post('profile-images')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'logo', maxCount: 1 },
+      { name: 'cover', maxCount: 1 },
+    ], {
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!allowed.includes(file.mimetype))
+          return cb(new Error('Tipo inválido'), false);
+        cb(null, true);
+      },
+    }),
+  )
+  @ApiOperation({
+    summary: 'Upload business logo and/or cover image',
+    description:
+      'Accepts multipart form-data with fields "logo" and/or "cover". Updates only provided ones.',
+  })
+  async uploadImages(
+    @UploadedFiles()
+    files: { logo?: Express.Multer.File[]; cover?: Express.Multer.File[] },
+    @CurrentUserDecorator() currentUser: CurrentUser,
+    @Res() res: Response,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.uploadBusinessImagesUseCase.execute(currentUser, files),
+      res,
+      successStatus: 201,
     });
   }
 }

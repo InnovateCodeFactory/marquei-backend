@@ -1,5 +1,9 @@
 import { PrismaService } from '@app/shared';
-import { HashingService, TokenService } from '@app/shared/services';
+import {
+  FileSystemService,
+  HashingService,
+  TokenService,
+} from '@app/shared/services';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { LoginDto } from '../dto/requests/login.dto';
 
@@ -9,6 +13,7 @@ export class LoginUseCase {
     private readonly prismaService: PrismaService,
     private readonly hashingService: HashingService,
     private readonly tokenService: TokenService,
+    private readonly fs: FileSystemService,
   ) {}
 
   async execute(loginDto: LoginDto) {
@@ -31,6 +36,8 @@ export class LoginUseCase {
                 slug: true,
                 ownerId: true,
                 name: true,
+                coverImage: true,
+                logo: true,
               },
             },
           },
@@ -61,6 +68,12 @@ export class LoginUseCase {
         }),
         first_access: user.first_access,
         has_push_token: user?.push_token !== null,
+        current_selected_business_cover_image: this.fs.getPublicUrl({
+          key: user.CurrentSelectedBusiness?.[0]?.business?.coverImage,
+        }),
+        current_selected_business_logo: this.fs.getPublicUrl({
+          key: user.CurrentSelectedBusiness?.[0]?.business?.logo,
+        }),
       },
     };
   }

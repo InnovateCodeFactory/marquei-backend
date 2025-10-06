@@ -8,6 +8,7 @@ import { InvoicePaymentSucceeded } from './invoice.payment-succeeded';
 @Injectable()
 export class InvoiceWebhook {
   private readonly logger = new Logger(InvoiceWebhook.name);
+
   constructor(
     private readonly invoicePaymentSucceeded: InvoicePaymentSucceeded,
   ) {}
@@ -23,7 +24,11 @@ export class InvoiceWebhook {
         this.logger.debug(
           `Handling Stripe invoice payment succeeded event: ${payload.id}`,
         );
-        await this.invoicePaymentSucceeded.handlePaymentSuccess(payload);
+        await this.invoicePaymentSucceeded.handlePaymentSuccess(
+          payload as Stripe.Event & { data: { object: Stripe.Invoice } },
+        );
+      } else {
+        this.logger.debug(`Ignoring invoice event: ${payload.type}`);
       }
     } catch (error) {
       this.logger.error('Error processing Stripe webhook', error);

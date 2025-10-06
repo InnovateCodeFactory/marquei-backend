@@ -8,6 +8,9 @@ import {
   GetProfilePresentationUseCase,
 } from './use-cases';
 import { SelectCurrentBusinessUseCase } from './use-cases/select-current-business.use-case';
+import { EditBusinessUseCase } from './use-cases/edit-business.use-case';
+import { UploadBusinessImagesUseCase } from './use-cases/upload-business-images.use-case';
+import { GetBusinessDetailsUseCase } from './use-cases/get-business-details.use-case';
 
 @Module({
   controllers: [BusinessController],
@@ -18,6 +21,9 @@ import { SelectCurrentBusinessUseCase } from './use-cases/select-current-busines
     GetCurrentSubscriptionUseCase,
     GetProfessionalsUseCase,
     GetProfilePresentationUseCase,
+    EditBusinessUseCase,
+    UploadBusinessImagesUseCase,
+    GetBusinessDetailsUseCase,
   ],
 })
 export class BusinessModule {}

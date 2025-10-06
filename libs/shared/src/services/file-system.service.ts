@@ -115,7 +115,7 @@ export class FileSystemService {
     return { key, deleted: true };
   }
 
-  getPublicUrl({ key }: { key: string }) {
+  getPublicUrl({ key }: { key: string | null }) {
     if (!key) return null;
 
     const base = this.customDomain;

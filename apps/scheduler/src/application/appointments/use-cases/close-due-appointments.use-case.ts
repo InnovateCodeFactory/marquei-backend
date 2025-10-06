@@ -86,7 +86,6 @@ export class CloseDueAppointmentsUseCase implements OnApplicationBootstrap {
 
         if (!rows.length) break;
 
-        // Transação: troca status + grava eventos (idempotência com skipDuplicates)
         await this.prismaService.$transaction(async (tx) => {
           await tx.appointment.updateMany({
             where: {

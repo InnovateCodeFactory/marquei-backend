@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/shared';
+import { FileSystemService } from '@app/shared/services';
 import { buildAddress } from '@app/shared/utils';
 import { Injectable, Logger } from '@nestjs/common';
 import { FindNearbyBusinessesDto } from '../dto/requests/find-nearby-businesses.dto';
@@ -33,7 +34,10 @@ const formatDistance = (meters: number): string =>
 @Injectable()
 export class FindNearbyBusinessesUseCase {
   private readonly logger = new Logger(FindNearbyBusinessesUseCase.name);
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fs: FileSystemService,
+  ) {}
 
   async execute(payload: FindNearbyBusinessesDto) {
     const {
@@ -105,8 +109,8 @@ export class FindNearbyBusinessesUseCase {
       slug: r.slug,
       latitude: r.latitude,
       longitude: r.longitude,
-      logo: r.logo,
-      cover_image: r.coverImage,
+      logo: this.fs.getPublicUrl({ key: r.logo }),
+      cover_image: this.fs.getPublicUrl({ key: r.coverImage }),
       is_verified: r.is_verified,
       address: buildAddress(r),
       rating: Number((r.rating ?? 0).toFixed(1)),

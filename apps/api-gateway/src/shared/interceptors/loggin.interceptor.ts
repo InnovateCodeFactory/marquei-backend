@@ -40,6 +40,7 @@ const EXCLUDED_ENDPOINTS = [
   '/metrics',
   '/api/client/business/nearby',
   '/api/client/auth/refresh',
+  '/api/webhooks/stripe',
 ];
 
 function redact(obj: any, depth = 0): any {

@@ -1,5 +1,4 @@
 import { EnvSchemaType } from '@app/shared/environment';
-
 import { PAYMENT_QUEUES } from '@app/shared/modules/rmq/constants';
 import {
   RABBIT_EXCHANGE,
@@ -19,15 +18,12 @@ export class StripeWebhookHandler {
   constructor(
     private readonly configService: ConfigService<EnvSchemaType>,
     private readonly rmqService: RmqService,
-
-    @Inject(STRIPE_PAYMENT_GATEWAY)
-    private readonly stripe: Stripe,
+    @Inject(STRIPE_PAYMENT_GATEWAY) private readonly stripe: Stripe,
   ) {
     this.webhookSecret = this.configService.getOrThrow('STRIPE_WEBHOOK_SECRET');
   }
 
-  // TODO: Fazer uma lógica para buscar o webhook por alguma chave única dele e verificar se já foi processado
-  // para evitar processar o mesmo webhook mais de uma vez.
+  // Este consumer recebe o rawBody + assinatura do Stripe via Rabbit e redistribui
   @RabbitSubscribe({
     routingKey: PAYMENT_QUEUES.WEBHOOKS.STRIPE_WEBHOOK_HANDLER_QUEUE,
     queue: PAYMENT_QUEUES.WEBHOOKS.STRIPE_WEBHOOK_HANDLER_QUEUE,
@@ -41,12 +37,13 @@ export class StripeWebhookHandler {
     signature: string;
   }) {
     try {
+      // Se preferir validar a assinatura, descomente:
       // const eventVerified = await this.stripe.webhooks.constructEventAsync(
       //   rawBody,
       //   signature,
       //   this.webhookSecret,
       // );
-      const eventVerified = JSON.parse(rawBody);
+      const eventVerified = JSON.parse(rawBody) as Stripe.Event;
 
       if (eventVerified.type?.startsWith('invoice.')) {
         this.logger.debug(
@@ -56,7 +53,6 @@ export class StripeWebhookHandler {
           event: eventVerified,
           queue: PAYMENT_QUEUES.WEBHOOKS.STRIPE_INVOICE_WEBHOOK_QUEUE,
         });
-
         return;
       }
 
@@ -65,7 +61,6 @@ export class StripeWebhookHandler {
           event: eventVerified,
           queue: PAYMENT_QUEUES.WEBHOOKS.STRIPE_CUSTOMER_SUBSCRIPTION_QUEUE,
         });
-
         return;
       }
 

@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/shared';
+import { FileSystemService } from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import { buildAddress } from '@app/shared/utils';
 import { Injectable } from '@nestjs/common';
@@ -7,7 +8,10 @@ import { GetFavoritesDto } from '../dto/requests/get-favorites.dto';
 
 @Injectable()
 export class GetFavoritesUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fs: FileSystemService,
+  ) {}
 
   async execute(query: GetFavoritesDto, req: AppRequest) {
     const personId = req.user?.personId as string;
@@ -82,8 +86,12 @@ export class GetFavoritesUseCase {
       id: b.id,
       name: b.name,
       slug: b.slug,
-      logo: b.logo,
-      coverImage: b.coverImage,
+      logo: this.fs.getPublicUrl({
+        key: b.logo,
+      }),
+      cover_image: this.fs.getPublicUrl({
+        key: b.coverImage,
+      }),
       rating: Number((b.rating ?? 0).toFixed(1)),
       ratings_count: b.reviews_count ?? 0,
       address: buildAddress(b),

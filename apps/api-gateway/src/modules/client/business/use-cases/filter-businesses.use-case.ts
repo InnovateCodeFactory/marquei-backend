@@ -1,11 +1,15 @@
 import { PrismaService } from '@app/shared';
+import { FileSystemService } from '@app/shared/services';
 import { buildAddress } from '@app/shared/utils';
 import { Injectable } from '@nestjs/common';
 import { FilterBusinessesDto } from '../dto/requests/filter-businesses.dto';
 
 @Injectable()
 export class FilterBusinessesUseCase {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly fs: FileSystemService,
+  ) {}
 
   async execute(query: FilterBusinessesDto) {
     if (!query.name && !query.categories?.length) return [];
@@ -59,8 +63,8 @@ export class FilterBusinessesUseCase {
       id: b.id,
       name: b.name,
       slug: b.slug,
-      logo: b.logo,
-      coverImage: b.coverImage,
+      logo: this.fs.getPublicUrl({ key: b.logo }),
+      cover_image: this.fs.getPublicUrl({ key: b.coverImage }),
       rating: b.rating?.toFixed(1),
       ratings_count: b.reviews_count,
       address: buildAddress(b),
