@@ -8,6 +8,7 @@ import {
   GetCustomerDetailsUseCase,
 } from './use-cases';
 import { FindCustomersUseCase } from './use-cases/find-customers.use-case';
+import { UpdateCustomerUseCase } from './use-cases/update-customer.use-case';
 
 @Module({
   controllers: [CustomersController],
@@ -18,6 +19,7 @@ import { FindCustomersUseCase } from './use-cases/find-customers.use-case';
     FindCustomersUseCase,
     GetCustomerDetailsUseCase,
     GetCustomerAppointmentsUseCase,
+    UpdateCustomerUseCase,
   ],
 })
 export class CustomersModule {}
