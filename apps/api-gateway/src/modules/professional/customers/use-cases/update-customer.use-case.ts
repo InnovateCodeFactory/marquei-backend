@@ -5,12 +5,8 @@ import { UpdateCustomerDto } from '../dto/requests/update-customer.dto';
 
 function toE164(phone?: string | null) {
   if (!phone) return null;
-  if (phone.startsWith('+55')) {
-    return `+55${phone.slice(2)}`;
-  }
-  if (phone.startsWith('55')) {
-    return `+${phone}`;
-  }
+  if (phone.startsWith('+55')) return `+55${phone.slice(2)}`;
+  if (phone.startsWith('55')) return `+${phone}`;
   return `+55${phone}`;
 }
 
@@ -29,30 +25,28 @@ export class UpdateCustomerUseCase {
 
     if (!bc) throw new NotFoundException('Cliente não encontrado');
 
-    const personData: any = {};
-    if (payload.name !== undefined) personData.name = payload.name?.trim();
-    if (payload.email !== undefined)
-      personData.email = payload.email?.trim().toLowerCase() || null;
-    if (payload.phone !== undefined)
-      personData.phone = toE164(payload.phone) || null;
-    if (payload.birthdate !== undefined)
-      personData.birthdate = payload.birthdate
-        ? new Date(payload.birthdate)
-        : null;
+    const personData = this.cleanObject({
+      name: payload.name?.trim(),
+      email: payload.email?.trim().toLowerCase() || null,
+      phone: toE164(payload.phone) || null,
+      birthdate: payload.birthdate ? new Date(payload.birthdate) : null,
+    });
 
-    if (Object.keys(personData).length) {
+    const bcData = this.cleanObject({
+      notes: payload.notes || null,
+      email: payload.email || null,
+      phone: payload.phone || null,
+    });
+
+    // Atualiza apenas se tiver campos
+    if (Object.keys(personData).length > 0) {
       await this.prisma.person.update({
         where: { id: bc.personId },
         data: personData,
       });
     }
 
-    const bcData: any = {};
-    if (payload.notes !== undefined) bcData.notes = payload.notes || null;
-    if (payload.email !== undefined) bcData.email = payload.email || null;
-    if (payload.phone !== undefined) bcData.phone = payload.phone || null;
-
-    if (Object.keys(bcData).length) {
+    if (Object.keys(bcData).length > 0) {
       await this.prisma.businessCustomer.update({
         where: { id: payload.id },
         data: bcData,
@@ -60,5 +54,10 @@ export class UpdateCustomerUseCase {
     }
 
     return null;
+  }
+  private cleanObject<T extends Record<string, any>>(obj: T) {
+    return Object.fromEntries(
+      Object.entries(obj).filter(([_, v]) => v !== undefined),
+    );
   }
 }

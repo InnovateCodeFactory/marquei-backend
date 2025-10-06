@@ -75,6 +75,7 @@ export class GetCustomerDetailsUseCase {
         : null,
       notes: bc.notes,
       verified: bc.verified,
+
       total_appointments_count: String(totalAppointments),
       pending_appointments_count: String(pendingAppointments),
       canceled_appointments_count: String(canceledAppointments),
