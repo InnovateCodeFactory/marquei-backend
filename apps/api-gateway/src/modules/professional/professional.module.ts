@@ -11,6 +11,7 @@ import { ProfessionalsModule } from './professionals/professionals.module';
 import { ServicesModule } from './services/services.module';
 import { StatementModule } from './statement/statement.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
+import { ProfessionalProfileModule } from './profile/profile.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
     InAppNotificationsModule,
     StatementModule,
     OnboardingModule,
+    ProfessionalProfileModule,
   ],
 })
 export class ProfessionalModule {}

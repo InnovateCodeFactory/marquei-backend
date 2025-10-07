@@ -76,6 +76,7 @@ export class CloseDueAppointmentsUseCase implements OnApplicationBootstrap {
             service: {
               select: {
                 price_in_cents: true,
+                name: true,
               },
             },
           },
@@ -116,7 +117,7 @@ export class CloseDueAppointmentsUseCase implements OnApplicationBootstrap {
               professionalProfileId: r.professional.id,
               type: 'INCOME',
               value_in_cents: r.service.price_in_cents,
-              description: `Agendamento ${r.id} concluído`,
+              description: r.service.name,
             })),
           });
         });

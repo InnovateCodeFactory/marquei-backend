@@ -29,10 +29,14 @@ export class LoginUseCase {
         password: true,
         first_access: true,
         push_token: true,
+        name: true,
+        email: true,
+        document_number: true,
         CurrentSelectedBusiness: {
           select: {
             business: {
               select: {
+                id: true,
                 slug: true,
                 ownerId: true,
                 name: true,
@@ -47,6 +51,18 @@ export class LoginUseCase {
 
     if (!user || !(await this.hashingService.compare(password, user?.password)))
       throw new BadRequestException('Credenciais inválidas');
+
+    const professionalProfile =
+      await this.prismaService.professionalProfile.findFirst({
+        where: {
+          userId: user.id,
+          business_id: user.CurrentSelectedBusiness?.[0]?.business?.id,
+        },
+        select: {
+          profile_image: true,
+          phone: true,
+        },
+      });
 
     const { accessToken, refreshToken } =
       await this.tokenService.issueTokenPair({
@@ -74,6 +90,14 @@ export class LoginUseCase {
         current_selected_business_logo: this.fs.getPublicUrl({
           key: user.CurrentSelectedBusiness?.[0]?.business?.logo,
         }),
+        id: user.id,
+        name: user.name,
+        email: user?.email,
+        document_number: user?.document_number,
+        profile_image: this.fs.getPublicUrl({
+          key: professionalProfile?.profile_image,
+        }),
+        phone: professionalProfile?.phone,
       },
     };
   }
