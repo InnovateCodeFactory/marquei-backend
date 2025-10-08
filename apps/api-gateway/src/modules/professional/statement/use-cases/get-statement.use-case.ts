@@ -7,7 +7,7 @@ import {
   Logger,
   OnModuleInit,
 } from '@nestjs/common';
-import { endOfMonth, startOfMonth } from 'date-fns';
+import { addHours, addMinutes, endOfMonth, startOfMonth } from 'date-fns';
 import { GetStatementDto } from '../dto/requests/get-statement.dto';
 
 @Injectable()
@@ -67,7 +67,10 @@ export class GetStatementUseCase implements OnModuleInit {
 
     if (start_date) where.created_at = { gte: new Date(start_date) };
     if (end_date)
-      where.created_at = { ...where.created_at, lte: new Date(end_date) };
+      where.created_at = {
+        ...where.created_at,
+        lte: addMinutes(addHours(new Date(end_date), 23), 59),
+      };
     if (type) where.type = type.toUpperCase();
     if (professional_id) where.professionalProfileId = professional_id;
 

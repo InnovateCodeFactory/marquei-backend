@@ -1,10 +1,14 @@
 import { PrismaService } from '@app/shared';
+import { FileSystemService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 
 @Injectable()
 export class GetProfessionalsUseCase {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly fs: FileSystemService,
+  ) {}
 
   async execute(currentUser: CurrentUser) {
     if (!currentUser?.current_selected_business_id)
@@ -32,7 +36,9 @@ export class GetProfessionalsUseCase {
 
     return professionals.map((professional) => ({
       id: professional.id,
-      avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+      avatar: this.fs.getPublicUrl({
+        key: professional.profile_image,
+      }),
       name: professional.User.name?.split(' ')[0],
     }));
   }
