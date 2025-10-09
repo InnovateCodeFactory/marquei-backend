@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
+  IsArray,
   IsBooleanString,
   IsNotEmpty,
   IsNumberString,
@@ -57,11 +59,31 @@ export class GetStatementDto {
   })
   type?: 'INCOME' | 'EXPENSE';
 
-  @IsString()
   @IsOptional()
-  @ApiPropertyOptional({
-    description: 'The ID of the professional to retrieve the statement for',
-    example: '12345',
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+
+    // já é array: ok
+    if (Array.isArray(value)) return value;
+
+    // 'a,b' -> ['a','b']
+    if (typeof value === 'string' && value.includes(',')) {
+      return value
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean);
+    }
+
+    // 'a' -> ['a']
+    return [String(value)];
   })
-  professional_id?: string;
+  @ApiPropertyOptional({
+    description: 'IDs de profissionais',
+    isArray: true,
+    type: String,
+    example: ['12345', '67890'],
+  })
+  professional_ids?: string[];
 }

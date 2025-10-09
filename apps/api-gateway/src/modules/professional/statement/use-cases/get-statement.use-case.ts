@@ -49,7 +49,7 @@ export class GetStatementUseCase implements OnModuleInit {
       limit,
       page,
       end_date,
-      professional_id,
+      professional_ids,
       start_date,
       type,
       calculate_totals,
@@ -72,7 +72,9 @@ export class GetStatementUseCase implements OnModuleInit {
         lte: addMinutes(addHours(new Date(end_date), 23), 59),
       };
     if (type) where.type = type.toUpperCase();
-    if (professional_id) where.professionalProfileId = professional_id;
+    if (professional_ids && professional_ids.length > 0) {
+      where.professionalProfileId = { in: professional_ids };
+    }
 
     const monthStart = startOfMonth(new Date());
     const monthEnd = endOfMonth(new Date());
