@@ -13,26 +13,35 @@ import { LoginDto } from './dto/requests/login.dto';
 import { RefreshTokenDto } from './dto/requests/refresh-token.dto';
 import { RegisterProfessionalUserDto } from './dto/requests/register-professional-user';
 import { RegisterPushTokenDto } from './dto/requests/register-push-token.dto';
+import { UpdatePasswordConfirmCodeDto } from './dto/requests/update-password-confirm-code.dto';
+import { UpdatePasswordDto } from './dto/requests/update-password.dto';
 import { ValidateMailCodeDto } from './dto/requests/validate-mail-code.dto';
-import { LoginUseCase, RegisterProfessionalUserUseCase } from './use-cases';
-import { FirstAccessUseCase } from './use-cases/first-access.use-case';
-import { LogoutUseCase } from './use-cases/logout.use-case';
-import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
-import { RegisterPushTokenUseCase } from './use-cases/register-push-token.use-case';
+import {
+  FirstAccessUseCase,
+  LoginUseCase,
+  LogoutUseCase,
+  RefreshTokenUseCase,
+  RegisterProfessionalUserUseCase,
+  RegisterPushTokenUseCase,
+  UpdatePasswordConfirmCodeUseCase,
+  UpdatePasswordUseCase,
+} from './use-cases';
 
 @Controller('professional/auth')
 @ApiTags('auth')
 export class AuthController {
   constructor(
+    private readonly responseHandler: ResponseHandlerService,
+    private readonly mailService: MailValidationService,
+
     private readonly registerProfessionalUserUseCase: RegisterProfessionalUserUseCase,
     private readonly firstAccessUseCase: FirstAccessUseCase,
     private readonly loginUseCase: LoginUseCase,
     private readonly registerPushTokenUseCase: RegisterPushTokenUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly logoutUseCase: LogoutUseCase,
-
-    private readonly responseHandler: ResponseHandlerService,
-    private readonly mailService: MailValidationService,
+    private readonly updatePasswordUseCase: UpdatePasswordUseCase,
+    private readonly updatePasswordConfirmCodeUseCase: UpdatePasswordConfirmCodeUseCase,
   ) {}
 
   @Post('login')
@@ -163,6 +172,36 @@ export class AuthController {
           code: body.code,
           request_id: body.request_id,
         }),
+      res,
+    });
+  }
+
+  @Post('update-password')
+  @ApiOperation({
+    summary: 'Sends a validation token for the update password flow',
+  })
+  async updatePassword(
+    @Res() res: Response,
+    @Body() body: UpdatePasswordDto,
+    @Req() req: AppRequest,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.updatePasswordUseCase.execute(body, req),
+      res,
+    });
+  }
+
+  @Post('update-password-confirm-code')
+  @ApiOperation({
+    summary: 'Confirms the validation code and updates the password',
+  })
+  async updatePasswordConfirmCode(
+    @Res() res: Response,
+    @Body() body: UpdatePasswordConfirmCodeDto,
+    @Req() req: AppRequest,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.updatePasswordConfirmCodeUseCase.execute(body, req),
       res,
     });
   }

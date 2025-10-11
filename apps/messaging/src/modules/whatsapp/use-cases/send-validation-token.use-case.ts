@@ -1,8 +1,6 @@
 import { PrismaService } from '@app/shared';
-import {
-  SendWhatsAppTypeEnum,
-  WhatsAppValidationStatusEnum,
-} from '@app/shared/enum';
+import { SendValidationTokenDto } from '@app/shared/dto/messaging/whatsapp-notifications/send-validation-token.dto';
+import { WhatsAppValidationStatusEnum } from '@app/shared/enum';
 import { EnvSchemaType } from '@app/shared/environment';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
@@ -11,7 +9,6 @@ import { codeGenerator } from '@app/shared/utils';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SendValidationTokenDto } from '../dto/send-validation-token.dto';
 import { WhatsAppBaseService } from '../whatsapp-base.service';
 
 type SendTextMessageResponse = {
@@ -44,6 +41,7 @@ export class SendValidationTokenUseCase {
     phone_number,
     user_type,
     request_id,
+    type,
   }: SendValidationTokenDto): Promise<void> {
     if (!phone_number) {
       this.logger.error(
@@ -70,7 +68,7 @@ export class SendValidationTokenUseCase {
           where: {
             phone_number: phone,
             active: true,
-            type: SendWhatsAppTypeEnum.VALIDATION_CODE,
+            type,
           },
           data: { active: false },
         });
@@ -82,7 +80,7 @@ export class SendValidationTokenUseCase {
             phone_number: phone,
             code_ciphertext: encryptedData,
             code_iv: iv,
-            type: SendWhatsAppTypeEnum.VALIDATION_CODE,
+            type,
             active: true,
             expires_at: expiresAt,
             user_type,
