@@ -13,6 +13,7 @@ import { UpdatePasswordDto } from '../dto/requests/update-password.dto';
 
 @Injectable()
 export class UpdatePasswordUseCase {
+  private readonly requestIdLength = 32;
   constructor(
     private readonly rmqService: RmqService,
     private readonly prismaService: PrismaService,
@@ -49,7 +50,7 @@ export class UpdatePasswordUseCase {
     )
       throw new NotFoundException('Senha atual incorreta');
 
-    const request_id = generateRandomString(16);
+    const request_id = generateRandomString(this.requestIdLength);
 
     const hashedPassword = await this.hashingService.hash(new_password);
 
