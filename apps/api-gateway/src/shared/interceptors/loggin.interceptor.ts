@@ -22,6 +22,7 @@ const REDACT_KEYS = [
   'refresh_token',
   'newPassword',
   'new_password',
+  'current_password',
   'code',
   'otp',
   'pin',
@@ -39,7 +40,6 @@ const EXCLUDED_ENDPOINTS = [
   '/health',
   '/metrics',
   '/api/client/business/nearby',
-  '/api/client/auth/refresh',
   '/api/webhooks/stripe',
 ];
 

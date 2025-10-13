@@ -1,18 +1,24 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
-import { CurrentUser } from '@app/shared/types/app-request';
-import { Controller, Get, Query, Res } from '@nestjs/common';
+import { AppRequest, CurrentUser } from '@app/shared/types/app-request';
+import { Controller, Get, Query, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { GetProfessionalStatementByIdDto } from './dto/requests/get-by-id.dto';
 import { GetStatementDto } from './dto/requests/get-statement.dto';
-import { GetStatementUseCase } from './use-cases';
+import {
+  GetProfessionalStatementByIdUseCase,
+  GetStatementUseCase,
+} from './use-cases';
 
 @Controller('professional/statement')
 @ApiTags('Professional Statement')
 export class StatementController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,
+
     private readonly getStatementUseCase: GetStatementUseCase,
+    private readonly getProfessionalStatementByIdUseCase: GetProfessionalStatementByIdUseCase,
   ) {}
 
   @Get()
@@ -27,6 +33,23 @@ export class StatementController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.getStatementUseCase.execute(query, user),
+      res,
+    });
+  }
+
+  @Get('by-id')
+  @ApiOperation({
+    summary: 'Get Professional Statement by ID',
+    description: 'Retrieve a professional statement by its unique ID.',
+  })
+  async getStatementById(
+    @Query() query: GetProfessionalStatementByIdDto,
+    @Req() req: AppRequest,
+    @Res() res: Response,
+  ) {
+    return await this.responseHandler.handle({
+      method: () =>
+        this.getProfessionalStatementByIdUseCase.execute(query, req),
       res,
     });
   }

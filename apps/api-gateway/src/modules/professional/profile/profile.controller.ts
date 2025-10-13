@@ -26,6 +26,8 @@ import {
 } from './use-cases';
 import { GetGeneralLinkByKeyUseCase } from './use-cases/get-general-link-by-key.use-case';
 import { GetGeneralLinksUseCase } from './use-cases/get-general-links.use-case';
+import { ReportBugUseCase } from './use-cases';
+import { ReportBugDto } from './dto/requests/report-bug.dto';
 
 @Controller('professional/profile')
 @ApiTags('Professional Profile')
@@ -37,6 +39,7 @@ export class ProfessionalProfileController {
     private readonly editProfileUseCase: EditProfessionalProfileUseCase,
     private readonly getGeneralLinksUseCase: GetGeneralLinksUseCase,
     private readonly getGeneralLinkByKeyUseCase: GetGeneralLinkByKeyUseCase,
+    private readonly reportBugUseCase: ReportBugUseCase,
   ) {}
 
   @Post('profile-image')
@@ -104,6 +107,20 @@ export class ProfessionalProfileController {
     return await this.responseHandler.handle({
       method: () => this.getGeneralLinkByKeyUseCase.execute(query),
       res,
+    });
+  }
+
+  @Post('report-bug')
+  @ApiOperation({ summary: 'Report a bug' })
+  async reportBug(
+    @Req() req: AppRequest,
+    @Body() dto: ReportBugDto,
+    @Res() res: Response,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.reportBugUseCase.execute(dto, req),
+      res,
+      successStatus: 201,
     });
   }
 }

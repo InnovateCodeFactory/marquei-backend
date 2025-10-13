@@ -182,6 +182,7 @@ model ProfessionalProfile {
 
   @@index([business_id], name: "idx_professional_business")
   @@index([userId], name: "idx_professional_user")
+  @@index([business_id, id], name: "idx_professional_business_id")
 }
 
 model ProfessionalService {
@@ -218,6 +219,7 @@ model ProfessionalStatement {
 
   @@index([professionalProfileId], name: "idx_professional_statement_profile")
   @@index([businessId], name: "idx_professional_statement_business")
+  @@index([businessId, type, created_at], name: "idx_ps_business_type_created_at")
 }
 
 model Appointment {
@@ -333,6 +335,7 @@ model BusinessCustomer {
   @@unique([businessId, personId], name: "uq_business_person")
   @@index([businessId], name: "idx_bc_business")
   @@index([personId], name: "idx_bc_person")
+  @@index([businessId, created_at], name: "idx_bc_business_created_at")
 }
 
 model BusinessCategory {
