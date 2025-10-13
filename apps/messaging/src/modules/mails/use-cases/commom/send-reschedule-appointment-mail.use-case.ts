@@ -45,7 +45,6 @@ export class SendRescheduleAppointmentMailUseCase {
       );
       return;
     }
-    console.log('entrou no use case de envio de email');
     try {
       const template = await this.prisma.mailTemplate.findFirst({
         where: {
