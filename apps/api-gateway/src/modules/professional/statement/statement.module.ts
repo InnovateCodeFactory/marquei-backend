@@ -1,10 +1,12 @@
-import { ResponseHandlerService } from '@app/shared/services';
 import { Module } from '@nestjs/common';
 import { StatementController } from './statement.controller';
-import { GetStatementUseCase } from './use-cases';
+import {
+  GetProfessionalStatementByIdUseCase,
+  GetStatementUseCase,
+} from './use-cases';
 
 @Module({
   controllers: [StatementController],
-  providers: [ResponseHandlerService, GetStatementUseCase],
+  providers: [GetStatementUseCase, GetProfessionalStatementByIdUseCase],
 })
 export class StatementModule {}

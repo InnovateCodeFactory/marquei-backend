@@ -8,6 +8,7 @@ import {
 } from './use-cases';
 import { GetGeneralLinksUseCase } from './use-cases/get-general-links.use-case';
 import { GetGeneralLinkByKeyUseCase } from './use-cases/get-general-link-by-key.use-case';
+import { ReportBugUseCase } from './use-cases';
 
 @Module({
   controllers: [ProfessionalProfileController],
@@ -18,6 +19,7 @@ import { GetGeneralLinkByKeyUseCase } from './use-cases/get-general-link-by-key.
     UploadProfessionalProfilePictureUseCase,
     GetGeneralLinksUseCase,
     GetGeneralLinkByKeyUseCase,
+    ReportBugUseCase,
   ],
 })
 export class ProfessionalProfileModule {}
