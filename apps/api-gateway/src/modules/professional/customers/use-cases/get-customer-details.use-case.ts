@@ -20,6 +20,7 @@ export class GetCustomerDetailsUseCase {
         created_at: true,
         verified: true,
         notes: true,
+        is_blocked: true,
 
         person: {
           select: {
@@ -75,6 +76,7 @@ export class GetCustomerDetailsUseCase {
         : null,
       notes: bc.notes,
       verified: bc.verified,
+      isBlocked: bc.is_blocked,
 
       total_appointments_count: String(totalAppointments),
       pending_appointments_count: String(pendingAppointments),
