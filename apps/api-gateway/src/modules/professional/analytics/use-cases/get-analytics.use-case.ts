@@ -127,7 +127,7 @@ export class ProfessionalAnalyticsUseCase {
     });
 
     const payload = { metricCards, revenueSeries };
-    await this.setToCache({ key: cachedKey, data: payload });
+    // await this.setToCache({ key: cachedKey, data: payload });
     return payload;
   }
 

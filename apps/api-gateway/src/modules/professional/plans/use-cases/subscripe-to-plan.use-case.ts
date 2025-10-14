@@ -53,6 +53,39 @@ export class SubscribeToPlanUseCase {
 
     const business = isTheUserOwner;
 
+    // Check if business already has an active subscription in our DB
+    const activeLocalSub = await this.prismaService.businessSubscription.findFirst({
+      where: {
+        businessId: business.id,
+        status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] },
+      },
+      select: { id: true },
+    });
+
+    if (activeLocalSub) {
+      // Perform upgrade in Stripe (proration + reset cycle)
+      const result: { updated?: boolean } | null =
+        await this.rmqService.requestFromQueue({
+          routingKey:
+            PAYMENT_QUEUES.USE_CASES.UPGRADE_STRIPE_SUBSCRIPTION_QUEUE,
+          payload: {
+            price_id: payload.price_id,
+            stripe_customer_id: business.stripe_customer_id,
+            proration: 'create_prorations',
+            reset_cycle_now: true,
+          },
+        });
+
+      if (!result || result.updated === false)
+        throw new InternalServerErrorException(
+          'Erro ao atualizar assinatura. Tente novamente mais tarde.',
+        );
+
+      // No Checkout URL for upgrade path
+      return { url: null } as any;
+    }
+
+    // No active sub: create a new subscription via Checkout
     const subscription: { url: string } | null =
       await this.rmqService.requestFromQueue({
         routingKey: PAYMENT_QUEUES.USE_CASES.CREATE_STRIPE_SUBSCRIPTION_QUEUE,
@@ -69,8 +102,6 @@ export class SubscribeToPlanUseCase {
       );
 
     const { url } = subscription;
-    return {
-      url,
-    };
+    return { url };
   }
 }

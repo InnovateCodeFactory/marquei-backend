@@ -6,6 +6,7 @@ import { STRIPE_PAYMENT_GATEWAY } from './stripe.constants';
 import { CreateCustomerUseCase } from './use-cases/create-customer.use-case';
 import { CreateSetupIntentUseCase } from './use-cases/create-setup-intent';
 import { CreateSubscriptionUseCase } from './use-cases/create-subscription.use-case';
+import { UpgradeSubscriptionUseCase } from './use-cases/upgrade-subscription.use-case';
 import { InvoicePaymentSucceeded } from './webhooks/invoice/invoice.payment-succeeded';
 import { InvoiceWebhook } from './webhooks/invoice/invoice.webhook';
 import { StripeWebhookHandler } from './webhooks/stripe-webhook-handler';
@@ -28,6 +29,7 @@ import { StripeWebhookHandler } from './webhooks/stripe-webhook-handler';
     InvoicePaymentSucceeded,
     CreateSubscriptionUseCase,
     CreateSetupIntentUseCase,
+    UpgradeSubscriptionUseCase,
   ],
   exports: [STRIPE_PAYMENT_GATEWAY],
 })

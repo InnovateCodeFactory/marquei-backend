@@ -13,6 +13,8 @@ export const PAYMENT_QUEUES = {
     CREATE_STRIPE_SUBSCRIPTION_QUEUE:
       'payment.create_stripe_subscription_queue',
     STRIPE_SETUP_INTENT_QUEUE: 'payment.stripe_setup_intent_queue',
+    UPGRADE_STRIPE_SUBSCRIPTION_QUEUE:
+      'payment.upgrade_stripe_subscription_queue',
   },
 };
 

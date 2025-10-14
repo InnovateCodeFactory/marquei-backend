@@ -117,7 +117,7 @@ export class InvoicePaymentSucceeded {
     invoice: Stripe.Invoice;
     commonData: PaymentCreate; // <— aqui!
   }) {
-    const { start, end } = this.getPeriodFromFirstLine(invoice);
+    const { start, end } = this.getPeriodFromMainLine(invoice);
     const subscriptionId = this.getStripeSubscriptionId(invoice);
 
     const business = await this.prisma.business.findFirst({
@@ -171,7 +171,7 @@ export class InvoicePaymentSucceeded {
       return;
     }
 
-    const { start, end } = this.getPeriodFromFirstLine(invoice);
+    const { start, end } = this.getPeriodFromMainLine(invoice);
     const subscriptionId = this.getStripeSubscriptionId(invoice);
 
     const updates: any = {
@@ -233,21 +233,15 @@ export class InvoicePaymentSucceeded {
   }
 
   private async getPlanFromInvoice(invoice: Stripe.Invoice) {
-    const firstLine = invoice.lines.data?.[0];
-    if (!firstLine) throw new Error(`Invoice ${invoice.id} sem linhas`);
+    const line = this.getSubscriptionLine(invoice);
+    if (!line) throw new Error(`Invoice ${invoice.id} sem linhas válidas`);
 
-    // Com expand ['lines.data.price'], o tipo seguro é:
-    // firstLine.price: Stripe.Price | null
-    const priceObj = (firstLine as any).price as
-      | Stripe.Price
-      | null
-      | undefined;
+    // Tente via expand lines.data.price (Stripe.Price) primeiro
+    const priceObj = (line as any).price as Stripe.Price | string | null | undefined;
     const priceId =
-      typeof priceObj === 'string'
-        ? priceObj
-        : (priceObj?.id ??
-          // fallback pro seu payload antigo:
-          (firstLine as any)?.pricing?.price_details?.price);
+      (typeof priceObj === 'string' ? priceObj : priceObj?.id) ??
+      // Fallback para shape alternativo (pricing.price_details.price)
+      (line as any)?.pricing?.price_details?.price;
 
     if (!priceId)
       throw new Error(
@@ -261,28 +255,46 @@ export class InvoicePaymentSucceeded {
     return plan;
   }
 
-  /** Extrai o período do ciclo a partir da PRIMEIRA linha da invoice */
-  private getPeriodFromFirstLine(invoice: Stripe.Invoice): {
+  /** Extrai o período do ciclo a partir da linha principal de assinatura (não-proration) */
+  private getPeriodFromMainLine(invoice: Stripe.Invoice): {
     start?: number;
     end?: number;
   } {
-    const line = invoice.lines?.data?.[0] as any;
+    const line = this.getSubscriptionLine(invoice) as any;
     const start = line?.period?.start as number | undefined;
     const end = line?.period?.end as number | undefined;
     return { start, end };
   }
 
-  /** Obtém subscriptionId do shape que você mostrou (parent.subscription_details) com fallback para a linha */
+  /** Obtém subscriptionId do parent.subscription_details com fallback para a linha principal */
   private getStripeSubscriptionId(invoice: Stripe.Invoice): string | undefined {
     const fromParent = (invoice as any)?.parent?.subscription_details
       ?.subscription;
     if (typeof fromParent === 'string') return fromParent;
 
-    const fromLine = (invoice.lines?.data?.[0] as any)?.parent
-      ?.subscription_item_details?.subscription;
+    const mainLine = this.getSubscriptionLine(invoice) as any;
+    const fromLine = mainLine?.parent?.subscription_item_details?.subscription;
     if (typeof fromLine === 'string') return fromLine;
 
     return undefined;
+  }
+
+  /** Seleciona a linha de assinatura relevante: prefere não-proration; senão maior amount positivo; senão primeira */
+  private getSubscriptionLine(invoice: Stripe.Invoice) {
+    const lines = (invoice.lines?.data ?? []) as any[];
+    if (!lines.length) return undefined;
+
+    const nonProration = lines.find(
+      (l) => l?.parent?.subscription_item_details?.proration === false,
+    );
+    if (nonProration) return nonProration;
+
+    const positiveMax = lines
+      .filter((l) => typeof l?.amount === 'number' && l.amount > 0)
+      .sort((a, b) => b.amount - a.amount)[0];
+    if (positiveMax) return positiveMax;
+
+    return lines[0];
   }
 
   private async createWebhookLog(event: Stripe.Event) {
