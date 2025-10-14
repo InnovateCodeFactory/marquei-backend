@@ -36,6 +36,7 @@ export class UpdateCustomerUseCase {
       notes: payload.notes || null,
       email: payload.email || null,
       phone: payload.phone || null,
+      is_blocked: payload.isBlocked,
     });
 
     // Atualiza apenas se tiver campos

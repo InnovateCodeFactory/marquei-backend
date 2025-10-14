@@ -321,6 +321,7 @@ model BusinessCustomer {
   // Propriedades específicas do relacionamento com o negócio
   notes    String?
   verified Boolean @default(false)
+  is_blocked Boolean @default(false)
 
   // Caso queira manter email/phone “do cadastro do negócio”, deixe como sombra/opcional
   email String?
