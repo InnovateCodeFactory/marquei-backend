@@ -640,8 +640,7 @@ model SystemGeneralSettings {
   marquei_pro_play_store_url   String? // URL do Google Play (Android)
   default_business_image       String? // Imagem padrão para negócios sem logo/capa
   default_business_cover_image String? // Imagem padrão para negócios sem logo/capa
-  default_user_image           String? // Imagem padrão para usuários sem avatar
-  default_professional_image   String? // Imagem padrão para profissionais sem avatar
+  default_image                String? // Imagem padrão para usuários sem avatar
   maintenance_mode             Boolean @default(false) // Modo de manutenção ativo?
   maintenance_message          String? // Mensagem exibida durante o modo de manutenção
 
