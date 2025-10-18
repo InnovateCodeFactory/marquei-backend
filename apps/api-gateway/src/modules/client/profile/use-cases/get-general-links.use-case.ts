@@ -1,36 +1,26 @@
-import { PrismaService } from '@app/shared';
 import { FileSystemService } from '@app/shared/services';
+import { systemGeneralSettings } from '@app/shared/config/system-general-settings';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class GetGeneralLinksUseCase {
   constructor(
-    private readonly prismaService: PrismaService,
     private readonly fileSystem: FileSystemService,
   ) {}
 
   async execute() {
-    const links = await this.prismaService.systemGeneralSettings.findFirst({
-      select: {
-        instagram_url: true,
-        linkedin_url: true,
-        privacy_policy_url: true,
-        terms_of_service_url: true,
-        whatsapp_number: true,
-      },
-    });
+    const privacy = systemGeneralSettings.privacy_policy_url;
+    const terms = systemGeneralSettings.terms_of_service_url;
 
     return {
-      ...links,
-      privacy_policy_url: links?.privacy_policy_url
-        ? this.fileSystem.getPublicUrl({
-            key: links.privacy_policy_url,
-          })
+      instagram_url: systemGeneralSettings.instagram_url,
+      linkedin_url: systemGeneralSettings.linkedin_url,
+      whatsapp_number: systemGeneralSettings.whatsapp_number,
+      privacy_policy_url: privacy
+        ? this.fileSystem.getPublicUrl({ key: privacy })
         : null,
-      terms_of_service_url: links?.terms_of_service_url
-        ? this.fileSystem.getPublicUrl({
-            key: links.terms_of_service_url,
-          })
+      terms_of_service_url: terms
+        ? this.fileSystem.getPublicUrl({ key: terms })
         : null,
     };
   }
