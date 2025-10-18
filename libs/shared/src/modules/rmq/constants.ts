@@ -21,6 +21,7 @@ export const PAYMENT_QUEUES = {
 export const MESSAGING_QUEUES = {
   IN_APP_NOTIFICATIONS: {
     WELCOME_QUEUE: 'messaging.in_app_notifications.welcome_queue',
+    NEW_APPOINTMENT_QUEUE: 'messaging.in_app_notifications.new_appointment_queue',
   },
   PUSH_NOTIFICATIONS: {
     APPOINTMENT_CREATED_QUEUE:

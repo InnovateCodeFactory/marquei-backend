@@ -1,13 +1,15 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { Controller, Get, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { MarkNotificationAsReadDto } from './dto/mark-notification-as-read.dto';
 import {
   GetNotificationsUseCase,
   HasUnreadNotificationsUseCase,
   MarkAllInAppNotificationsAsReadUseCase,
+  MarkNotificationAsReadUseCase,
 } from './use-cases';
 
 @Controller('professional/in-app-notifications')
@@ -18,6 +20,7 @@ export class InAppNotificationsController {
     private readonly hasUnreadNotificationsUseCase: HasUnreadNotificationsUseCase,
     private readonly getNotificationsUseCase: GetNotificationsUseCase,
     private readonly markAllInAppNotificationsAsReadUseCase: MarkAllInAppNotificationsAsReadUseCase,
+    private readonly markNotificationAsReadUseCase: MarkNotificationAsReadUseCase,
   ) {}
 
   @Get('has-unread-notifications')
@@ -64,6 +67,23 @@ export class InAppNotificationsController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.markAllInAppNotificationsAsReadUseCase.execute(user),
+      res,
+    });
+  }
+
+  @Post('mark-as-read')
+  @ApiOperation({
+    summary: 'Mark a single in-app notification as read',
+    description:
+      'This endpoint marks a specific in-app notification as read for the professional.',
+  })
+  async markAsRead(
+    @Res() res: Response,
+    @Body() body: MarkNotificationAsReadDto,
+    @CurrentUserDecorator() user: CurrentUser,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.markNotificationAsReadUseCase.execute(body, user),
       res,
     });
   }

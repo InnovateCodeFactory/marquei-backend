@@ -147,6 +147,7 @@ model Service {
   price_in_cents Int // preço padrão do serviço
   businessId     String
   business       Business              @relation(fields: [businessId], references: [id])
+  is_active      Boolean               @default(true)
   appointments   Appointment[]
   professionals  ProfessionalService[] // relação com a pivot
   created_at     DateTime              @default(now())
@@ -319,8 +320,8 @@ model BusinessCustomer {
   personId   String
 
   // Propriedades específicas do relacionamento com o negócio
-  notes    String?
-  verified Boolean @default(false)
+  notes      String?
+  verified   Boolean @default(false)
   is_blocked Boolean @default(false)
 
   // Caso queira manter email/phone “do cadastro do negócio”, deixe como sombra/opcional

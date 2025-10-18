@@ -14,6 +14,7 @@ export class GetServicesUseCase {
     const skip = (page - 1) * limit;
 
     const where = {
+      is_active: true,
       business: {
         slug: query.slug,
       },

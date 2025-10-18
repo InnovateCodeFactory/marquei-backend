@@ -1,7 +1,7 @@
 import { ResponseHandlerService } from '@app/shared/services';
 import { Module } from '@nestjs/common';
 import { ServicesController } from './services.controller';
-import { CreateServiceUseCase, GetServicesUseCase } from './use-cases';
+import { CreateServiceUseCase, GetServicesUseCase, SoftDeleteServiceUseCase, UpdateServiceUseCase } from './use-cases';
 import { DeleteServiceUseCase } from './use-cases/delete-service.use-case';
 
 @Module({
@@ -11,6 +11,8 @@ import { DeleteServiceUseCase } from './use-cases/delete-service.use-case';
     CreateServiceUseCase,
     GetServicesUseCase,
     DeleteServiceUseCase,
+    UpdateServiceUseCase,
+    SoftDeleteServiceUseCase,
   ],
 })
 export class ServicesModule {}

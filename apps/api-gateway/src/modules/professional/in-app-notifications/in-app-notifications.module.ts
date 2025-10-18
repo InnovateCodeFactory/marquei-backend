@@ -5,6 +5,7 @@ import {
   GetNotificationsUseCase,
   HasUnreadNotificationsUseCase,
   MarkAllInAppNotificationsAsReadUseCase,
+  MarkNotificationAsReadUseCase,
 } from './use-cases';
 
 @Module({
@@ -14,6 +15,7 @@ import {
     HasUnreadNotificationsUseCase,
     GetNotificationsUseCase,
     MarkAllInAppNotificationsAsReadUseCase,
+    MarkNotificationAsReadUseCase,
   ],
 })
 export class InAppNotificationsModule {}

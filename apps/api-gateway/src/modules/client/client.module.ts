@@ -6,6 +6,7 @@ import { CustomerAppointmentsModule } from './customer-appointments/customer-app
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { ProfileModule } from './profile/profile.module';
 import { FavoritesModule } from './favorites/favorites.module';
+import { InAppNotificationsModule } from './in-app-notifications/in-app-notifications.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { FavoritesModule } from './favorites/favorites.module';
     BusinessRatingModule,
     OnboardingModule,
     FavoritesModule,
+    InAppNotificationsModule,
   ],
 })
 export class ClientModule {}

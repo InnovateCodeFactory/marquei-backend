@@ -4,6 +4,8 @@ import { ProfessionalsController } from './professionals.controller';
 import {
   CreateProfessionalUseCase,
   GetProfessionalsUseCase,
+  SoftDeleteProfessionalUseCase,
+  UpdateProfessionalUseCase,
 } from './use-cases';
 
 @Module({
@@ -13,6 +15,8 @@ import {
     HashingService,
     GetProfessionalsUseCase,
     CreateProfessionalUseCase,
+    UpdateProfessionalUseCase,
+    SoftDeleteProfessionalUseCase,
   ],
 })
 export class ProfessionalsModule {}

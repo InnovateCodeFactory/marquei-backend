@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/shared';
+import { NewAppointmentNotificationDto } from '@app/shared/dto/messaging/in-app-notifications';
 import { SendNewAppointmentProfessionalDto } from '@app/shared/dto/messaging/mail-notifications/send-new-appointment-professional.dto';
 import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifications';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
@@ -124,6 +125,15 @@ export class CreateAppointmentUseCase {
         }),
         routingKey:
           MESSAGING_QUEUES.PUSH_NOTIFICATIONS.APPOINTMENT_CREATED_QUEUE,
+      }),
+      this.rmqService.publishToQueue({
+        payload: new NewAppointmentNotificationDto({
+          title: titleAndBody.title,
+          body: titleAndBody.body,
+          professionalProfileId: professional_id,
+        }),
+        routingKey:
+          MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.NEW_APPOINTMENT_QUEUE,
       }),
       this.rmqService.publishToQueue({
         payload: {

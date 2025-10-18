@@ -20,8 +20,9 @@ export class GetServicesUseCase {
     const skip = (pageNumber - 1) * pageSize;
 
     const whereClause: any = {
+      is_active: true,
       business: {
-        slug: currentUser.current_selected_business_slug,
+        slug: current_selected_business_slug,
       },
     };
 

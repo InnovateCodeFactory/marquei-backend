@@ -37,6 +37,7 @@ export class GetProfessionalsUseCase {
             select: {
               id: true,
               name: true,
+              email: true,
               first_access: true,
             },
           },
@@ -49,6 +50,7 @@ export class GetProfessionalsUseCase {
         professional_profile_id: professional.id,
         avatar: this.fs.getPublicUrl({ key: professional.profile_image }),
         name: getTwoNames(professional.User.name),
+        email: professional.User.email,
         phone: formatPhoneNumber(professional.phone),
         first_access: professional.User.first_access,
         status: professional.status,

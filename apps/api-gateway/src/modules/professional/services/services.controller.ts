@@ -6,6 +6,7 @@ import {
   Controller,
   Delete,
   Get,
+  Patch,
   Post,
   Query,
   Res,
@@ -15,7 +16,9 @@ import { Response } from 'express';
 import { CreateServiceDto } from './dto/requests/create-service.dto';
 import { DeleteServiceDto } from './dto/requests/delete-service.dto';
 import { GetServicesDto } from './dto/requests/get-services.dto';
-import { CreateServiceUseCase, GetServicesUseCase } from './use-cases';
+import { SoftDeleteServiceDto } from './dto/requests/soft-delete-service.dto';
+import { UpdateServiceDto } from './dto/requests/update-service.dto';
+import { CreateServiceUseCase, GetServicesUseCase, SoftDeleteServiceUseCase, UpdateServiceUseCase } from './use-cases';
 import { DeleteServiceUseCase } from './use-cases/delete-service.use-case';
 
 @Controller('professional/services')
@@ -26,6 +29,8 @@ export class ServicesController {
     private readonly createServiceUseCase: CreateServiceUseCase,
     private readonly getServicesUseCase: GetServicesUseCase,
     private readonly deleteServiceUseCase: DeleteServiceUseCase,
+    private readonly updateServiceUseCase: UpdateServiceUseCase,
+    private readonly softDeleteServiceUseCase: SoftDeleteServiceUseCase,
   ) {}
 
   @Post('create-service')
@@ -71,6 +76,38 @@ export class ServicesController {
   ) {
     return await this.responseHandlerService.handle({
       method: () => this.deleteServiceUseCase.execute(query, currentUser),
+      res,
+      successStatus: 204,
+    });
+  }
+
+  @Patch('update-service')
+  @ApiOperation({
+    summary: 'Update a service',
+  })
+  async updateService(
+    @Res() res: Response,
+    @Body() body: UpdateServiceDto,
+    @CurrentUserDecorator() currentUser: CurrentUser,
+  ) {
+    return await this.responseHandlerService.handle({
+      method: () => this.updateServiceUseCase.execute(body, currentUser),
+      res,
+      successStatus: 200,
+    });
+  }
+
+  @Delete('soft-delete-service')
+  @ApiOperation({
+    summary: 'Soft delete a service',
+  })
+  async softDeleteService(
+    @Res() res: Response,
+    @Body() body: SoftDeleteServiceDto,
+    @CurrentUserDecorator() currentUser: CurrentUser,
+  ) {
+    return await this.responseHandlerService.handle({
+      method: () => this.softDeleteServiceUseCase.execute(body, currentUser),
       res,
       successStatus: 204,
     });
