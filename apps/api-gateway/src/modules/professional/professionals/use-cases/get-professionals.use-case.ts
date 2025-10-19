@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/shared';
+import { systemGeneralSettings } from '@app/shared/config/system-general-settings';
 import { ProfessionalStatus } from '@app/shared/enum';
 import { FileSystemService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
@@ -48,7 +49,11 @@ export class GetProfessionalsUseCase {
     return (
       professionals?.map((professional) => ({
         professional_profile_id: professional.id,
-        avatar: this.fs.getPublicUrl({ key: professional.profile_image }),
+        avatar: professional.profile_image
+          ? this.fs.getPublicUrl({ key: professional.profile_image })
+          : this.fs.getPublicUrl({
+              key: systemGeneralSettings.default_image_avatar,
+            }),
         name: getTwoNames(professional.User.name),
         email: professional.User.email,
         phone: formatPhoneNumber(professional.phone),
