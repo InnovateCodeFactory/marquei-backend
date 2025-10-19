@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.9"
 
 services:
   api-gateway:
@@ -11,9 +11,10 @@ services:
     container_name: api-gateway
     restart: always
     ports:
-      - '3000:3000'
+      - "3000:3000"
     environment:
       - PORT=3000
+    env_file: .env
     networks:
       - rabbit_external_network
       - redis_external_network
@@ -29,6 +30,7 @@ services:
     restart: always
     environment:
       - PORT=3001
+    env_file: .env
     networks:
       - rabbit_external_network
       - redis_external_network
@@ -44,6 +46,23 @@ services:
     restart: always
     environment:
       - PORT=3002
+    env_file: .env
+    networks:
+      - rabbit_external_network
+      - redis_external_network
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: apps/scheduler/Dockerfile
+      args:
+        APP_NAME: scheduler
+        APP_PORT: 3003
+    container_name: scheduler
+    restart: always
+    environment:
+      - PORT=3003
+    env_file: .env
     networks:
       - rabbit_external_network
       - redis_external_network

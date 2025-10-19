@@ -1,28 +1,24 @@
 import { PrismaService } from '@app/shared';
-import { NewAppointmentNotificationDto } from '@app/shared/dto/messaging/in-app-notifications';
+import { SendInAppNotificationDto } from '@app/shared/dto/messaging/in-app-notifications';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger } from '@nestjs/common';
 
 @Injectable()
-export class NewAppointmentNotificationUseCase {
-  private readonly logger = new Logger(NewAppointmentNotificationUseCase.name);
+export class SendInAppNotificationUseCase {
+  private readonly logger = new Logger(SendInAppNotificationUseCase.name);
 
   constructor(private readonly prismaService: PrismaService) {}
 
   @RabbitSubscribe({
     exchange: RABBIT_EXCHANGE,
-    routingKey: MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.NEW_APPOINTMENT_QUEUE,
-    queue: MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.NEW_APPOINTMENT_QUEUE,
+    routingKey: MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
+    queue: MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
   })
-  async execute({
-    message,
-    professionalProfileId,
-    title,
-  }: NewAppointmentNotificationDto) {
+  async execute({ title, message, professionalProfileId }: SendInAppNotificationDto) {
     this.logger.debug(
-      `Received new appointment notification for professional profile ID: ${professionalProfileId}`,
+      `Received in-app notification for professional profile ID: ${professionalProfileId}`,
     );
 
     try {
@@ -44,8 +40,9 @@ export class NewAppointmentNotificationUseCase {
     } catch (error) {
       this.logger.error(
         `Failed to create in-app notification for professional profile ID: ${professionalProfileId}`,
-        error,
+        (error as any)?.stack || error,
       );
     }
   }
 }
+

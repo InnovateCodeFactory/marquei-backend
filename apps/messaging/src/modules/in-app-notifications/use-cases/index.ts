@@ -1,2 +1,1 @@
-export * from './welcome.use-case';
-export * from './new-appointment.use-case';
+export * from './send-in-app-notification.use-case';

@@ -1,7 +1,8 @@
 import { PrismaService } from '@app/shared';
-import { NewAppointmentNotificationDto } from '@app/shared/dto/messaging/in-app-notifications';
+import { SendInAppNotificationDto } from '@app/shared/dto/messaging/in-app-notifications';
 import { SendNewAppointmentProfessionalDto } from '@app/shared/dto/messaging/mail-notifications/send-new-appointment-professional.dto';
 import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifications';
+import { AppointmentStatusEnum } from '@app/shared/enum';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import {
   RABBIT_EXCHANGE,
@@ -57,6 +58,9 @@ export class CreateAppointmentUseCase {
         professionalProfileId: professional_id,
         start_at_utc: { lt: endUtc },
         end_at_utc: { gt: startUtc },
+        status: {
+          in: [AppointmentStatusEnum.PENDING, AppointmentStatusEnum.CONFIRMED],
+        },
       },
       select: { id: true },
     });
@@ -123,17 +127,16 @@ export class CreateAppointmentUseCase {
           body: titleAndBody.body,
           title: titleAndBody.title,
         }),
-        routingKey:
-          MESSAGING_QUEUES.PUSH_NOTIFICATIONS.APPOINTMENT_CREATED_QUEUE,
+        routingKey: MESSAGING_QUEUES.PUSH_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
       }),
       this.rmqService.publishToQueue({
-        payload: new NewAppointmentNotificationDto({
+        payload: new SendInAppNotificationDto({
           title: titleAndBody.title,
           body: titleAndBody.body,
           professionalProfileId: professional_id,
         }),
         routingKey:
-          MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.NEW_APPOINTMENT_QUEUE,
+          MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
       }),
       this.rmqService.publishToQueue({
         payload: {

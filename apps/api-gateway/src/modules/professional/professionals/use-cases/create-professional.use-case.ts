@@ -1,5 +1,6 @@
 import { PrismaService } from '@app/shared';
-import { WelcomeMessageDto } from '@app/shared/dto/messaging/in-app-notifications';
+import { SendInAppNotificationDto } from '@app/shared/dto/messaging/in-app-notifications';
+import { getFirstName } from '@app/shared/utils';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { HashingService } from '@app/shared/services';
@@ -119,9 +120,11 @@ export class CreateProfessionalUseCase {
     // Enviar email ao profissional com a senha temporária
     await Promise.all([
       this.rmqService.publishToQueue({
-        routingKey: MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.WELCOME_QUEUE,
-        payload: new WelcomeMessageDto({
-          professionalName: payload.name,
+        routingKey:
+          MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
+        payload: new SendInAppNotificationDto({
+          title: 'Bem-vindo(a) ao Marquei!',
+          body: `Olá ${getFirstName(payload.name)}, seja bem-vindo(a) ao Marquei! Estamos felizes em tê-lo(a) conosco!`,
           professionalProfileId: professional.id,
         }),
       }),

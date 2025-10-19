@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/shared';
+import { AppointmentStatusEnum } from '@app/shared/enum';
 import { TZDate, tz } from '@date-fns/tz';
 import {
   BadRequestException,
@@ -157,6 +158,9 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
         professionalProfileId: professional_id,
         start_at_utc: { lt: dayEndUtc },
         end_at_utc: { gt: dayStartUtc },
+        status: {
+          in: [AppointmentStatusEnum.PENDING, AppointmentStatusEnum.CONFIRMED],
+        },
       },
       select: {
         start_at_utc: true,

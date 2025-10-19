@@ -1,5 +1,5 @@
 import { PrismaService } from '@app/shared';
-import { WelcomeMessageDto } from '@app/shared/dto/messaging/in-app-notifications';
+import { SendInAppNotificationDto } from '@app/shared/dto/messaging/in-app-notifications';
 import { SendWelcomeMailDto } from '@app/shared/dto/messaging/mail-notifications';
 import { DaysOfWeek, SendMailTypeEnum } from '@app/shared/enum';
 import {
@@ -139,9 +139,11 @@ export class RegisterProfessionalUserUseCase {
 
     await Promise.all([
       this.rmqService.publishToQueue({
-        routingKey: MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.WELCOME_QUEUE,
-        payload: new WelcomeMessageDto({
-          professionalName: name,
+        routingKey:
+          MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
+        payload: new SendInAppNotificationDto({
+          title: 'Bem-vindo(a) ao Marquei!',
+          body: `Olá ${getFirstName(name)}, seja bem-vindo(a) ao Marquei! Estamos felizes em tê-lo(a) conosco!`,
           professionalProfileId: professionalProfile.id,
         }),
       }),

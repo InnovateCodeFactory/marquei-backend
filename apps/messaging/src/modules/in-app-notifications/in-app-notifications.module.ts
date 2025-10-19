@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { NewAppointmentNotificationUseCase, WelcomeUseCase } from './use-cases';
+import { SendInAppNotificationUseCase } from './use-cases';
 
 @Module({
-  providers: [WelcomeUseCase, NewAppointmentNotificationUseCase],
+  providers: [SendInAppNotificationUseCase],
 })
 export class InAppNotificationsModule {}
