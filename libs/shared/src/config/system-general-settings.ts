@@ -17,7 +17,7 @@ export type SystemGeneralSettings = {
   marquei_pro_play_store_url: string | null;
   default_business_image: string | null;
   default_business_cover_image: string | null;
-  default_image: string | null;
+  default_image_avatar: string | null;
   maintenance_mode: boolean;
   maintenance_message: string | null;
 };
@@ -71,7 +71,7 @@ export const systemGeneralSettings: Readonly<SystemGeneralSettings> =
     default_business_cover_image: str(
       (cfg as any).default_business_cover_image,
     ),
-    default_image: str((cfg as any).default_image),
+    default_image_avatar: str((cfg as any).default_image_avatar),
     maintenance_mode: bool((cfg as any).maintenance_mode, false),
     maintenance_message: str((cfg as any).maintenance_message),
   });
