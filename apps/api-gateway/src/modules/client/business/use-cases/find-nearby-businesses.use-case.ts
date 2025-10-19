@@ -46,10 +46,12 @@ export class FindNearbyBusinessesUseCase {
       radius = 30_000,
       page = 1,
       limit = 5,
+      preferred_content,
     } = payload;
 
     const offset = (page - 1) * limit;
     const categoryId = payload.category_id ?? null;
+    const preferredContent = preferred_content ?? null;
 
     // Uma única query: retorna linhas + total (COUNT OVER)
     const rows = await this.prisma.$queryRaw<RawRow[]>`
@@ -91,10 +93,30 @@ export class FindNearbyBusinessesUseCase {
   WHERE
     b.geo IS NOT NULL
     AND ST_DWithin(b.geo, (SELECT g FROM ref), ${radius})
-    -- 🔧 filtro opcional tipado
+    -- filtro de categoria
     AND (
       ${categoryId}::text IS NULL
       OR b."businessCategoryId" = ${categoryId}::text
+    )
+    -- filtro de conteúdo preferido
+    -- Regra:
+    -- - payload = MALE => retornar MALE e BOTH
+    -- - payload = FEMALE => retornar FEMALE e BOTH
+    -- - payload = BOTH => retornar todos (sem filtro)
+    -- - payload ausente => sem filtro
+    AND (
+      ${preferredContent}::text IS NULL
+      OR ${preferredContent}::text = 'BOTH'
+      OR (
+        ${preferredContent}::text = 'MALE' AND (
+          b."public_type" = 'MALE' OR b."public_type" = 'BOTH'
+        )
+      )
+      OR (
+        ${preferredContent}::text = 'FEMALE' AND (
+          b."public_type" = 'FEMALE' OR b."public_type" = 'BOTH'
+        )
+      )
     )
   ORDER BY distance_m ASC
   LIMIT ${limit} OFFSET ${offset};

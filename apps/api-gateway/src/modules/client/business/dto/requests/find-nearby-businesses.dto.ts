@@ -1,5 +1,12 @@
+import { BusinessPublicTypeEnum } from '@app/shared/enum';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class FindNearbyBusinessesDto {
   @IsNumber()
@@ -49,4 +56,12 @@ export class FindNearbyBusinessesDto {
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
   category_id?: string;
+
+  @IsEnum(BusinessPublicTypeEnum)
+  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'The public type of the business',
+    example: BusinessPublicTypeEnum.MALE,
+  })
+  preferred_content?: BusinessPublicTypeEnum;
 }

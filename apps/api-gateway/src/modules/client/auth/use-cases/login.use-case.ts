@@ -1,6 +1,10 @@
 import { PrismaService } from '@app/shared';
 import { EnvSchemaType } from '@app/shared/environment';
-import { FileSystemService, HashingService, TokenService } from '@app/shared/services';
+import {
+  FileSystemService,
+  HashingService,
+  TokenService,
+} from '@app/shared/services';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -35,6 +39,7 @@ export class LoginUseCase {
           select: {
             phone: true,
             profile_image: true,
+            preferred_content_genre: true,
           },
         },
       },
@@ -50,10 +55,11 @@ export class LoginUseCase {
       });
     }
 
-    const { accessToken, refreshToken } = await this.tokenService.issueTokenPair({
-      id: user.id,
-      user_type: 'CUSTOMER',
-    });
+    const { accessToken, refreshToken } =
+      await this.tokenService.issueTokenPair({
+        id: user.id,
+        user_type: 'CUSTOMER',
+      });
 
     return {
       token: accessToken,
@@ -65,7 +71,9 @@ export class LoginUseCase {
         id: user.id,
         has_push_token: !!user.push_token,
         profile_image,
+        preferred_content_genre: user.person.preferred_content_genre,
       },
+      should_open_content_modal: !!!user.person.preferred_content_genre,
     };
   }
 }
