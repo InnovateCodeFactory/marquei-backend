@@ -23,9 +23,7 @@ export type SystemGeneralSettings = {
 };
 
 function parseGeneralConfig(): Partial<SystemGeneralSettings> {
-  const raw = process.env.GENERAL_SYSTEM_CONFIG;
-  console.log({ raw });
-
+  const raw = process.env.GENERAL_CONFIG;
   if (!raw) return {};
   try {
     const parsed = JSON.parse(raw);

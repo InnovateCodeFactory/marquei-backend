@@ -24,8 +24,6 @@ export class GetGeneralLinkByKeyUseCase {
       | string
       | null;
 
-    console.log(value);
-
     // transform file keys for specific fields to public URLs
     const needsPublicUrl =
       key === 'privacy_policy_url' || key === 'terms_of_service_url';

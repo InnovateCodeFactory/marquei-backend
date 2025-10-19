@@ -1,12 +1,10 @@
-import { FileSystemService } from '@app/shared/services';
 import { systemGeneralSettings } from '@app/shared/config/system-general-settings';
+import { FileSystemService } from '@app/shared/services';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class GetGeneralLinksUseCase {
-  constructor(
-    private readonly fileSystem: FileSystemService,
-  ) {}
+  constructor(private readonly fileSystem: FileSystemService) {}
 
   async execute() {
     const privacy = systemGeneralSettings.privacy_policy_url;
