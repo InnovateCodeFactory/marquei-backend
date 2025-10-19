@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 export type SystemGeneralSettings = {
   contact_email: string | null;
   contact_phone: string | null;
@@ -21,7 +23,7 @@ export type SystemGeneralSettings = {
 };
 
 function parseGeneralConfig(): Partial<SystemGeneralSettings> {
-  const raw = process.env.GENERAL_SYSTEM_CONFIG;
+  const raw = process.env.GENERAL_CONFIG;
   if (!raw) return {};
   try {
     const parsed = JSON.parse(raw);
