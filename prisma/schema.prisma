@@ -105,12 +105,60 @@ model Business {
   BusinessCustomer         BusinessCustomer[]
   BusinessRating           BusinessRating[]
   Favorites                Favorite[]
+  BusinessReminderSettings BusinessReminderSettings?
+  ReminderJob              ReminderJob[]
 
   @@index([slug], name: "idx_business_slug")
   @@index([name], name: "idx_business_name")
   @@index([ownerId], name: "idx_business_owner")
   @@index([businessCategoryId], name: "idx_business_category")
   @@index([businessServiceTypeId], name: "idx_business_service_type")
+}
+
+model BusinessReminderSettings {
+  id         String   @id @default(cuid())
+  businessId String   @unique
+  business   Business @relation(fields: [businessId], references: [id])
+
+  // Ex.: [1440, 180, 60] => 24h, 3h e 1h antes
+  offsets_min_before Int[] @default([1440, 60])
+
+  // Canais habilitados para o negócio
+  channels ReminderChannel[] @default([PUSH])
+
+  timezone String @default("America/Sao_Paulo")
+
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model ReminderJob {
+  id               String            @id @default(cuid())
+  businessId       String
+  appointmentId    String
+  personId         String
+  channel          ReminderChannel
+  due_at_utc       DateTime // quando disparar (UTC)
+  scheduled_at_utc DateTime?
+  sent_at_utc      DateTime?
+  status           ReminderJobStatus @default(PENDING)
+  error            String?
+  attempts         Int               @default(0)
+  metadata         Json?
+
+  business    Business    @relation(fields: [businessId], references: [id])
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  person      Person      @relation(fields: [personId], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Evita duplicar o mesmo lembrete do mesmo agendamento/canal/hora
+  @@unique([appointmentId, channel, due_at_utc], name: "uq_job_apt_channel_due")
+  @@index([status, due_at_utc], name: "idx_job_status_due")
+  @@index([businessId], name: "idx_job_business")
+  @@index([appointmentId], name: "idx_job_appointment")
 }
 
 model BusinessRating {
@@ -248,6 +296,7 @@ model Appointment {
   personId              String
   events                AppointmentEvent[]
   ProfessionalStatement ProfessionalStatement[]
+  ReminderJob           ReminderJob[]
 
   @@index([service_id], name: "idx_appointment_service")
   @@index([personId], name: "idx_appointment_person")
@@ -296,6 +345,7 @@ model Person {
   Appointment       Appointment[]
   InAppNotification InAppNotification[]
   favorites         Favorite[]
+  ReminderJob       ReminderJob[]
 
   @@index([email], name: "idx_person_email")
 }
@@ -620,6 +670,22 @@ model Logs {
 
   @@index([user_id], name: "idx_logs_taxnumber")
   @@index([device_token], name: "idx_logs_device_token")
+}
+
+// ENUMS
+
+enum ReminderChannel {
+  PUSH
+  WHATSAPP
+}
+
+enum ReminderJobStatus {
+  PENDING
+  SCHEDULED
+  SENT
+  FAILED
+  CANCELED
+  SKIPPED
 }
 
 enum EmailValidationStatus {

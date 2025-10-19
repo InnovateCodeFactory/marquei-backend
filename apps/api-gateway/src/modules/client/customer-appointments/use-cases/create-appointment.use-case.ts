@@ -165,10 +165,6 @@ export class CreateAppointmentUseCase {
     return null;
   }
 
-  /**
-   * Converte a entrada (Date ou string) para TZDate no fuso do negócio (America/Sao_Paulo),
-   * interpretando a string como horário LOCAL (sem Z).
-   */
   private toTZDateLocal(input: Date | string): TZDate {
     if (input instanceof Date) {
       // Se vier Date, usamos o mesmo instante, mas "visto" no fuso local:
