@@ -1,11 +1,12 @@
 import { PrismaService } from '@app/shared';
 import { SendInAppNotificationDto } from '@app/shared/dto/messaging/in-app-notifications';
-import { getFirstName } from '@app/shared/utils';
+import { SendWhatsAppTextMessageDto } from '@app/shared/dto/messaging/whatsapp-notifications';
+import { BuildNewProfessionalMessage } from '@app/shared/messsage-builders';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { HashingService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { generateRandomString } from '@app/shared/utils';
+import { generateRandomString, getFirstName } from '@app/shared/utils';
 import {
   BadRequestException,
   ForbiddenException,
@@ -112,10 +113,15 @@ export class CreateProfessionalUseCase {
       },
       select: {
         id: true,
+        business: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
 
-    // Enviar mensagem no whatsapp ao profissional com a senha temporária
+    // Enviar mensagem no whatsapp ao profissional com a senha temporária - OK
     // Criar notificação para o profissional in_app de boas-vindas - OK
     // Enviar email ao profissional com a senha temporária
     await Promise.all([
@@ -126,6 +132,24 @@ export class CreateProfessionalUseCase {
           title: 'Bem-vindo(a) ao Marquei!',
           body: `Olá ${getFirstName(payload.name)}, seja bem-vindo(a) ao Marquei! Estamos felizes em tê-lo(a) conosco!`,
           professionalProfileId: professional.id,
+        }),
+      }),
+
+      this.rmqService.publishToQueue({
+        routingKey:
+          MESSAGING_QUEUES.WHATSAPP_NOTIFICATIONS.SEND_TEXT_MESSAGE_QUEUE,
+        payload: new SendWhatsAppTextMessageDto({
+          phone_number: payload.phone,
+          message: BuildNewProfessionalMessage.forWhatsapp({
+            name: getFirstName(payload.name),
+            business_name: professional.business.name,
+            username: payload.email,
+            password: temporary_password,
+            ios_link:
+              'https://apps.apple.com/br/app/marquei-agendamentos/id6444930241',
+            android_link:
+              'https://play.google.com/store/apps/details?id=com.marquei.agendamentos',
+          }),
         }),
       }),
     ]);

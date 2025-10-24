@@ -49,6 +49,8 @@ export const MESSAGING_QUEUES = {
   WHATSAPP_NOTIFICATIONS: {
     SEND_VALIDATION_TOKEN_QUEUE:
       'messaging.whatsapp_notifications.send_validation_token_queue',
+    SEND_TEXT_MESSAGE_QUEUE:
+      'messaging.whatsapp_notifications.send_text_message_queue',
   },
 };
 

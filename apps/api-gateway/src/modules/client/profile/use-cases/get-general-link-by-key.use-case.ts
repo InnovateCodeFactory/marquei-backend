@@ -14,8 +14,6 @@ export class GetGeneralLinkByKeyUseCase {
   constructor(private readonly fileSystem: FileSystemService) {}
 
   async execute({ key }: GetGeneralLinkDto) {
-    console.log({ key });
-
     if (!GENERAL_LINK_KEYS.includes(key)) {
       throw new BadRequestException('Invalid link key');
     }

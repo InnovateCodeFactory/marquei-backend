@@ -1,11 +1,18 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { SendValidationTokenUseCase } from './use-cases';
+import {
+  SendValidationTokenUseCase,
+  SendWhatsAppTextMessageUseCase,
+} from './use-cases';
 import { WhatsAppBaseService } from './whatsapp-base.service';
 
 @Module({
   imports: [HttpModule],
-  providers: [WhatsAppBaseService, SendValidationTokenUseCase],
+  providers: [
+    WhatsAppBaseService,
+    SendValidationTokenUseCase,
+    SendWhatsAppTextMessageUseCase,
+  ],
   exports: [WhatsAppBaseService],
 })
 export class WhatsappModule {}

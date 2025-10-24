@@ -23,7 +23,7 @@ export class SendValidationTokenUseCase {
   private readonly sessionId: string;
 
   constructor(
-    private readonly configService: ConfigService<EnvSchemaType, true>,
+    private readonly configService: ConfigService<EnvSchemaType>,
     private readonly whatsappBaseService: WhatsAppBaseService,
     private readonly prisma: PrismaService,
     private readonly encryptionService: EncryptionService,

@@ -3,12 +3,14 @@ import { RedisService } from '@app/shared/modules/redis/redis.service';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { SelectCurrentBusinessDto } from '../dto/requests/select-current-business.dto';
+import { FileSystemService } from '@app/shared/services';
 
 @Injectable()
 export class SelectCurrentBusinessUseCase {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly redis: RedisService,
+    private readonly fs: FileSystemService,
   ) {}
 
   async execute(payload: SelectCurrentBusinessDto, user: CurrentUser) {
@@ -48,6 +50,63 @@ export class SelectCurrentBusinessUseCase {
       }),
     ]);
 
-    return null;
+    // Load fresh user + business context to return to client
+    const [dbUser, business, professionalProfile] = await Promise.all([
+      this.prismaService.user.findUnique({
+        where: { id: user.id },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          document_number: true,
+          push_token: true,
+        },
+      }),
+      this.prismaService.business.findUnique({
+        where: { id: isUserInBusiness.id },
+        select: {
+          id: true,
+          slug: true,
+          ownerId: true,
+          name: true,
+          coverImage: true,
+          logo: true,
+        },
+      }),
+      this.prismaService.professionalProfile.findFirst({
+        where: { userId: user.id, business_id: isUserInBusiness.id },
+        select: {
+          profile_image: true,
+          phone: true,
+        },
+      }),
+    ]);
+
+    return {
+      user: dbUser && business
+        ? {
+            is_the_owner: business.ownerId === dbUser.id,
+            ...(business.slug && {
+              current_selected_business_slug: business.slug,
+              current_selected_business_name: business.name,
+            }),
+            has_push_token: dbUser.push_token !== null,
+            current_selected_business_cover_image: this.fs.getPublicUrl({
+              key: business.coverImage,
+            }),
+            current_selected_business_logo: this.fs.getPublicUrl({
+              key: business.logo,
+            }),
+            id: dbUser.id,
+            name: dbUser.name,
+            email: dbUser.email,
+            document_number: dbUser.document_number,
+            profile_image: this.fs.getPublicUrl({
+              key: professionalProfile?.profile_image || undefined,
+            }),
+            phone: professionalProfile?.phone ?? null,
+          }
+        : null,
+    };
   }
 }

@@ -14,7 +14,7 @@ import {
 
 @Injectable()
 export class PushNotificationsBaseService {
-  private readonly logger = new Logger();
+  private readonly logger = new Logger(PushNotificationsBaseService.name);
   private expo = new Expo();
 
   constructor() {
