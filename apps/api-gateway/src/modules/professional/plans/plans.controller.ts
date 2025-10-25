@@ -12,7 +12,7 @@ import { SubscribeToPlanUseCase } from './use-cases/subscribe-to-plan.use-case';
 import { UpgradePlanUseCase } from './use-cases/upgrade-plan.use-case';
 
 @Controller('professional/plans')
-@ApiTags('Plans')
+@ApiTags('Professional - Plans')
 export class PlansController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

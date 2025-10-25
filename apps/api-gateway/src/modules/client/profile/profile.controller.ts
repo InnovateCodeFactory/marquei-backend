@@ -32,7 +32,7 @@ import {
 } from './use-cases';
 
 @Controller('client/profile')
-@ApiTags('Client Profile')
+@ApiTags('Clients - Profile')
 export class ProfileController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

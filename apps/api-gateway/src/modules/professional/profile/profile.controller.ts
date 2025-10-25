@@ -30,7 +30,7 @@ import { ReportBugUseCase } from './use-cases';
 import { ReportBugDto } from './dto/requests/report-bug.dto';
 
 @Controller('professional/profile')
-@ApiTags('Professional Profile')
+@ApiTags('Professional - Profile')
 export class ProfessionalProfileController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

@@ -2,7 +2,7 @@ import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import { Body, Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { GetReviewSummaryDto } from './dto/get-reviews-summary.dto';
 import { GetReviewsDto } from './dto/get-reviews.dto';
@@ -14,6 +14,7 @@ import {
 } from './use-cases';
 
 @Controller('client/business-rating')
+@ApiTags('Clients - Business Rating')
 export class BusinessRatingController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,
@@ -21,7 +22,7 @@ export class BusinessRatingController {
     private readonly getReviewsUseCase: GetReviewsUseCase,
     private readonly getReviewSummaryUseCase: GetReviewSummaryUseCase,
   ) {}
-
+  // TODO: Refazer logica de criar profissional com conta
   @Post('rate')
   @ApiOperation({ summary: 'Avaliar um estabelecimento' })
   async rateBusiness(

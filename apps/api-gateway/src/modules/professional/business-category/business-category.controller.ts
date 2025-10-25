@@ -6,7 +6,7 @@ import { Response } from 'express';
 import { GetCategoriesUseCase } from './use-cases';
 
 @Controller('professional/business-category')
-@ApiTags('Business Category')
+@ApiTags('Professional - Business Category')
 export class BusinessCategoryController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

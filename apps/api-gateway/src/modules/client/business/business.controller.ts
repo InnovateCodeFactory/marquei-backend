@@ -20,7 +20,7 @@ import {
 } from './use-cases';
 
 @Controller('client/business')
-@ApiTags('Business (Client)')
+@ApiTags('Clients - Business')
 export class BusinessController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

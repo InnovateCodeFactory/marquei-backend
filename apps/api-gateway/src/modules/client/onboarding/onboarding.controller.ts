@@ -16,7 +16,7 @@ import {
 } from './use-cases';
 
 @Controller('client/onboarding')
-@ApiTags('Client Onboarding')
+@ApiTags('Clients - Onboarding')
 export class OnboardingController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

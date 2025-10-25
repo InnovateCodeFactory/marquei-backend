@@ -15,7 +15,7 @@ import {
 import { SendMailValidationTokenDto } from './dto/requests/send-mail-validation-token.dto';
 
 @Controller('professional/onboarding')
-@ApiTags('Professional Onboarding')
+@ApiTags('Professional - Onboarding')
 export class OnboardingController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,
@@ -79,4 +79,3 @@ export class OnboardingController {
     });
   }
 }
-

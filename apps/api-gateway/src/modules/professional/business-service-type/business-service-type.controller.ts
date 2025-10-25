@@ -6,7 +6,7 @@ import { Response } from 'express';
 import { GetServiceTypesUseCase } from './use-cases';
 
 @Controller('professional/business-service-type')
-@ApiTags('Business Service Type')
+@ApiTags('Professional - Business Service Type')
 export class BusinessServiceTypeController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

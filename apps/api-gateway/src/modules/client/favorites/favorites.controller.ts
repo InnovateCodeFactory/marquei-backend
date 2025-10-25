@@ -23,7 +23,7 @@ import {
 } from './use-cases';
 
 @Controller('client/favorites')
-@ApiTags('Favorites (Client)')
+@ApiTags('Clients - Favorites')
 export class FavoritesController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

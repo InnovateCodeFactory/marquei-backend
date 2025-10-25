@@ -12,7 +12,7 @@ import {
 } from './use-cases';
 
 @Controller('professional/statement')
-@ApiTags('Professional Statement')
+@ApiTags('Professional - Statement')
 export class StatementController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

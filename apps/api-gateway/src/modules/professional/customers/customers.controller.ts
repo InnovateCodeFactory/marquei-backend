@@ -17,7 +17,7 @@ import {
 } from './use-cases';
 
 @Controller('professional/customers')
-@ApiTags('Customers')
+@ApiTags('Professional - Customers')
 export class CustomersController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

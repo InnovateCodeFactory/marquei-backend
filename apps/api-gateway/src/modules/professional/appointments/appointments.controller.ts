@@ -17,7 +17,7 @@ import { CancelAppointmentUseCase } from './use-cases/cancel-appointment.use-cas
 import { RescheduleAppointmentUseCase } from './use-cases/reschedule-appointment.use-case';
 
 @Controller('professional/appointments')
-@ApiTags('Appointments')
+@ApiTags('Professional - Appointments')
 export class AppointmentsController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

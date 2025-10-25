@@ -28,7 +28,7 @@ import {
 } from './use-cases';
 
 @Controller('professional/auth')
-@ApiTags('auth')
+@ApiTags('Professional - Auth')
 export class AuthController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

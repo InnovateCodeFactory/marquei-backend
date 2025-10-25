@@ -15,7 +15,7 @@ import {
 import { GetNotificationsDto } from './dto/get-notifications.dto';
 
 @Controller('professional/in-app-notifications')
-@ApiTags('Professional In-App Notifications')
+@ApiTags('Professional - In-App Notifications')
 export class InAppNotificationsController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

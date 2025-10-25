@@ -15,7 +15,7 @@ import { LogoutUseCase } from './use-cases/logout.use-case';
 import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
 
 @Controller('client/auth')
-@ApiTags('Client Auth')
+@ApiTags('Clients - Auth')
 export class AuthController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

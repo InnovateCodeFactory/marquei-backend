@@ -7,7 +7,7 @@ import { GetAnalyticsDto } from './dto/requests/get-analytics.dto';
 import { ProfessionalAnalyticsUseCase } from './use-cases';
 
 @Controller('professional/analytics')
-@ApiTags('Professional Analytics')
+@ApiTags('Professional - Analytics')
 export class AnalyticsController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

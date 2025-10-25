@@ -28,7 +28,7 @@ import { UploadBusinessImagesUseCase } from './use-cases/upload-business-images.
 import { EditBusinessDto } from './dto/requests/edit-business.dto';
 
 @Controller('professional/business')
-@ApiTags('Business')
+@ApiTags('Professional - Business')
 export class BusinessController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

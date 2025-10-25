@@ -1,7 +1,16 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { Body, Controller, Delete, Get, Patch, Post, Query, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Patch,
+  Post,
+  Query,
+  Res,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CreateProfessionalDto } from './dto/requests/create-professional.dto';
@@ -16,7 +25,7 @@ import {
 } from './use-cases';
 
 @Controller('professional/professionals')
-@ApiTags('professionals')
+@ApiTags('Professional - Professionals')
 export class ProfessionalsController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,
@@ -89,7 +98,8 @@ export class ProfessionalsController {
     @Body() body: SoftDeleteProfessionalDto,
   ) {
     return await this.responseHandler.handle({
-      method: () => this.softDeleteProfessionalUseCase.execute(body, currentUser),
+      method: () =>
+        this.softDeleteProfessionalUseCase.execute(body, currentUser),
       res,
       successStatus: 204,
     });

@@ -8,7 +8,7 @@ import { MarkNotificationAsReadDto } from './dto/mark-notification-as-read.dto';
 import { MarkNotificationAsReadUseCase } from './use-cases';
 
 @Controller('client/in-app-notifications')
-@ApiTags('Client In-App Notifications')
+@ApiTags('Clients - In-App Notifications')
 export class InAppNotificationsController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

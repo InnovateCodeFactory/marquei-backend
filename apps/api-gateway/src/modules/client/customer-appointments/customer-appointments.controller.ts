@@ -17,7 +17,7 @@ import {
 } from './use-cases';
 
 @Controller('client/customer-appointments')
-@ApiTags('Customer Appointments')
+@ApiTags('Clients - Customer Appointments')
 export class CustomerAppointmentsController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,

@@ -22,7 +22,7 @@ import { CreateServiceUseCase, GetServicesUseCase, SoftDeleteServiceUseCase, Upd
 import { DeleteServiceUseCase } from './use-cases/delete-service.use-case';
 
 @Controller('professional/services')
-@ApiTags('Services')
+@ApiTags('Professional - Services')
 export class ServicesController {
   constructor(
     private readonly responseHandlerService: ResponseHandlerService,
