@@ -22,7 +22,7 @@ export class BusinessRatingController {
     private readonly getReviewsUseCase: GetReviewsUseCase,
     private readonly getReviewSummaryUseCase: GetReviewSummaryUseCase,
   ) {}
-  // TODO: Refazer logica de criar profissional com conta
+
   @Post('rate')
   @ApiOperation({ summary: 'Avaliar um estabelecimento' })
   async rateBusiness(
