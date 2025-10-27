@@ -19,8 +19,8 @@ export class RegisterVisitUseCase {
       return { ok: false };
     }
 
-    const saoPauloDate = tz(new Date(), 'America/Sao_Paulo');
-    const visited_at = format(saoPauloDate, 'dd/MM/yyyy HH:mm:ssxxx');
+    const IN_TZ = tz('America/Sao_Paulo');
+    const visited_at = format(new Date(), 'dd/MM/yyyy HH:mm:ssxxx', { in: IN_TZ });
 
     await this.prisma.guestVisit.create({
       data: {
@@ -32,4 +32,3 @@ export class RegisterVisitUseCase {
     return { ok: true };
   }
 }
-
