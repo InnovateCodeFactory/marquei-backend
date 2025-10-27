@@ -698,6 +698,17 @@ model Logs {
   @@index([device_token], name: "idx_logs_device_token")
 }
 
+/// Registra acessos de dispositivos à landing/site
+model GuestVisit {
+  id           String   @id @default(cuid())
+  device_token String
+  guest        Guest    @relation(fields: [device_token], references: [device_token])
+  visited_at   String
+  created_at   DateTime @default(now())
+
+  @@index([device_token], name: "idx_guestvisit_device_token")
+}
+
 // ENUMS
 
 enum GuestOrigin {

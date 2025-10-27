@@ -7,6 +7,7 @@ import {
 } from './use-cases';
 import { LogoutUseCase } from './use-cases/logout.use-case';
 import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
+import { RegisterVisitUseCase } from './use-cases/register-visit.use-case';
 
 @Module({
   controllers: [AuthController],
@@ -16,6 +17,7 @@ import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
     LoginUseCase,
     RefreshTokenUseCase,
     LogoutUseCase,
+    RegisterVisitUseCase,
   ],
 })
 export class AuthModule {}

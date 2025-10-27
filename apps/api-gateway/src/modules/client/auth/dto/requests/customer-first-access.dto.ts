@@ -1,5 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsObject } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEnum, IsNotEmpty, IsObject, IsOptional } from 'class-validator';
+import { GuestOrigin } from '@prisma/client';
 
 export class CustomerFirstAccessDto {
   @IsObject()
@@ -8,4 +9,13 @@ export class CustomerFirstAccessDto {
     description: "The customer's device information",
   })
   device_info: Record<string, any>;
+
+  @IsOptional()
+  @IsEnum(GuestOrigin)
+  @ApiPropertyOptional({
+    description: 'Guest origin (APP or WEB)',
+    enum: GuestOrigin,
+    default: GuestOrigin.APP,
+  })
+  origin?: GuestOrigin;
 }
