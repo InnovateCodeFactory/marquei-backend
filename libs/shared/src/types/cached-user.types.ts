@@ -13,6 +13,9 @@ interface Business {
   slug: string;
   id: string;
   BusinessSubscription: BusinessSubscription[];
+  professionals: {
+    id: string;
+  }[];
 }
 
 interface BusinessSubscription {

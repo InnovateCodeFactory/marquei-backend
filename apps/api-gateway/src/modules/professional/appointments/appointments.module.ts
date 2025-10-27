@@ -6,7 +6,10 @@ import {
   GetAppointmentsUseCase,
   GetAvailableTimesUseCase,
 } from './use-cases';
+import { BlockTimesUseCase } from './use-cases/block-times.use-case';
 import { CancelAppointmentUseCase } from './use-cases/cancel-appointment.use-case';
+import { DeleteBlockedTimeUseCase } from './use-cases/delete-blocked-time.use-case';
+import { ListBlockedTimesUseCase } from './use-cases/get-blocked-times.use-case';
 import { RescheduleAppointmentUseCase } from './use-cases/reschedule-appointment.use-case';
 
 @Module({
@@ -18,6 +21,9 @@ import { RescheduleAppointmentUseCase } from './use-cases/reschedule-appointment
     GetAppointmentsUseCase,
     CancelAppointmentUseCase,
     RescheduleAppointmentUseCase,
+    BlockTimesUseCase,
+    ListBlockedTimesUseCase,
+    DeleteBlockedTimeUseCase,
   ],
 })
 export class AppointmentsModule {}
