@@ -9,7 +9,7 @@ import {
 import { Price } from '@app/shared/value-objects';
 import { tz } from '@date-fns/tz';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { addMinutes, format } from 'date-fns';
+import { addDays, addMinutes, format } from 'date-fns';
 
 @Injectable()
 export class GetAppointmentsUseCase {
@@ -66,6 +66,34 @@ export class GetAppointmentsUseCase {
           },
         },
       },
+      orderBy: { start_at_utc: 'asc' },
+    });
+
+    // 2.1) Buscar bloqueios em janela relevante (minStart..maxEnd)
+    let minStart: Date;
+    let maxEnd: Date;
+    if (appointments.length > 0) {
+      minStart = appointments[0].start_at_utc;
+      maxEnd = appointments.reduce((acc, a) => {
+        const dur = a.duration_minutes ?? a.service.duration;
+        const end = a.end_at_utc ?? (addMinutes(a.start_at_utc, dur) as Date);
+        return end > acc ? end : acc;
+      }, appointments[0].end_at_utc ?? (addMinutes(
+        appointments[0].start_at_utc,
+        appointments[0].duration_minutes ?? appointments[0].service.duration,
+      ) as Date));
+    } else {
+      minStart = new Date();
+      maxEnd = addDays(minStart, 7);
+    }
+
+    const blocks = await this.prisma.professionalTimesBlock.findMany({
+      where: {
+        professionalProfileId: prof.id,
+        start_at_utc: { lt: maxEnd },
+        end_at_utc: { gt: minStart },
+      },
+      select: { start_at_utc: true, end_at_utc: true },
       orderBy: { start_at_utc: 'asc' },
     });
 
@@ -138,6 +166,12 @@ export class GetAppointmentsUseCase {
       };
     });
 
-    return formatted;
+    return {
+      items: formatted,
+      unavailableHours: blocks.map((b) => ({
+        start_at_utc: b.start_at_utc,
+        end_at_utc: b.end_at_utc,
+      })),
+    };
   }
 }

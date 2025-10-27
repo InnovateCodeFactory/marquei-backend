@@ -171,17 +171,42 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
       orderBy: { start_at_utc: 'asc' },
     });
 
-    // --- ranges ocupados em HORÁRIO LOCAL (TZDate) ---
-    const busyRanges = appointments.map((appt) => {
-      const startLocal = new TZDate(appt.start_at_utc, BUSINESS_TZ_ID);
-      const endLocal = new TZDate(appt.end_at_utc, BUSINESS_TZ_ID);
-
-      // Se preferir confiar na duração persistida:
-      // const dur = appt.duration_minutes ?? appt.service.duration;
-      // const endLocal = addMinutes(startLocal, dur, { in: Z }) as TZDate;
-
-      return { start: startLocal, end: endLocal };
+    // --- também busca bloqueios que INTERSECTAM o dia ---
+    const blocks = await this.prisma.professionalTimesBlock.findMany({
+      where: {
+        professionalProfileId: professional_id,
+        start_at_utc: { lt: dayEndUtc },
+        end_at_utc: { gt: dayStartUtc },
+      },
+      select: { start_at_utc: true, end_at_utc: true, timezone: true },
+      orderBy: { start_at_utc: 'asc' },
     });
+
+    // --- ranges ocupados em HORÁRIO LOCAL (TZDate) ---
+    const busyRanges = [
+      // Appointments
+      ...appointments.map((appt) => {
+        const startLocal = new TZDate(appt.start_at_utc, BUSINESS_TZ_ID);
+        const endLocal = new TZDate(
+          appt.end_at_utc ??
+            (addMinutes(
+              new TZDate(appt.start_at_utc, BUSINESS_TZ_ID),
+              appt.duration_minutes ?? appt.service.duration,
+              { in: Z },
+            ) as TZDate),
+          BUSINESS_TZ_ID,
+        );
+        return { start: startLocal, end: endLocal };
+      }),
+      // Blocks
+      ...blocks.map((b) => {
+        const zone = b.timezone || BUSINESS_TZ_ID;
+        return {
+          start: new TZDate(b.start_at_utc, zone),
+          end: new TZDate(b.end_at_utc, zone),
+        };
+      }),
+    ];
 
     // --- filtra candidatos removendo conflitos (comparação local) ---
     const availableSlots = candidates
@@ -191,10 +216,11 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
         }) as TZDate;
 
         return !busyRanges.some((b) =>
-          areIntervalsOverlapping({ start: startLocal, end: endLocal }, b, {
-            inclusive: false,
-            in: Z,
-          }),
+          areIntervalsOverlapping(
+            { start: startLocal as Date, end: endLocal as Date },
+            { start: b.start as Date, end: b.end as Date },
+            { inclusive: false },
+          ),
         );
       })
       .map((slot) => format(slot, 'HH:mm', { in: Z }));

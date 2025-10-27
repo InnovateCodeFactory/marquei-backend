@@ -149,7 +149,14 @@ export class RedisService {
               select: {
                 slug: true,
                 id: true,
-
+                professionals: {
+                  where: {
+                    userId: userId,
+                  },
+                  select: {
+                    id: true,
+                  },
+                },
                 BusinessSubscription: {
                   orderBy: {
                     created_at: 'desc',
@@ -176,7 +183,7 @@ export class RedisService {
         },
       },
     });
-
+    console.log({ user });
     if (user) {
       await this.set({
         key: cachedKey,

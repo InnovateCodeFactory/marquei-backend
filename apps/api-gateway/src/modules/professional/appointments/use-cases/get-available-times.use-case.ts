@@ -1,5 +1,6 @@
 import { PrismaService } from '@app/shared';
 import { CurrentUser } from '@app/shared/types/app-request';
+import { parseYmdToTZDate } from '@app/shared/utils';
 import { TZDate, tz } from '@date-fns/tz';
 import { Injectable } from '@nestjs/common';
 import {
@@ -51,15 +52,10 @@ export class GetAvailableTimesUseCase {
         ? JSON.parse(business.opening_hours)
         : (business.opening_hours as OpeningHours);
 
-    // Utilitário: cria TZDate local a partir de 'yyyy-MM-dd'
-    const parseYmdToTZDate = (ymd: string): TZDate => {
-      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
-      if (!m) throw new Error('start_date inválida. Use yyyy-MM-dd');
-      const [, y, mo, d] = m.map(Number) as unknown as number[];
-      return new TZDate(y, mo - 1, d, 0, 0, 0, BUSINESS_TZ_ID);
-    };
-
-    const startLocalDay0 = parseYmdToTZDate(start_date);
+    const startLocalDay0 = parseYmdToTZDate({
+      ymd: start_date,
+      tzId: BUSINESS_TZ_ID,
+    });
 
     const days: { date: string; availableSlots: string[] }[] = [];
 
@@ -149,20 +145,46 @@ export class GetAvailableTimesUseCase {
         orderBy: { start_at_utc: 'asc' },
       });
 
-      // Ranges ocupados em horário LOCAL (usar TZ do appointment se existir)
-      const busyRangesLocal = appointments.map((appt) => {
-        const apptZone = appt.timezone || BUSINESS_TZ_ID;
-        const apptIn = tz(apptZone);
-        const startLocal = new TZDate(appt.start_at_utc, apptZone);
-        const endLocal = appt.end_at_utc
-          ? new TZDate(appt.end_at_utc, apptZone)
-          : (addMinutes(
-              startLocal,
-              appt.duration_minutes ?? appt.service.duration,
-              { in: apptIn },
-            ) as TZDate);
-        return { start: startLocal, end: endLocal };
+      // Bloqueios de horários que INTERSECTAM o dia (em UTC)
+      const blocks = await this.prismaService.professionalTimesBlock.findMany({
+        where: {
+          professionalProfileId: professional_id,
+          start_at_utc: { lt: dayEndUtc },
+          end_at_utc: { gt: dayStartUtc },
+        },
+        select: {
+          start_at_utc: true,
+          end_at_utc: true,
+          timezone: true,
+        },
+        orderBy: { start_at_utc: 'asc' },
       });
+
+      // Ranges ocupados em horário LOCAL (usar TZ do registro se existir)
+      const busyRangesLocal = [
+        // appointments
+        ...appointments.map((appt) => {
+          const apptZone = appt.timezone || BUSINESS_TZ_ID;
+          const apptIn = tz(apptZone);
+          const startLocal = new TZDate(appt.start_at_utc, apptZone);
+          const endLocal = appt.end_at_utc
+            ? new TZDate(appt.end_at_utc, apptZone)
+            : (addMinutes(
+                startLocal,
+                appt.duration_minutes ?? appt.service.duration,
+                { in: apptIn },
+              ) as TZDate);
+          return { start: startLocal, end: endLocal };
+        }),
+        // blocks
+        ...blocks.map((b) => {
+          const z = b.timezone || BUSINESS_TZ_ID;
+          return {
+            start: new TZDate(b.start_at_utc, z),
+            end: new TZDate(b.end_at_utc, z),
+          };
+        }),
+      ];
 
       // Filtra slots removendo overlaps (comparação 100% local)
       const availableSlots = slotStartsLocal

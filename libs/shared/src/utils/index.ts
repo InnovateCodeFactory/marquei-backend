@@ -1,3 +1,5 @@
+import { TZDate } from '@date-fns/tz';
+import { BadRequestException } from '@nestjs/common';
 import { AppointmentStatus } from '@prisma/client';
 import { formatDate as formatDateFns, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -192,4 +194,17 @@ export function formatDurationToHoursAndMinutes(duration: number) {
   return durationHours > 0
     ? `${durationHours}h ${durationMinutes}min`
     : `${durationMinutes}min`;
+}
+
+export function parseYmdToTZDate({
+  ymd,
+  tzId,
+}: {
+  ymd: string;
+  tzId: string;
+}): TZDate {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
+  if (!m) throw new BadRequestException('Data inválida, use yyyy-MM-dd');
+  const [, y, mo, d] = m.map(Number) as unknown as number[];
+  return new TZDate(y, mo - 1, d, 0, 0, 0, tzId);
 }

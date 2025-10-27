@@ -1,9 +1,20 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
 import { AppRequest, CurrentUser } from '@app/shared/types/app-request';
-import { Body, Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { BlockTimesDto } from './dto/requests/block-times.dto';
 import { CancelAppointmentDto } from './dto/requests/cancel-appointment.dto';
 import { CreateAppointmentDto } from './dto/requests/create-appointment.dto';
 import { GetAvailableTimesDto } from './dto/requests/get-available-times.dto';
@@ -13,7 +24,10 @@ import {
   GetAppointmentsUseCase,
   GetAvailableTimesUseCase,
 } from './use-cases';
+import { BlockTimesUseCase } from './use-cases/block-times.use-case';
 import { CancelAppointmentUseCase } from './use-cases/cancel-appointment.use-case';
+import { DeleteBlockedTimeUseCase } from './use-cases/delete-blocked-time.use-case';
+import { ListBlockedTimesUseCase } from './use-cases/get-blocked-times.use-case';
 import { RescheduleAppointmentUseCase } from './use-cases/reschedule-appointment.use-case';
 
 @Controller('professional/appointments')
@@ -26,6 +40,9 @@ export class AppointmentsController {
     private readonly getAppointmentsUseCase: GetAppointmentsUseCase,
     private readonly cancelAppointmentUseCase: CancelAppointmentUseCase,
     private readonly rescheduleAppointmentUseCase: RescheduleAppointmentUseCase,
+    private readonly blockTimesUseCase: BlockTimesUseCase,
+    private readonly listBlockedTimesUseCase: ListBlockedTimesUseCase,
+    private readonly deleteBlockedTimeUseCase: DeleteBlockedTimeUseCase,
   ) {}
 
   @Get('get-available-times')
@@ -106,6 +123,56 @@ export class AppointmentsController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.rescheduleAppointmentUseCase.execute(body, req),
+      res,
+    });
+  }
+
+  @Post('block-times')
+  @ApiOperation({
+    summary: 'Block time ranges for a professional',
+    description:
+      'Blocks one or more intervals (whole days or partial) for a professional profile. Returns the planned blocks (no persistence yet).',
+  })
+  async blockTimes(
+    @Res() res: Response,
+    @Req() req: AppRequest,
+    @Body() body: BlockTimesDto,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.blockTimesUseCase.execute(body, req),
+      res,
+    });
+  }
+
+  @Get('blocked-times')
+  @ApiOperation({
+    summary: 'List blocked time ranges',
+    description:
+      'Lists currently blocked time ranges. Returns empty until persistence is added.',
+  })
+  async listBlockedTimes(
+    @Res() res: Response,
+    @CurrentUserDecorator() user: CurrentUser,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.listBlockedTimesUseCase.execute(user),
+      res,
+    });
+  }
+
+  @Delete('blocked-times/:id')
+  @ApiOperation({
+    summary: 'Delete a blocked time range',
+    description:
+      'Deletes a blocked time range by id. No-op until persistence is added.',
+  })
+  async deleteBlockedTime(
+    @Param('id') id: string,
+    @Res() res: Response,
+    @Req() req: AppRequest,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.deleteBlockedTimeUseCase.execute(id, req),
       res,
     });
   }

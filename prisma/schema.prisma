@@ -107,6 +107,7 @@ model Business {
   Favorites                Favorite[]
   BusinessReminderSettings BusinessReminderSettings?
   ReminderJob              ReminderJob[]
+  ProfessionalTimesBlock   ProfessionalTimesBlock[]
 
   @@index([slug], name: "idx_business_slug")
   @@index([name], name: "idx_business_name")
@@ -216,18 +217,19 @@ model ProfessionalProfile {
   phone         String?
   profile_image String?
 
-  status                ProfessionalStatus      @default(ACTIVE) // status do profissional
-  created_at            DateTime                @default(now())
-  updated_at            DateTime                @updatedAt
-  rating                Float                   @default(0.0)
-  reviewsCount          Int                     @default(0)
-  averagePrice          Float                   @default(0.0) // preço médio dos serviços oferecidos
+  status                 ProfessionalStatus       @default(ACTIVE) // status do profissional
+  created_at             DateTime                 @default(now())
+  updated_at             DateTime                 @updatedAt
+  rating                 Float                    @default(0.0)
+  reviewsCount           Int                      @default(0)
+  averagePrice           Float                    @default(0.0) // preço médio dos serviços oferecidos
   //availability Json?             // JSON com horários disponíveis (ex: {"Monday": ["09:00", "17:00"], "Tuesday": ["10:00", "18:00"]})
-  User                  User?                   @relation(fields: [userId], references: [id])
-  userId                String?
-  in_app_notification   InAppNotification[]
-  Appointment           Appointment[]
-  ProfessionalStatement ProfessionalStatement[]
+  User                   User?                    @relation(fields: [userId], references: [id])
+  userId                 String?
+  in_app_notification    InAppNotification[]
+  Appointment            Appointment[]
+  ProfessionalStatement  ProfessionalStatement[]
+  ProfessionalTimesBlock ProfessionalTimesBlock[]
 
   @@index([business_id], name: "idx_professional_business")
   @@index([userId], name: "idx_professional_user")
@@ -318,6 +320,30 @@ model AppointmentEvent {
   created_at      DateTime             @default(now())
 
   @@index([appointmentId], name: "idx_appointment_event_appointment")
+}
+
+model ProfessionalTimesBlock {
+  id String @id @default(cuid())
+
+  professionalProfileId String
+  professional          ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
+  businessId            String
+  business              Business            @relation(fields: [businessId], references: [id])
+
+  is_all_day   Boolean   @default(false)
+  // Sempre UTC
+  start_at_utc DateTime?
+  end_at_utc   DateTime?
+
+  // Contexto do fuso local que gerou o bloqueio (para conversões reversas)
+  timezone             String @default("America/Sao_Paulo")
+  start_offset_minutes Int // ex.: -180
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([professionalProfileId, start_at_utc], name: "idx_block_professional_start")
+  @@index([businessId], name: "idx_block_business")
 }
 
 // Vincular pessoa como user do tipo Customer e vincular como cliente das empresas
