@@ -1,6 +1,9 @@
 import { PrismaService } from '@app/shared';
 import { SendValidationTokenDto } from '@app/shared/dto/messaging/whatsapp-notifications/send-validation-token.dto';
-import { WhatsAppValidationStatusEnum } from '@app/shared/enum';
+import {
+  SendWhatsAppTypeEnum,
+  WhatsAppValidationStatusEnum,
+} from '@app/shared/enum';
 import { EnvSchemaType } from '@app/shared/environment';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
@@ -41,7 +44,7 @@ export class SendValidationTokenUseCase {
     phone_number,
     user_type,
     request_id,
-    type,
+    type = SendWhatsAppTypeEnum.VALIDATION_CODE,
   }: SendValidationTokenDto): Promise<void> {
     if (!phone_number) {
       this.logger.error(
