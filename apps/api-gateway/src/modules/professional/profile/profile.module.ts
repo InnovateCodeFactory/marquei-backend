@@ -4,11 +4,13 @@ import { ProfessionalProfileController } from './profile.controller';
 import {
   EditProfessionalProfileUseCase,
   GetProfessionalProfileDetailsUseCase,
+  GetSelfNotificationsUseCase,
+  ManageSelfNotificationsUseCase,
+  ReportBugUseCase,
   UploadProfessionalProfilePictureUseCase,
 } from './use-cases';
-import { GetGeneralLinksUseCase } from './use-cases/get-general-links.use-case';
 import { GetGeneralLinkByKeyUseCase } from './use-cases/get-general-link-by-key.use-case';
-import { ReportBugUseCase } from './use-cases';
+import { GetGeneralLinksUseCase } from './use-cases/get-general-links.use-case';
 
 @Module({
   controllers: [ProfessionalProfileController],
@@ -20,6 +22,8 @@ import { ReportBugUseCase } from './use-cases';
     GetGeneralLinksUseCase,
     GetGeneralLinkByKeyUseCase,
     ReportBugUseCase,
+    ManageSelfNotificationsUseCase,
+    GetSelfNotificationsUseCase,
   ],
 })
 export class ProfessionalProfileModule {}

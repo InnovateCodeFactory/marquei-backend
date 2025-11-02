@@ -19,15 +19,18 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { EditProfessionalProfileDto } from './dto/requests/edit-profile.dto';
 import { GetGeneralLinkDto } from './dto/requests/get-general-link.dto';
+import { ManageSelfNotificationsDto } from './dto/requests/manage-self-notifications.dto';
+import { ReportBugDto } from './dto/requests/report-bug.dto';
 import {
   EditProfessionalProfileUseCase,
   GetProfessionalProfileDetailsUseCase,
+  GetSelfNotificationsUseCase,
+  ManageSelfNotificationsUseCase,
+  ReportBugUseCase,
   UploadProfessionalProfilePictureUseCase,
 } from './use-cases';
 import { GetGeneralLinkByKeyUseCase } from './use-cases/get-general-link-by-key.use-case';
 import { GetGeneralLinksUseCase } from './use-cases/get-general-links.use-case';
-import { ReportBugUseCase } from './use-cases';
-import { ReportBugDto } from './dto/requests/report-bug.dto';
 
 @Controller('professional/profile')
 @ApiTags('Professional - Profile')
@@ -40,6 +43,8 @@ export class ProfessionalProfileController {
     private readonly getGeneralLinksUseCase: GetGeneralLinksUseCase,
     private readonly getGeneralLinkByKeyUseCase: GetGeneralLinkByKeyUseCase,
     private readonly reportBugUseCase: ReportBugUseCase,
+    private readonly manageSelfNotificationsUseCase: ManageSelfNotificationsUseCase,
+    private readonly getSelfNotificationsUseCase: GetSelfNotificationsUseCase,
   ) {}
 
   @Post('profile-image')
@@ -121,6 +126,28 @@ export class ProfessionalProfileController {
       method: () => this.reportBugUseCase.execute(dto, req),
       res,
       successStatus: 201,
+    });
+  }
+
+  @Patch('manage-self-notifications')
+  @ApiOperation({ summary: 'Manage self notifications' })
+  async manageSelfNotifications(
+    @Req() req: AppRequest,
+    @Body() dto: ManageSelfNotificationsDto,
+    @Res() res: Response,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.manageSelfNotificationsUseCase.execute(dto, req),
+      res,
+    });
+  }
+
+  @Get('self-notifications')
+  @ApiOperation({ summary: 'Get self notifications preferences' })
+  async getSelfNotifications(@Req() req: AppRequest, @Res() res: Response) {
+    return await this.responseHandler.handle({
+      method: () => this.getSelfNotificationsUseCase.execute(req),
+      res,
     });
   }
 }
