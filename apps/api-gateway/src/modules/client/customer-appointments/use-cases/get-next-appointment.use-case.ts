@@ -30,11 +30,14 @@ export class GetNextAppointmentUseCase {
         duration_minutes: true, // se você persistir isso
         professional: {
           select: {
+            id: true,
+            business: { select: { slug: true } },
             User: { select: { name: true } },
           },
         },
         service: {
           select: {
+            id: true,
             name: true,
             duration: true, // fallback se não houver duration_minutes
             price_in_cents: true,
@@ -53,10 +56,13 @@ export class GetNextAppointmentUseCase {
 
     return {
       id: nextAppointment.id,
+      business_slug: nextAppointment.professional.business.slug,
       professional: {
+        id: nextAppointment.professional.id,
         name: getTwoNames(nextAppointment.professional.User.name),
       },
       service: {
+        id: nextAppointment.service.id,
         name: nextAppointment.service.name,
         duration: formatDuration(durationMin),
         price: new Price(nextAppointment.service.price_in_cents).toCurrency(),

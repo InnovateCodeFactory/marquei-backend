@@ -6,6 +6,7 @@ import {
   GetNextAppointmentUseCase,
   ConfirmCustomerAppointmentUseCase,
   CancelCustomerAppointmentUseCase,
+  RescheduleCustomerAppointmentUseCase,
 } from './use-cases';
 
 @Module({
@@ -16,6 +17,7 @@ import {
     GetCustomerAppointmentsUseCase,
     ConfirmCustomerAppointmentUseCase,
     CancelCustomerAppointmentUseCase,
+    RescheduleCustomerAppointmentUseCase,
   ],
 })
 export class CustomerAppointmentsModule {}

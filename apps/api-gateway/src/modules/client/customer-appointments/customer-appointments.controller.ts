@@ -14,7 +14,9 @@ import {
   CreateAppointmentUseCase,
   GetCustomerAppointmentsUseCase,
   GetNextAppointmentUseCase,
+  RescheduleCustomerAppointmentUseCase,
 } from './use-cases';
+import { RescheduleCustomerAppointmentDto } from './dto/requests/reschedule-appointment.dto';
 
 @Controller('client/customer-appointments')
 @ApiTags('Clients - Customer Appointments')
@@ -26,6 +28,7 @@ export class CustomerAppointmentsController {
     private readonly getCustomerAppointmentsUseCase: GetCustomerAppointmentsUseCase,
     private readonly confirmCustomerAppointmentUseCase: ConfirmCustomerAppointmentUseCase,
     private readonly cancelCustomerAppointmentUseCase: CancelCustomerAppointmentUseCase,
+    private readonly rescheduleCustomerAppointmentUseCase: RescheduleCustomerAppointmentUseCase,
   ) {}
 
   @Post('create-appointment')
@@ -74,6 +77,20 @@ export class CustomerAppointmentsController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.cancelCustomerAppointmentUseCase.execute(body, req),
+      res,
+      successStatus: 201,
+    });
+  }
+
+  @Post('reschedule-appointment')
+  @ApiOperation({ summary: 'Reschedule an appointment (customer)' })
+  async rescheduleAppointment(
+    @Res() res: Response,
+    @Body() body: RescheduleCustomerAppointmentDto,
+    @Req() req: AppRequest,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.rescheduleCustomerAppointmentUseCase.execute(body, req),
       res,
       successStatus: 201,
     });
