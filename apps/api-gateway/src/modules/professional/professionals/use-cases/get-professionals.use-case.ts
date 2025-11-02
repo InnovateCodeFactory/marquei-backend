@@ -34,12 +34,21 @@ export class GetProfessionalsUseCase {
           status: true,
           phone: true,
           profile_image: true,
+
           User: {
             select: {
               id: true,
               name: true,
               email: true,
               first_access: true,
+              professional_profile: {
+                where: {
+                  business_id: currentUser.current_selected_business_id,
+                },
+                select: {
+                  id: true,
+                },
+              },
             },
           },
         },
@@ -48,7 +57,8 @@ export class GetProfessionalsUseCase {
 
     return (
       professionals?.map((professional) => ({
-        professional_profile_id: professional.id,
+        professional_profile_id:
+          professional?.User?.professional_profile?.[0]?.id,
         avatar: professional.profile_image
           ? this.fs.getPublicUrl({ key: professional.profile_image })
           : this.fs.getPublicUrl({
