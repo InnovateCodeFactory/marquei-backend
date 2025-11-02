@@ -39,7 +39,7 @@ export class BlockTimesUseCase {
         id: professional_profile_id,
         business_id: user.current_selected_business_id,
       },
-      select: { id: true },
+      select: { id: true, User: { select: { id: true, name: true } } },
     });
 
     if (!professional) {

@@ -19,6 +19,7 @@ import {
   isBefore,
   startOfDay,
 } from 'date-fns';
+
 @Injectable()
 export class GetAppointmentsUseCase {
   constructor(private readonly prisma: PrismaService) {}
@@ -30,7 +31,6 @@ export class GetAppointmentsUseCase {
       );
     }
 
-    // 1) Perfil profissional do usuário no negócio atual
     const prof = await this.prisma.professionalProfile.findFirst({
       where: {
         userId: currentUser.id,
@@ -45,7 +45,7 @@ export class GetAppointmentsUseCase {
       );
     }
 
-    // 2) Busca agendamentos (novo esquema UTC)
+    // Busca agendamentos
     const appointments = await this.prisma.appointment.findMany({
       where: {
         professionalProfileId: prof.id,
@@ -75,22 +75,22 @@ export class GetAppointmentsUseCase {
       orderBy: { start_at_utc: 'asc' },
     });
 
-    // 2.1) Buscar bloqueios do profissional
+    // Busca bloqueios do profissional (incluindo o ID)
     const blocksRaw = await this.prisma.professionalTimesBlock.findMany({
       where: {
         professionalProfileId: prof.id,
+        businessId: currentUser.current_selected_business_id,
       },
       select: {
         start_at_utc: true,
         end_at_utc: true,
         timezone: true,
+        professionalProfileId: true,
       },
-      orderBy: {
-        start_at_utc: 'asc',
-      },
+      orderBy: { start_at_utc: 'asc' },
     });
 
-    // 3) Mapear personId -> BusinessCustomer.id (no negócio atual)
+    // Mapear personId → BusinessCustomer.id
     const personIds = Array.from(
       new Set(appointments.map((a) => a.customerPerson.id)),
     );
@@ -105,13 +105,12 @@ export class GetAppointmentsUseCase {
 
     const bcByPersonId = new Map(bcs.map((b) => [b.personId, b]));
 
-    // 4) Formatar agendamentos
+    // Formatar agendamentos
     const formattedItems = appointments.map((a) => {
       const zoneId = a.timezone || 'America/Sao_Paulo';
       const IN_TZ = tz(zoneId);
 
       const durationMin = a.duration_minutes ?? a.service.duration;
-
       const startUtc = a.start_at_utc;
       const endUtc = a.end_at_utc ?? addMinutes(startUtc, durationMin);
 
@@ -151,7 +150,7 @@ export class GetAppointmentsUseCase {
       };
     });
 
-    // 5) Converter bloqueios pro formato do CalendarKit
+    // Converter bloqueios com resourceId
     const unavailableHours = this.buildUnavailableByDay(blocksRaw);
 
     return {
@@ -165,9 +164,13 @@ export class GetAppointmentsUseCase {
       start_at_utc: Date;
       end_at_utc: Date;
       timezone?: string | null;
+      professionalProfileId: string;
     }[],
-  ): Record<string, { start: number; end: number }[]> {
-    const result: Record<string, { start: number; end: number }[]> = {};
+  ): Record<string, { start: number; end: number; resourceId: string }[]> {
+    const result: Record<
+      string,
+      { start: number; end: number; resourceId: string }[]
+    > = {};
 
     for (const block of blocks) {
       const zone = block.timezone || 'America/Sao_Paulo';
@@ -176,25 +179,20 @@ export class GetAppointmentsUseCase {
       const blockStart = block.start_at_utc;
       const blockEnd = block.end_at_utc;
 
-      // percorre cada dia coberto pelo bloqueio
       let cursorDay = startOfDay(blockStart);
       while (isBefore(cursorDay, blockEnd)) {
-        // pega o trecho do bloqueio dentro desse dia
         const daySliceStart = dfMax([blockStart, startOfDay(cursorDay)]);
         const daySliceEnd = dfMin([blockEnd, endOfDay(cursorDay)]);
 
-        // horário local desse recorte
         const startLocal = format(daySliceStart, 'HH:mm', { in: IN_TZ });
         const endLocal = format(daySliceEnd, 'HH:mm', { in: IN_TZ });
 
         const [sh, sm] = startLocal.split(':').map(Number);
         const [eh, em] = endLocal.split(':').map(Number);
 
-        // converte para minutos (CalendarKit espera minutos)
         const startMinutes = sh * 60 + sm;
         const endMinutes = eh * 60 + em;
 
-        // chave do dia no fuso do bloqueio
         const dayKey = format(cursorDay, 'yyyy-MM-dd', { in: IN_TZ });
 
         if (!result[dayKey]) {
@@ -204,6 +202,7 @@ export class GetAppointmentsUseCase {
         result[dayKey].push({
           start: startMinutes,
           end: endMinutes,
+          resourceId: block.professionalProfileId,
         });
 
         cursorDay = addDays(cursorDay, 1);
