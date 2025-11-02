@@ -218,6 +218,9 @@ model ProfessionalProfile {
   phone         String?
   profile_image String?
 
+  push_notification_enabled  Boolean @default(true)
+  email_notification_enabled Boolean @default(true)
+
   status                 ProfessionalStatus       @default(ACTIVE) // status do profissional
   created_at             DateTime                 @default(now())
   updated_at             DateTime                 @updatedAt

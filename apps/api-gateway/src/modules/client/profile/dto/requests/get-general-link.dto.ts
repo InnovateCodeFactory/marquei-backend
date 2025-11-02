@@ -5,6 +5,7 @@ export const GENERAL_LINK_KEYS = [
   'terms_of_service_url',
   'privacy_policy_url',
   'help_center_url',
+  'website_url',
   'facebook_url',
   'instagram_url',
   'twitter_url',
@@ -26,4 +27,3 @@ export class GetGeneralLinkDto {
   @ApiProperty({ enum: GENERAL_LINK_KEYS })
   key!: GeneralLinkKey;
 }
-
