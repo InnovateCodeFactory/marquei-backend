@@ -183,7 +183,6 @@ export class RedisService {
         },
       },
     });
-    console.log({ user });
     if (user) {
       await this.set({
         key: cachedKey,

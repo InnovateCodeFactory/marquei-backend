@@ -72,8 +72,6 @@ export class FindCustomersUseCase {
       this.prisma.businessCustomer.count({ where }),
     ]);
 
-    console.log(JSON.stringify(rows, null, 2));
-
     const customers = rows.map((bc) => ({
       id: bc.id, // id do vínculo no negócio
       name: bc.person.name,

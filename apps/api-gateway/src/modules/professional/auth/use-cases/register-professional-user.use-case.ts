@@ -48,7 +48,7 @@ export class RegisterProfessionalUserUseCase {
       this.prismaService.mailValidation.findFirst({
         where: {
           email,
-          type: SendMailTypeEnum.CREATE_ACCOUNT_PROFESSIONAL,
+          type: SendMailTypeEnum.VALIDATION_CODE,
           validated: true,
           active: false,
           created_at: {

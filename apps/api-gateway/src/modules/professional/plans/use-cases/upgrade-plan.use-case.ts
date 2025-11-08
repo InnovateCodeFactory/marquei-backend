@@ -59,6 +59,9 @@ export class UpgradePlanUseCase {
         where: {
           businessId: business.id,
           status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] },
+          plan: {
+            name: { not: 'Teste Gratuito' },
+          },
         },
         select: { id: true },
       });

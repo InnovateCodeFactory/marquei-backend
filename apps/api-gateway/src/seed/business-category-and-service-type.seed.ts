@@ -17,60 +17,63 @@ export class BusinessCategoryAndServiceTypeSeed implements OnModuleInit {
     await this.prismaService.businessCategory.createMany({
       data: [
         {
+          id: 'cmhpoavwk0000yxgo14mnu7yl',
           name: 'Barbearia',
+          description: null,
           order: 1,
-          icon_path:
-            'https://api-minio.innovatecode.online/marquei/business-category-icons/dark/barbearia.png',
-          icon_path_light:
-            'https://api-minio.innovatecode.online/marquei/business-category-icons/light/barbearia.png',
+          icon_path: 'business-category-icons/dark/barbearia.png',
+          icon_path_light: 'business-category-icons/light/barbearia.png',
         },
         {
+          id: 'cmhpoavwk0001yxgoqwipbqph',
           name: 'Salão de Beleza',
-          order: 2,
-          icon_path:
-            'https://api-minio.innovatecode.online/marquei/business-category-icons/dark/salao-beleza.png',
-          icon_path_light:
-            'https://api-minio.innovatecode.online/marquei/business-category-icons/light/salao-beleza.png',
-        },
-        {
-          name: 'Estética',
-          order: 3,
-          icon_path:
-            'https://api-minio.innovatecode.online/marquei/business-category-icons/dark/cilios-sobrancelha.png',
-          icon_path_light:
-            'https://api-minio.innovatecode.online/marquei/business-category-icons/light/cilios-sobrancelha.png',
-        },
-        {
-          name: 'Fitness',
-          order: 4,
-          icon_path:
-            'https://api-minio.innovatecode.online/marquei/business-category-icons/dark/esporte-movimento.png',
-          icon_path_light:
-            'https://api-minio.innovatecode.online/marquei/business-category-icons/light/esporte-movimento.png',
-        },
-        {
-          name: 'Saúde & Bem-estar',
+          description: null,
           order: 5,
-          icon_path:
-            'https://api-minio.innovatecode.online/marquei/business-category-icons/dark/saude-bem-estar.png',
-          icon_path_light:
-            'https://api-minio.innovatecode.online/marquei/business-category-icons/light/saude-bem-estar.png',
+          icon_path: 'business-category-icons/dark/salao-beleza.png',
+          icon_path_light: 'business-category-icons/light/salao-beleza.png',
         },
         {
+          id: 'cmhpoavwk0002yxgo6qv0ftcy',
+          name: 'Estética',
+          description: null,
+          order: 2,
+          icon_path: 'business-category-icons/dark/cilios-sobrancelha.png',
+          icon_path_light:
+            'business-category-icons/light/cilios-sobrancelha.png',
+        },
+        {
+          id: 'cmhpoavwk0003yxgos9pcptqw',
+          name: 'Fitness',
+          description: null,
+          order: 3,
+          icon_path: 'business-category-icons/dark/esporte-movimento.png',
+          icon_path_light:
+            'business-category-icons/light/esporte-movimento.png',
+        },
+        {
+          id: 'cmhpoavwk0004yxgocndkpioy',
+          name: 'Saúde & Bem-estar',
+          description: null,
+          order: 4,
+          icon_path: 'business-category-icons/dark/saude-bem-estar.png',
+          icon_path_light: 'business-category-icons/light/saude-bem-estar.png',
+        },
+        {
+          id: 'cmhpoavwk0005yxgovd6xqfti',
           name: 'Esportes & Movimento',
+          description: null,
           order: 6,
-          icon_path:
-            'https://api-minio.innovatecode.online/marquei/business-category-icons/dark/esporte-movimento.png',
+          icon_path: 'business-category-icons/dark/esporte-movimento.png',
           icon_path_light:
-            'https://api-minio.innovatecode.online/marquei/business-category-icons/light/esporte-movimento.png',
+            'business-category-icons/light/esporte-movimento.png',
         },
         {
+          id: 'cmhpoavwk0006yxgo75ghffzb',
           name: 'Outro',
+          description: null,
           order: 7,
-          icon_path:
-            'https://api-minio.innovatecode.online/marquei/business-category-icons/dark/others.png',
-          icon_path_light:
-            'https://api-minio.innovatecode.online/marquei/business-category-icons/light/others.png',
+          icon_path: 'business-category-icons/dark/others.png',
+          icon_path_light: 'business-category-icons/light/others.png',
         },
       ],
     });

@@ -54,13 +54,17 @@ export class SubscribeToPlanUseCase {
     const business = isTheUserOwner;
 
     // Check if business already has an active subscription in our DB
-    const activeLocalSub = await this.prismaService.businessSubscription.findFirst({
-      where: {
-        businessId: business.id,
-        status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] },
-      },
-      select: { id: true },
-    });
+    const activeLocalSub =
+      await this.prismaService.businessSubscription.findFirst({
+        where: {
+          businessId: business.id,
+          status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] },
+          plan: {
+            name: { not: 'Teste Gratuito' },
+          },
+        },
+        select: { id: true },
+      });
 
     if (activeLocalSub) {
       // Perform upgrade in Stripe (proration + reset cycle)
