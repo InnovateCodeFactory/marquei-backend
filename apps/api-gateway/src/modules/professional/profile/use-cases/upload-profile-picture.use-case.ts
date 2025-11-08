@@ -1,7 +1,11 @@
 import { PrismaService } from '@app/shared';
 import { FileSystemService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 @Injectable()
 export class UploadProfessionalProfilePictureUseCase {
@@ -19,10 +23,11 @@ export class UploadProfessionalProfilePictureUseCase {
       where: { userId, business_id: current_selected_business_id },
       select: { id: true },
     });
-    if (!prof) throw new NotFoundException('Perfil profissional não encontrado');
+    if (!prof)
+      throw new NotFoundException('Perfil profissional não encontrado');
 
     const ext = (file.mimetype?.split('/')?.[1] ?? 'png').toLowerCase();
-    const key = `marquei/professionals/${prof.id}/avatar-${Date.now()}-${Math.random()
+    const key = `professionals/${prof.id}/avatar-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2)}.${ext}`;
 
@@ -30,14 +35,22 @@ export class UploadProfessionalProfilePictureUseCase {
       key,
       body: file.buffer,
       contentType: file.mimetype || 'image/png',
-      metadata: { user_id: userId, professional_profile_id: prof.id, source: 'PROFESSIONAL_AVATAR' },
+      metadata: {
+        user_id: userId,
+        professional_profile_id: prof.id,
+        source: 'PROFESSIONAL_AVATAR',
+      },
     });
 
     await this.prisma.user.update({
       where: { id: userId },
       data: {
         UploadedMedia: {
-          create: { key, etag: etag?.replace(/"/g, ''), source: 'PROFESSIONAL_AVATAR' },
+          create: {
+            key,
+            etag: etag?.replace(/"/g, ''),
+            source: 'PROFESSIONAL_AVATAR',
+          },
         },
       },
     });
@@ -51,4 +64,3 @@ export class UploadProfessionalProfilePictureUseCase {
     return { url: publicUrl };
   }
 }
-
