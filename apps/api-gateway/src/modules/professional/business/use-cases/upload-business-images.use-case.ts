@@ -1,7 +1,11 @@
 import { PrismaService } from '@app/shared';
 import { FileSystemService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 @Injectable()
 export class UploadBusinessImagesUseCase {
@@ -29,7 +33,7 @@ export class UploadBusinessImagesUseCase {
     if (files.logo?.[0]) {
       const file = files.logo[0];
       const ext = (file.mimetype?.split('/')?.[1] ?? 'png').toLowerCase();
-      const key = `marquei/businesses/${businessId}/logo-${Date.now()}-${Math.random()
+      const key = `businesses/${businessId}/logo-${Date.now()}-${Math.random()
         .toString(36)
         .slice(2)}.${ext}`;
 
@@ -56,7 +60,7 @@ export class UploadBusinessImagesUseCase {
     if (files.cover?.[0]) {
       const file = files.cover[0];
       const ext = (file.mimetype?.split('/')?.[1] ?? 'png').toLowerCase();
-      const key = `marquei/businesses/${businessId}/cover-${Date.now()}-${Math.random()
+      const key = `businesses/${businessId}/cover-${Date.now()}-${Math.random()
         .toString(36)
         .slice(2)}.${ext}`;
 
@@ -81,7 +85,10 @@ export class UploadBusinessImagesUseCase {
     }
 
     if (Object.keys(updates).length > 0) {
-      await this.prisma.business.update({ where: { id: businessId }, data: updates });
+      await this.prisma.business.update({
+        where: { id: businessId },
+        data: updates,
+      });
     } else {
       throw new BadRequestException('No files provided');
     }
@@ -89,4 +96,3 @@ export class UploadBusinessImagesUseCase {
     return result;
   }
 }
-

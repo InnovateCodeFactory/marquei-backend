@@ -1,0 +1,7 @@
+backup:
+tar -czf minio-backup-$(date +%F).tar.gz /var/www/uploads
+
+tornar bucket publico apenas para leitura:
+docker run --rm --network host \
+  -e MC_HOST_local="http://carlana:@Carlana2708@127.0.0.1:9100" \
+  minio/mc anonymous set download local/marquei

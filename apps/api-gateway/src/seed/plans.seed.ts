@@ -15,7 +15,6 @@ export class SeedProfessionalPlansUseCase implements OnModuleInit {
       price_in_cents: 5990,
       billing_period: 'MONTHLY',
       is_active: true,
-
       showing_order: 1,
     },
     {
@@ -28,8 +27,18 @@ export class SeedProfessionalPlansUseCase implements OnModuleInit {
       price_in_cents: 10990,
       billing_period: 'MONTHLY',
       is_active: true,
-
       showing_order: 2,
+    },
+    {
+      id: 'cmc5k76ae0000yxdmds5lawuo',
+      name: 'Teste Diário',
+      description: null,
+      stripeProductId: 'prod_TAw0vlNPhAhxP3',
+      stripePriceId: 'price_1SEa8sPUXZY9v8Vp8vP3Jblf',
+      price_in_cents: 990,
+      billing_period: 'MONTHLY',
+      is_active: false,
+      showing_order: 0,
     },
     {
       id: 'cmc5k76ae0000yxlmps5lawuo',
@@ -40,7 +49,6 @@ export class SeedProfessionalPlansUseCase implements OnModuleInit {
       price_in_cents: 0,
       billing_period: 'FREE_TRIAL',
       is_active: false,
-
       showing_order: null,
     },
   ];
@@ -140,7 +148,7 @@ export class SeedProfessionalPlansUseCase implements OnModuleInit {
       planId: 'cmbsraj1j0000yxm0u4sd1vom',
       key: 'APP_POSITION',
       order: 2,
-      stringValue: 'Média',
+      stringValue: 'Normal',
       intValue: null,
       boolValue: null,
     },

@@ -33,6 +33,15 @@ export type EnvSchemaType = {
   R2_SIGNED_URL_TTL: number;
   R2_CUSTOM_DOMAIN: string;
 
+  MINIO_ENDPOINT: string;
+  MINIO_PORT: number;
+  MINIO_USE_SSL: string;
+  MINIO_ACCESS_KEY: string;
+  MINIO_SECRET_KEY: string;
+  MINIO_BUCKET: string;
+  MINIO_SIGNED_URL_TTL: number;
+  MINIO_PUBLIC_BASE: string;
+
   MAIL_USER: string;
   MAIL_PASS: string;
   MAIL_HOST: string;
@@ -84,6 +93,22 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
   R2_REGION: Joi.string().default('auto').required(),
   R2_SIGNED_URL_TTL: Joi.number().default(3600).positive().integer().required(),
   R2_CUSTOM_DOMAIN: Joi.string().uri().required(),
+
+  MINIO_ENDPOINT: Joi.string().required(),
+  MINIO_PORT: Joi.number().default(9100).positive().integer().required(),
+  MINIO_USE_SSL: Joi.string()
+    .valid('true', 'false')
+    .default('false')
+    .required(),
+  MINIO_ACCESS_KEY: Joi.string().required(),
+  MINIO_SECRET_KEY: Joi.string().required(),
+  MINIO_BUCKET: Joi.string().required(),
+  MINIO_SIGNED_URL_TTL: Joi.number()
+    .default(3600)
+    .positive()
+    .integer()
+    .required(),
+  MINIO_PUBLIC_BASE: Joi.string().uri().required(),
 
   MAIL_USER: Joi.string().required(),
   MAIL_PASS: Joi.string().required(),
