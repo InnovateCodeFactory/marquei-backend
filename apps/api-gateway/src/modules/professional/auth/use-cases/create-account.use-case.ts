@@ -10,10 +10,10 @@ import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { HashingService } from '@app/shared/services';
 import { getFirstName } from '@app/shared/utils';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { RegisterProfessionalUserDto } from '../dto/requests/register-professional-user';
+import { RegisterProfessionalUserDto } from '../dto/requests/create-account';
 
 @Injectable()
-export class RegisterProfessionalUserUseCase {
+export class CreateAccountUserUseCase {
   private readonly daysOfWeek = [
     DaysOfWeek.SUNDAY,
     DaysOfWeek.MONDAY,

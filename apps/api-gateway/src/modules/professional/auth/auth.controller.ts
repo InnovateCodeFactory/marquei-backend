@@ -8,20 +8,20 @@ import { Body, Controller, Post, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { MailValidationService } from 'apps/api-gateway/src/shared/services';
 import { Response } from 'express';
+import { CreateAccountDto } from './dto/requests/create-account';
 import { FirstAccessDto } from './dto/requests/firts-access.dto';
 import { LoginDto } from './dto/requests/login.dto';
 import { RefreshTokenDto } from './dto/requests/refresh-token.dto';
-import { RegisterProfessionalUserDto } from './dto/requests/register-professional-user';
 import { RegisterPushTokenDto } from './dto/requests/register-push-token.dto';
 import { UpdatePasswordConfirmCodeDto } from './dto/requests/update-password-confirm-code.dto';
 import { UpdatePasswordDto } from './dto/requests/update-password.dto';
 import { ValidateMailCodeDto } from './dto/requests/validate-mail-code.dto';
 import {
+  CreateAccountUserUseCase,
   FirstAccessUseCase,
   LoginUseCase,
   LogoutUseCase,
   RefreshTokenUseCase,
-  RegisterProfessionalUserUseCase,
   RegisterPushTokenUseCase,
   UpdatePasswordConfirmCodeUseCase,
   UpdatePasswordUseCase,
@@ -34,7 +34,7 @@ export class AuthController {
     private readonly responseHandler: ResponseHandlerService,
     private readonly mailService: MailValidationService,
 
-    private readonly registerProfessionalUserUseCase: RegisterProfessionalUserUseCase,
+    private readonly createAccountUserUseCase: CreateAccountUserUseCase,
     private readonly firstAccessUseCase: FirstAccessUseCase,
     private readonly loginUseCase: LoginUseCase,
     private readonly registerPushTokenUseCase: RegisterPushTokenUseCase,
@@ -100,18 +100,18 @@ export class AuthController {
     });
   }
 
-  @Post('register-professional-user')
+  @Post('create-account')
   @ApiOperation({
-    summary: 'Register professional user',
+    summary: 'Create professional user account',
   })
   @IsPublic()
   async registerProfessionalUser(
     @Res() res: Response,
-    @Body() body: RegisterProfessionalUserDto,
+    @Body() body: CreateAccountDto,
     @CurrentUserDecorator() currentUser: CurrentUser,
   ) {
     return this.responseHandler.handle({
-      method: () => this.registerProfessionalUserUseCase.execute(body),
+      method: () => this.createAccountUserUseCase.execute(body),
       res,
     });
   }

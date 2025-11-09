@@ -22,10 +22,12 @@ import {
   GetProfilePresentationUseCase,
   GetBusinessDetailsUseCase,
 } from './use-cases';
+import { GeocodeAddressUseCase } from './use-cases';
 import { SelectCurrentBusinessUseCase } from './use-cases/select-current-business.use-case';
 import { EditBusinessUseCase } from './use-cases/edit-business.use-case';
 import { UploadBusinessImagesUseCase } from './use-cases/upload-business-images.use-case';
 import { EditBusinessDto } from './dto/requests/edit-business.dto';
+import { GeocodeAddressDto } from './dto/requests/geocode-address.dto';
 
 @Controller('professional/business')
 @ApiTags('Professional - Business')
@@ -40,6 +42,7 @@ export class BusinessController {
     private readonly editBusinessUseCase: EditBusinessUseCase,
     private readonly uploadBusinessImagesUseCase: UploadBusinessImagesUseCase,
     private readonly getBusinessDetailsUseCase: GetBusinessDetailsUseCase,
+    private readonly geocodeAddressUseCase: GeocodeAddressUseCase,
   ) {}
 
   @Get('get-business-by-professional')
@@ -186,6 +189,22 @@ export class BusinessController {
       method: () => this.uploadBusinessImagesUseCase.execute(currentUser, files),
       res,
       successStatus: 201,
+    });
+  }
+
+  @Post('geocode-address')
+  @ApiOperation({
+    summary: 'Geocode address with Mapbox',
+    description:
+      'Receives address parts and returns latitude and longitude using Mapbox.',
+  })
+  async geocodeAddress(
+    @Res() res: Response,
+    @Body() payload: GeocodeAddressDto,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.geocodeAddressUseCase.execute(payload),
+      res,
     });
   }
 }

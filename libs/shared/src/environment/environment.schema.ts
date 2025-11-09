@@ -54,6 +54,8 @@ export type EnvSchemaType = {
   WHATSAPP_API_USERNAME: string;
   WHATSAPP_API_PASSWORD: string;
   WHATSAPP_API_SESSION_ID: string;
+
+  MAPBOX_ACCESS_TOKEN: string;
 };
 
 export const envValidationSchema = Joi.object<EnvSchemaType>({
@@ -123,4 +125,6 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
   WHATSAPP_API_USERNAME: Joi.string().required(),
   WHATSAPP_API_PASSWORD: Joi.string().required(),
   WHATSAPP_API_SESSION_ID: Joi.string().required(),
+
+  MAPBOX_ACCESS_TOKEN: Joi.string().required(),
 });
