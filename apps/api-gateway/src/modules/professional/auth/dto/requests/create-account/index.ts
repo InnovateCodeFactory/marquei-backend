@@ -3,7 +3,7 @@ import { Transform, Type } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 import { BusinessDto } from './business.dto';
 
-export class RegisterProfessionalUserDto {
+export class CreateAccountDto {
   @IsString()
   @IsNotEmpty()
   name: string;

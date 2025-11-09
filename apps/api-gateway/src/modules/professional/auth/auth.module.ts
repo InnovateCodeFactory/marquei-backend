@@ -3,11 +3,11 @@ import { Module } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
 import {
+  CreateAccountUseCase,
   FirstAccessUseCase,
   LoginUseCase,
   LogoutUseCase,
   RefreshTokenUseCase,
-  RegisterProfessionalUserUseCase,
   RegisterPushTokenUseCase,
   UpdatePasswordConfirmCodeUseCase,
   UpdatePasswordUseCase,
@@ -20,8 +20,8 @@ import {
     HashingService,
     JwtService,
     LoginUseCase,
-    RegisterProfessionalUserUseCase,
     FirstAccessUseCase,
+    CreateAccountUseCase,
     RegisterPushTokenUseCase,
     RefreshTokenUseCase,
     LogoutUseCase,
