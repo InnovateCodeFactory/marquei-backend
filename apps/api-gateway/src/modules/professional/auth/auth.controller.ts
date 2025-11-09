@@ -17,7 +17,7 @@ import { UpdatePasswordConfirmCodeDto } from './dto/requests/update-password-con
 import { UpdatePasswordDto } from './dto/requests/update-password.dto';
 import { ValidateMailCodeDto } from './dto/requests/validate-mail-code.dto';
 import {
-  CreateAccountUserUseCase,
+  CreateAccountUseCase,
   FirstAccessUseCase,
   LoginUseCase,
   LogoutUseCase,
@@ -34,7 +34,7 @@ export class AuthController {
     private readonly responseHandler: ResponseHandlerService,
     private readonly mailService: MailValidationService,
 
-    private readonly createAccountUserUseCase: CreateAccountUserUseCase,
+    private readonly createAccountUseCase: CreateAccountUseCase,
     private readonly firstAccessUseCase: FirstAccessUseCase,
     private readonly loginUseCase: LoginUseCase,
     private readonly registerPushTokenUseCase: RegisterPushTokenUseCase,
@@ -111,7 +111,7 @@ export class AuthController {
     @CurrentUserDecorator() currentUser: CurrentUser,
   ) {
     return this.responseHandler.handle({
-      method: () => this.createAccountUserUseCase.execute(body),
+      method: () => this.createAccountUseCase.execute(body),
       res,
     });
   }
