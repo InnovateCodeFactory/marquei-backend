@@ -198,6 +198,7 @@ model Service {
   businessId     String
   business       Business              @relation(fields: [businessId], references: [id])
   is_active      Boolean               @default(true)
+  color          String                @default("#4647fa")
   appointments   Appointment[]
   professionals  ProfessionalService[] // relação com a pivot
   created_at     DateTime              @default(now())
