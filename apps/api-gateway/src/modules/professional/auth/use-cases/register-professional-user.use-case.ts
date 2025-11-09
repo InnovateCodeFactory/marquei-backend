@@ -106,6 +106,11 @@ export class RegisterProfessionalUserUseCase {
         BusinessServiceType: {
           connect: { id: business.placeType },
         },
+        BusinessReminderSettings: {
+          create: {
+            is_active: true,
+          },
+        },
       },
       select: {
         id: true,
