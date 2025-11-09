@@ -1,13 +1,273 @@
 import { PrismaService } from '@app/shared';
-import { Injectable } from '@nestjs/common';
+import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifications';
+import { SendWhatsAppTextMessageDto } from '@app/shared/dto/messaging/whatsapp-notifications';
+import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
+import { RmqService } from '@app/shared/modules/rmq/rmq.service';
+import { NotificationMessageBuilder } from '@app/shared/utils/notification-message-builder';
+import { tz } from '@date-fns/tz';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { RedisLockService } from 'apps/scheduler/src/infrastructure/locks/redis-lock.service';
+import { format } from 'date-fns';
 
 @Injectable()
-export class ScheduleReminderUseCase {
-  constructor(private readonly prismaService: PrismaService) {}
+export class ScheduleReminderUseCase implements OnModuleInit {
+  private readonly logger = new Logger(ScheduleReminderUseCase.name);
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly rmqService: RmqService,
+    private readonly redisLockService: RedisLockService,
+  ) {}
+
+  async onModuleInit() {
+    // await this.execute();
+  }
 
   @Cron('*/15 * * * *', {
     timeZone: 'America/Sao_Paulo',
   })
-  async execute() {}
+  async execute() {
+    // Lock simples para evitar concorrência entre instâncias
+    const lock = await this.redisLockService.tryAcquire({
+      key: 'lock:schedule-reminders',
+      ttlInSeconds: 13 * 60, // 13 minutos
+    });
+    if (!lock) return;
+
+    try {
+      const nowUtc = new Date();
+      const GRACE_MIN = 2; // pega um pouco do passado para tolerar clock skew
+      const dueLte = new Date(nowUtc.getTime());
+      const dueGte = new Date(nowUtc.getTime() - GRACE_MIN * 60_000);
+
+      // Marca jobs muito antigos como SKIPPED para não disparar reminders atrasados
+      await this.prismaService.reminderJob.updateMany({
+        where: {
+          status: { in: ['PENDING', 'SCHEDULED'] },
+          due_at_utc: { lt: dueGte },
+        },
+        data: { status: 'SKIPPED', error: 'late_due' },
+      });
+
+      const BATCH = 300;
+      let lastId: string | null = null;
+
+      while (true) {
+        const jobs = await this.prismaService.reminderJob.findMany({
+          where: {
+            status: { in: ['PENDING', 'SCHEDULED'] },
+            due_at_utc: { lte: dueLte, gte: dueGte },
+          },
+          select: {
+            id: true,
+            businessId: true,
+            appointmentId: true,
+            personId: true,
+            channel: true,
+            due_at_utc: true,
+            status: true,
+            appointment: {
+              select: {
+                id: true,
+                start_at_utc: true,
+                timezone: true,
+                service: { select: { name: true } },
+                professional: { select: { User: { select: { name: true } } } },
+              },
+            },
+            person: {
+              select: {
+                phone: true,
+                user: { select: { push_token: true, name: true } },
+              },
+            },
+          },
+          orderBy: [{ due_at_utc: 'asc' }, { id: 'asc' }],
+          take: BATCH,
+          ...(lastId && { skip: 1, cursor: { id: lastId } }),
+        });
+
+        if (!jobs.length) break;
+
+        // Agrupa por (appointmentId + due_at_utc) para aplicar stagger entre canais simultâneos
+        const groups = new Map<string, typeof jobs>();
+        for (const j of jobs) {
+          const key = `${j.appointmentId}|${j.due_at_utc.getTime()}`;
+          const arr = groups.get(key) ?? [];
+          arr.push(j);
+          groups.set(key, arr);
+        }
+
+        for (const [, groupJobs] of groups) {
+          // Preferência de ordem: PUSH primeiro, depois WHATSAPP
+          const pushJob = groupJobs.find((j) => j.channel === 'PUSH');
+          const whatsappJob = groupJobs.find((j) => j.channel === 'WHATSAPP');
+
+          // Utilitários para construir mensagem e envio
+          const base = groupJobs[0];
+          const appt = base.appointment;
+          const person = base.person;
+          const tzid = appt?.timezone || 'America/Sao_Paulo';
+          const inTZ = tz(tzid);
+          const dayAndMonth = format(appt.start_at_utc, 'dd/MM', { in: inTZ });
+          const time = format(appt.start_at_utc, 'HH:mm', { in: inTZ });
+          const professionalName = appt.professional?.User?.name || '';
+          const serviceName = appt.service?.name || '';
+          const msg =
+            NotificationMessageBuilder.buildAppointmentReminderMessageForCustomer(
+              {
+                professional_name: professionalName,
+                dayAndMonth,
+                time,
+                service_name: serviceName,
+              },
+            );
+
+          const STAGGER_MS = 2 * 60_000; // 2 minutos
+
+          // Funções auxiliares de envio/atualização
+          const markSent = async (jobId: string) => {
+            await this.prismaService.reminderJob.update({
+              where: { id: jobId },
+              data: {
+                status: 'SENT',
+                sent_at_utc: new Date(),
+                error: null,
+                attempts: { increment: 1 },
+              },
+            });
+            await this.prismaService.appointmentEvent.create({
+              data: {
+                appointmentId: appt.id,
+                event_type: 'REMINDER_SENT',
+                by_professional: false,
+                by_user_id: null,
+                reason: 'reminder',
+              },
+            });
+          };
+
+          const markFailed = async (jobId: string, errorMsg: string) => {
+            await this.prismaService.reminderJob.update({
+              where: { id: jobId },
+              data: {
+                status: 'FAILED',
+                error: errorMsg,
+                attempts: { increment: 1 },
+              },
+            });
+            await this.prismaService.appointmentEvent.create({
+              data: {
+                appointmentId: appt.id,
+                event_type: 'REMINDER_FAILED',
+                by_professional: false,
+                by_user_id: null,
+                reason: errorMsg?.slice(0, 200) || 'error',
+              },
+            });
+          };
+
+          const markSkipped = async (jobId: string, reason: string) => {
+            await this.prismaService.reminderJob.update({
+              where: { id: jobId },
+              data: {
+                status: 'SKIPPED',
+                error: reason,
+                attempts: { increment: 1 },
+              },
+            });
+          };
+
+          const scheduleLater = async (jobId: string, fromDue: Date) => {
+            await this.prismaService.reminderJob.update({
+              where: { id: jobId },
+              data: {
+                status: 'SCHEDULED',
+                scheduled_at_utc: new Date(),
+                due_at_utc: new Date(fromDue.getTime() + STAGGER_MS),
+              },
+            });
+          };
+
+          // Decide envios, evitando simultaneidade
+          const bothPresent = !!pushJob && !!whatsappJob;
+
+          // Helper para enviar push
+          const trySendPush = async (job: typeof pushJob) => {
+            if (!job) return false;
+            const token = person.user?.push_token;
+            if (!token) {
+              await markSkipped(job.id, 'missing_push_token');
+              return false;
+            }
+            try {
+              await this.rmqService.publishToQueue({
+                routingKey:
+                  MESSAGING_QUEUES.PUSH_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
+                payload: new SendPushNotificationDto({
+                  pushTokens: [token],
+                  title: msg.title,
+                  body: msg.body,
+                }),
+              });
+              await markSent(job.id);
+              return true;
+            } catch (err: any) {
+              await markFailed(job.id, err?.message || 'push_send_error');
+              return false;
+            }
+          };
+
+          // Helper para enviar whatsapp
+          const trySendWhatsApp = async (job: typeof whatsappJob) => {
+            if (!job) return false;
+            const phone = person.phone;
+            if (!phone) {
+              await markSkipped(job.id, 'missing_phone_number');
+              return false;
+            }
+            try {
+              await this.rmqService.publishToQueue({
+                routingKey:
+                  MESSAGING_QUEUES.WHATSAPP_NOTIFICATIONS
+                    .SEND_TEXT_MESSAGE_QUEUE,
+                payload: new SendWhatsAppTextMessageDto({
+                  phone_number: phone,
+                  message: msg.body,
+                }),
+              });
+              await markSent(job.id);
+              return true;
+            } catch (err: any) {
+              await markFailed(job.id, err?.message || 'whatsapp_send_error');
+              return false;
+            }
+          };
+
+          // Fluxo principal com stagger
+          if (bothPresent) {
+            const pushSent = await trySendPush(pushJob);
+            if (pushSent) {
+              // Se push foi enviado agora, reagenda o WhatsApp para alguns minutos depois
+              await scheduleLater(whatsappJob.id, whatsappJob.due_at_utc);
+            } else {
+              // Se não conseguimos push (token ausente/erro), tenta WhatsApp imediatamente
+              await trySendWhatsApp(whatsappJob);
+            }
+          } else if (pushJob) {
+            await trySendPush(pushJob);
+          } else if (whatsappJob) {
+            await trySendWhatsApp(whatsappJob);
+          }
+        }
+
+        lastId = jobs[jobs.length - 1].id;
+        if (jobs.length < BATCH) break;
+      }
+    } catch (error) {
+      this.logger.error('Erro no agendamento de reminders', error);
+    } finally {
+      await lock.release();
+    }
+  }
 }
