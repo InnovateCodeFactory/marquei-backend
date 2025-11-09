@@ -133,6 +133,8 @@ model BusinessReminderSettings {
   is_active  Boolean  @default(true)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  @@index([businessId], name: "idx_business_reminder_settings_business")
 }
 
 model ReminderJob {

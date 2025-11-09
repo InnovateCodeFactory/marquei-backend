@@ -6,7 +6,7 @@ import { Cron } from '@nestjs/schedule';
 export class ScheduleReminderUseCase {
   constructor(private readonly prismaService: PrismaService) {}
 
-  @Cron('0,30 * * * *', {
+  @Cron('*/15 * * * *', {
     timeZone: 'America/Sao_Paulo',
   })
   async execute() {}

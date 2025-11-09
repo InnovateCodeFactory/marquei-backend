@@ -85,6 +85,11 @@ export class CreateAppointmentUseCase {
         notes: notes || null,
         customerPerson: { connect: { id: request.user.personId } },
         start_offset_minutes: startLocal.getTimezoneOffset(),
+        // ReminderJob: {
+        //   create: {
+        //     channel: ''
+        //   }
+        // }
       },
       select: {
         customerPerson: { select: { name: true } },
