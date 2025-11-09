@@ -3,6 +3,7 @@ import * as Joi from 'joi';
 export type EnvSchemaType = {
   NODE_ENV: string;
   PORT: number;
+  TZ: string;
 
   JWT_SECRET: string;
   JWT_ACCESS_EXPIRES_IN: string; // e.g., 15m
@@ -60,6 +61,7 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
     .valid('development', 'production', 'test')
     .default('development'),
   PORT: Joi.number().default(3000).positive().integer().required(),
+  TZ: Joi.string().default('America/Sao_Paulo').required(),
 
   JWT_SECRET: Joi.string().required(),
   JWT_ACCESS_EXPIRES_IN: Joi.string().default('15m'),
