@@ -126,6 +126,9 @@ export class RescheduleAppointmentUseCase {
           start_at_utc: newStartUtc,
           end_at_utc: newEndUtc,
           timezone: appointment.timezone || BUSINESS_TZ_ID,
+          // Atualiza campos derivados conforme padrão do client-app
+          duration_minutes: durationMin,
+          start_offset_minutes: startLocal.getTimezoneOffset(),
           status: 'PENDING', // volta para pendente após remarcação
           events: {
             create: {
