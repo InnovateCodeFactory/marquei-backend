@@ -27,4 +27,13 @@ export class GetServicesDto {
     example: 'haircut',
   })
   search?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiPropertyOptional({
+    description:
+      'Optional professional profile id to filter only services executed by this professional',
+    example: 'prof_123',
+  })
+  professional_profile_id?: string;
 }

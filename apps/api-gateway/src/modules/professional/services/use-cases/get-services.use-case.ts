@@ -13,7 +13,7 @@ export class GetServicesUseCase {
       throw new BadRequestException('Nenhum negócio selecionado');
 
     const { current_selected_business_slug } = currentUser;
-    const { limit, page, search } = query;
+    const { limit, page, search, professional_profile_id } = query;
 
     const pageNumber = parseInt(page, 10) || 1;
     const pageSize = parseInt(limit, 10) || 25;
@@ -36,6 +36,12 @@ export class GetServicesUseCase {
           mode: 'insensitive',
         },
       }));
+    }
+
+    if (professional_profile_id) {
+      whereClause.professionals = {
+        some: { professional_profile_id },
+      };
     }
 
     const [services, totalCount] = await Promise.all([

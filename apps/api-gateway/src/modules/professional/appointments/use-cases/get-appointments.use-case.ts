@@ -69,6 +69,7 @@ export class GetAppointmentsUseCase {
             name: true,
             duration: true,
             price_in_cents: true,
+            color: true,
           },
         },
       },
@@ -145,6 +146,7 @@ export class GetAppointmentsUseCase {
           name: a.service.name,
           duration: formatDuration(Number(durationMin), 'short'),
           price_in_formatted: new Price(a.service.price_in_cents).toCurrency(),
+          color: a.service.color,
         },
         status: formatAppointmentStatus(a.status),
       };
