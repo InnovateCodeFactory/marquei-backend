@@ -8,6 +8,8 @@ import {
 import { LogoutUseCase } from './use-cases/logout.use-case';
 import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
 import { RegisterVisitUseCase } from './use-cases/register-visit.use-case';
+import { RegisterPushTokenUseCase } from './use-cases/register-push-token.use-case';
+import { RegisterGuestPushTokenUseCase } from './use-cases/register-guest-push-token.use-case';
 
 @Module({
   controllers: [AuthController],
@@ -18,6 +20,8 @@ import { RegisterVisitUseCase } from './use-cases/register-visit.use-case';
     RefreshTokenUseCase,
     LogoutUseCase,
     RegisterVisitUseCase,
+    RegisterPushTokenUseCase,
+    RegisterGuestPushTokenUseCase,
   ],
 })
 export class AuthModule {}

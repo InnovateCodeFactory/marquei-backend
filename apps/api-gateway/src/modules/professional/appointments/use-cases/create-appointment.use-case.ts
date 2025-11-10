@@ -38,14 +38,14 @@ export class CreateAppointmentUseCase {
           id: service_id,
           businessId: user.current_selected_business_id,
         },
-        select: { id: true, duration: true },
+        select: { id: true, duration: true, name: true, price_in_cents: true },
       }),
       this.prisma.professionalProfile.findFirst({
         where: {
           id: professional_id,
           business_id: user.current_selected_business_id,
         },
-        select: { id: true },
+        select: { id: true, business_id: true },
       }),
       this.prisma.businessCustomer.findFirst({
         where: {
@@ -101,7 +101,30 @@ export class CreateAppointmentUseCase {
       );
     }
 
-    // 4) Criar o agendamento no novo formato
+    // 4) Buscar configurações de lembretes do negócio e preparar jobs
+    const reminderJobSettings = await this.prisma.businessReminderSettings.findFirst({
+      where: { businessId: professional.business_id },
+      select: { channels: true, offsets_min_before: true, timezone: true, businessId: true },
+    });
+
+    const reminderJobs: { channel: string; due_at_utc: Date; personId: string; businessId: string }[] = [];
+    if (reminderJobSettings) {
+      const nowUtc = new Date();
+      for (const channel of reminderJobSettings.channels) {
+        for (const offsetMin of reminderJobSettings.offsets_min_before) {
+          const dueAtUtc = new Date(startLocal.getTime() - offsetMin * 60000);
+          if (dueAtUtc <= nowUtc) continue;
+          reminderJobs.push({
+            channel,
+            due_at_utc: dueAtUtc,
+            personId: bc.personId,
+            businessId: reminderJobSettings.businessId,
+          } as any);
+        }
+      }
+    }
+
+    // 5) Criar o agendamento no novo formato
     await this.prisma.appointment.create({
       data: {
         status: 'PENDING',
@@ -114,6 +137,11 @@ export class CreateAppointmentUseCase {
         service: { connect: { id: service_id } },
         customerPerson: { connect: { id: bc.personId } },
         notes: notes || null,
+        ...(reminderJobs.length > 0 && {
+          ReminderJob: {
+            createMany: { skipDuplicates: true, data: reminderJobs as any },
+          },
+        }),
         events: {
           create: {
             event_type: 'CREATED',
