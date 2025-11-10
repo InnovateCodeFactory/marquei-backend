@@ -34,6 +34,9 @@ export class GetProfessionalsUseCase {
           status: true,
           phone: true,
           profile_image: true,
+          services: {
+            select: { service_id: true },
+          },
 
           User: {
             select: {
@@ -70,6 +73,7 @@ export class GetProfessionalsUseCase {
         first_access: professional.User.first_access,
         status: professional.status,
         user_id: professional.User.id,
+        servicesIds: (professional.services || []).map((s) => s.service_id),
       })) || []
     );
   }

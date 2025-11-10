@@ -1,4 +1,5 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
+import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
 import {
@@ -14,20 +15,20 @@ import {
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { EditBusinessDto } from './dto/requests/edit-business.dto';
+import { GeocodeAddressDto } from './dto/requests/geocode-address.dto';
 import { SelectCurrentBusinessDto } from './dto/requests/select-current-business.dto';
 import {
+  GeocodeAddressUseCase,
   GetBusinessByProfessionalUseCase,
+  GetBusinessDetailsUseCase,
   GetCurrentSubscriptionUseCase,
   GetProfessionalsUseCase,
   GetProfilePresentationUseCase,
-  GetBusinessDetailsUseCase,
 } from './use-cases';
-import { GeocodeAddressUseCase } from './use-cases';
-import { SelectCurrentBusinessUseCase } from './use-cases/select-current-business.use-case';
 import { EditBusinessUseCase } from './use-cases/edit-business.use-case';
+import { SelectCurrentBusinessUseCase } from './use-cases/select-current-business.use-case';
 import { UploadBusinessImagesUseCase } from './use-cases/upload-business-images.use-case';
-import { EditBusinessDto } from './dto/requests/edit-business.dto';
-import { GeocodeAddressDto } from './dto/requests/geocode-address.dto';
 
 @Controller('professional/business')
 @ApiTags('Professional - Business')
@@ -161,18 +162,21 @@ export class BusinessController {
 
   @Post('profile-images')
   @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'logo', maxCount: 1 },
-      { name: 'cover', maxCount: 1 },
-    ], {
-      limits: { fileSize: 10 * 1024 * 1024 },
-      fileFilter: (_req, file, cb) => {
-        const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-        if (!allowed.includes(file.mimetype))
-          return cb(new Error('Tipo inválido'), false);
-        cb(null, true);
+    FileFieldsInterceptor(
+      [
+        { name: 'logo', maxCount: 1 },
+        { name: 'cover', maxCount: 1 },
+      ],
+      {
+        limits: { fileSize: 10 * 1024 * 1024 },
+        fileFilter: (_req, file, cb) => {
+          const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+          if (!allowed.includes(file.mimetype))
+            return cb(new Error('Tipo inválido'), false);
+          cb(null, true);
+        },
       },
-    }),
+    ),
   )
   @ApiOperation({
     summary: 'Upload business logo and/or cover image',
@@ -186,12 +190,14 @@ export class BusinessController {
     @Res() res: Response,
   ) {
     return await this.responseHandler.handle({
-      method: () => this.uploadBusinessImagesUseCase.execute(currentUser, files),
+      method: () =>
+        this.uploadBusinessImagesUseCase.execute(currentUser, files),
       res,
       successStatus: 201,
     });
   }
 
+  @IsPublic()
   @Post('geocode-address')
   @ApiOperation({
     summary: 'Geocode address with Mapbox',

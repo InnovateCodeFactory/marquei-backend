@@ -92,6 +92,8 @@ export class CreateProfessionalUseCase {
       select: { id: true, name: true },
     });
 
+    let createdProfessionalId: string | null = null;
+
     if (!existingUser) {
       // Fluxo atual (novo usuário): cria usuário com senha temporária e first_access
       const temporary_password = generateRandomString(8);
@@ -127,6 +129,8 @@ export class CreateProfessionalUseCase {
           business: { select: { name: true } },
         },
       });
+
+      createdProfessionalId = professional.id;
 
       await Promise.all([
         this.rmqService.publishToQueue({
@@ -176,6 +180,8 @@ export class CreateProfessionalUseCase {
         },
       });
 
+      createdProfessionalId = professional.id;
+
       await Promise.all([
         this.rmqService.publishToQueue({
           routingKey:
@@ -203,6 +209,33 @@ export class CreateProfessionalUseCase {
           }),
         }),
       ]);
+    }
+
+    // vincula serviços (se enviados)
+    if (
+      createdProfessionalId &&
+      Array.isArray(payload.servicesId) &&
+      payload.servicesId.length
+    ) {
+      // valida que serviços pertencem ao negócio atual
+      const unique = Array.from(new Set(payload.servicesId.filter(Boolean)));
+      const validCount = await this.prismaService.service.count({
+        where: {
+          id: { in: unique },
+          business: { id: user.current_selected_business_id },
+        },
+      });
+      if (validCount !== unique.length)
+        throw new BadRequestException('Serviços inválidos para este negócio');
+
+      await this.prismaService.professionalService.createMany({
+        data: unique.map((sid) => ({
+          professional_profile_id: createdProfessionalId!,
+          service_id: sid,
+          active: true,
+        })),
+        skipDuplicates: true,
+      });
     }
 
     return null;

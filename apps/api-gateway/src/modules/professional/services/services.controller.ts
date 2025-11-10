@@ -14,11 +14,15 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CreateServiceDto } from './dto/requests/create-service.dto';
-import { DeleteServiceDto } from './dto/requests/delete-service.dto';
 import { GetServicesDto } from './dto/requests/get-services.dto';
 import { SoftDeleteServiceDto } from './dto/requests/soft-delete-service.dto';
 import { UpdateServiceDto } from './dto/requests/update-service.dto';
-import { CreateServiceUseCase, GetServicesUseCase, SoftDeleteServiceUseCase, UpdateServiceUseCase } from './use-cases';
+import {
+  CreateServiceUseCase,
+  GetServicesUseCase,
+  SoftDeleteServiceUseCase,
+  UpdateServiceUseCase,
+} from './use-cases';
 import { DeleteServiceUseCase } from './use-cases/delete-service.use-case';
 
 @Controller('professional/services')
@@ -65,21 +69,21 @@ export class ServicesController {
     });
   }
 
-  @Delete('delete-service')
-  @ApiOperation({
-    summary: 'Delete a service',
-  })
-  async deleteService(
-    @Res() res: Response,
-    @Query() query: DeleteServiceDto,
-    @CurrentUserDecorator() currentUser: CurrentUser,
-  ) {
-    return await this.responseHandlerService.handle({
-      method: () => this.deleteServiceUseCase.execute(query, currentUser),
-      res,
-      successStatus: 204,
-    });
-  }
+  // @Delete('delete-service')
+  // @ApiOperation({
+  //   summary: 'Delete a service',
+  // })
+  // async deleteService(
+  //   @Res() res: Response,
+  //   @Query() query: DeleteServiceDto,
+  //   @CurrentUserDecorator() currentUser: CurrentUser,
+  // ) {
+  //   return await this.responseHandlerService.handle({
+  //     method: () => this.deleteServiceUseCase.execute(query, currentUser),
+  //     res,
+  //     successStatus: 204,
+  //   });
+  // }
 
   @Patch('update-service')
   @ApiOperation({
@@ -97,7 +101,7 @@ export class ServicesController {
     });
   }
 
-  @Delete('soft-delete-service')
+  @Delete('delete-service')
   @ApiOperation({
     summary: 'Soft delete a service',
   })

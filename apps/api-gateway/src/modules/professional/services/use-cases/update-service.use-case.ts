@@ -17,7 +17,14 @@ export class UpdateServiceUseCase {
       throw new BadRequestException('Nenhum negócio selecionado');
 
     const { current_selected_business_slug } = currentUser;
-    const { serviceId, name, duration, price_in_cents } = payload;
+    const {
+      serviceId,
+      name,
+      duration,
+      price_in_cents,
+      color,
+      professionalsId,
+    } = payload;
 
     // Verify the service exists and belongs to the current business
     const existingService = await this.prismaService.service.findFirst({
@@ -61,7 +68,9 @@ export class UpdateServiceUseCase {
       });
 
       if (nameInUse)
-        throw new ConflictException('Serviço já cadastrado com este nome');
+        throw new ConflictException(
+          'Existe um serviço cadastrado com este nome',
+        );
     }
 
     // Build update data object with only changed fields
@@ -79,6 +88,10 @@ export class UpdateServiceUseCase {
       updateData.price_in_cents = price_in_cents;
     }
 
+    if (color) {
+      updateData.color = color;
+    }
+
     // Only update if there are changes
     if (Object.keys(updateData).length === 0) {
       // No changes detected, return early
@@ -92,6 +105,54 @@ export class UpdateServiceUseCase {
       },
       data: updateData,
     });
+
+    if (Array.isArray(professionalsId)) {
+      const unique = Array.from(new Set(professionalsId.filter(Boolean)));
+
+      if (unique.length) {
+        const validCount = await this.prismaService.professionalProfile.count({
+          where: {
+            id: { in: unique },
+            business: { slug: current_selected_business_slug },
+          },
+        });
+        if (validCount !== unique.length)
+          throw new BadRequestException(
+            'Profissionais inválidos para este negócio',
+          );
+      }
+
+      const current = await this.prismaService.professionalService.findMany({
+        where: { service_id: serviceId },
+        select: { professional_profile_id: true },
+      });
+      const currentIds = new Set(current.map((x) => x.professional_profile_id));
+
+      const toAdd = unique.filter((id) => !currentIds.has(id));
+      const toRemove = Array.from(currentIds).filter(
+        (id) => !unique.includes(id),
+      );
+
+      if (toRemove.length) {
+        await this.prismaService.professionalService.deleteMany({
+          where: {
+            service_id: serviceId,
+            professional_profile_id: { in: toRemove },
+          },
+        });
+      }
+
+      if (toAdd.length) {
+        await this.prismaService.professionalService.createMany({
+          data: toAdd.map((pid) => ({
+            professional_profile_id: pid,
+            service_id: serviceId,
+            active: true,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
 
     return null;
   }

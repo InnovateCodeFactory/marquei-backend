@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsInt,
   IsNotEmpty,
@@ -6,6 +6,8 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  Matches,
+  IsArray,
 } from 'class-validator';
 
 export class UpdateServiceDto {
@@ -42,4 +44,25 @@ export class UpdateServiceDto {
     required: false,
   })
   price_in_cents?: number;
+
+  @IsString()
+  @IsOptional()
+  @Matches(/^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$/)
+  @ApiPropertyOptional({
+    description: 'Color used to identify the service in calendar (hex #RRGGBB)',
+    example: '#4647FA',
+    required: false,
+  })
+  color?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ApiPropertyOptional({
+    description:
+      'Optional full replacement list of professional profile IDs that execute this service',
+    isArray: true,
+    type: String,
+    required: false,
+  })
+  professionalsId?: string[];
 }
