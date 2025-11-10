@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/shared';
+import { EnvSchemaType } from '@app/shared/environment';
 import { SCHEDULER_QUEUES } from '@app/shared/modules/rmq/constants';
 import {
   RABBIT_EXCHANGE,
@@ -6,6 +7,7 @@ import {
 } from '@app/shared/modules/rmq/rmq.service';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { RedisLockService } from 'apps/scheduler/src/infrastructure/locks/redis-lock.service';
 
@@ -16,6 +18,7 @@ export class CloseDueAppointmentsUseCase implements OnApplicationBootstrap {
     private readonly rmqService: RmqService,
     private readonly redisLockService: RedisLockService,
     private readonly prismaService: PrismaService,
+    private readonly configService: ConfigService<EnvSchemaType>,
   ) {}
 
   async onApplicationBootstrap() {
@@ -24,6 +27,8 @@ export class CloseDueAppointmentsUseCase implements OnApplicationBootstrap {
 
   @Cron('*/5 * * * *') // a cada 5 minutos
   async execute() {
+    if (this.configService.get('NODE_ENV') !== 'production') return;
+
     const lock = await this.redisLockService.tryAcquire({
       key: 'lock:close-due',
       ttlInSeconds: 4 * 60, // 4 minutos

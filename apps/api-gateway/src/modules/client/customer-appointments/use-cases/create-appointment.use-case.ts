@@ -71,6 +71,41 @@ export class CreateAppointmentUseCase {
       );
     }
 
+    const reminderJobSettings =
+      await this.prismaService.businessReminderSettings.findFirst({
+        where: {
+          business: {
+            professionals: {
+              some: { id: professional_id },
+            },
+          },
+        },
+        select: {
+          channels: true,
+          offsets_min_before: true,
+          timezone: true,
+          businessId: true,
+        },
+      });
+
+    const reminderJobs = [];
+    if (reminderJobSettings) {
+      const nowUtc = new Date();
+      for (const channel of reminderJobSettings.channels) {
+        for (const offsetMin of reminderJobSettings.offsets_min_before) {
+          const dueAtUtc = new Date(startLocal.getTime() - offsetMin * 60000);
+          // Evita criar lembretes já expirados (ex.: offset de 24h para agendamento em <24h)
+          if (dueAtUtc <= nowUtc) continue;
+          reminderJobs.push({
+            channel,
+            due_at_utc: dueAtUtc,
+            personId: request.user.personId,
+            businessId: reminderJobSettings.businessId,
+          });
+        }
+      }
+    }
+
     // 4) Cria o agendamento no novo formato (sempre UTC no banco)
     const appointment = await this.prismaService.appointment.create({
       data: {
@@ -85,11 +120,14 @@ export class CreateAppointmentUseCase {
         notes: notes || null,
         customerPerson: { connect: { id: request.user.personId } },
         start_offset_minutes: startLocal.getTimezoneOffset(),
-        // ReminderJob: {
-        //   create: {
-        //     channel: ''
-        //   }
-        // }
+        ...(reminderJobs?.length > 0 && {
+          ReminderJob: {
+            createMany: {
+              skipDuplicates: true,
+              data: reminderJobs,
+            },
+          },
+        }),
       },
       select: {
         customerPerson: { select: { name: true } },
