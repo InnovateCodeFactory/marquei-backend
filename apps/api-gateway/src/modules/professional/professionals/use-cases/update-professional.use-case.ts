@@ -16,7 +16,7 @@ export class UpdateProfessionalUseCase {
     if (!user.current_selected_business_id)
       throw new UnauthorizedException('Você não tem uma empresa selecionada');
 
-    const { professionalProfileId, email, phone, name } = payload;
+    const { professionalProfileId, email, phone, name, servicesId } = payload;
 
     // Verify the professional exists and belongs to the current business
     const existingProfessional =
@@ -120,6 +120,49 @@ export class UpdateProfessionalUseCase {
       },
       data: updateData,
     });
+
+    if (Array.isArray(servicesId)) {
+      const unique = Array.from(new Set(servicesId.filter(Boolean)));
+
+      if (unique.length) {
+        const validCount = await this.prismaService.service.count({
+          where: {
+            id: { in: unique },
+            business: { id: user.current_selected_business_id },
+          },
+        });
+        if (validCount !== unique.length)
+          throw new BadRequestException('Serviço inválido para este negócio');
+      }
+
+      const current = await this.prismaService.professionalService.findMany({
+        where: { professional_profile_id: professionalProfileId },
+        select: { service_id: true },
+      });
+      const currentIds = new Set(current.map((x) => x.service_id));
+      const toAdd = unique.filter((id) => !currentIds.has(id));
+      const toRemove = Array.from(currentIds).filter((id) => !unique.includes(id));
+
+      if (toRemove.length) {
+        await this.prismaService.professionalService.deleteMany({
+          where: {
+            professional_profile_id: professionalProfileId,
+            service_id: { in: toRemove },
+          },
+        });
+      }
+
+      if (toAdd.length) {
+        await this.prismaService.professionalService.createMany({
+          data: toAdd.map((sid) => ({
+            professional_profile_id: professionalProfileId,
+            service_id: sid,
+            active: true,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
 
     return null;
   }

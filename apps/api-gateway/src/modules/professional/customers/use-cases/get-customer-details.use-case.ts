@@ -13,7 +13,6 @@ export class GetCustomerDetailsUseCase {
   ) {}
 
   async execute({ id }: GetCustomerDetailsDto, user: CurrentUser) {
-    // id é BusinessCustomer.id
     const bc = await this.prisma.businessCustomer.findUnique({
       where: { id },
       select: {

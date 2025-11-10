@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsNumberString, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsEmail,
+  IsNotEmpty,
+  IsNumberString,
+  IsString,
+} from 'class-validator';
 
 export class CreateProfessionalDto {
   @IsString()
@@ -23,4 +29,12 @@ export class CreateProfessionalDto {
     description: 'Nome do profissional',
   })
   name: string;
+
+  @IsArray()
+  @ApiProperty({
+    description: 'Lista de serviços (IDs) realizados por este profissional',
+    isArray: true,
+    type: String,
+  })
+  servicesId?: string[];
 }

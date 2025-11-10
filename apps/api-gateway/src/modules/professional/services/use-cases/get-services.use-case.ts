@@ -46,6 +46,21 @@ export class GetServicesUseCase {
           name: true,
           duration: true,
           price_in_cents: true,
+          color: true,
+          professionals: {
+            select: {
+              professional_profile_id: true,
+              professional_profile: {
+                select: {
+                  User: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
         skip,
         take: pageSize,
@@ -64,10 +79,18 @@ export class GetServicesUseCase {
           ? `${durationHours}h ${durationMinutes}m`
           : `${durationMinutes}m`;
 
+      const professionalsId = service.professionals.map((p) => {
+        return {
+          id: p.professional_profile_id,
+          name: p.professional_profile.User.name,
+        };
+      });
+
       return {
         ...service,
         price: new Price(service.price_in_cents).toCurrency(),
         durationFormatted,
+        professionalsId,
       };
     });
 

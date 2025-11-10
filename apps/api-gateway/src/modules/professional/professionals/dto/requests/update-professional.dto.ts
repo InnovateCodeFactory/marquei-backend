@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
   IsNotEmpty,
@@ -39,4 +39,14 @@ export class UpdateProfessionalDto {
     required: false,
   })
   name?: string;
+
+  @IsOptional()
+  @ApiPropertyOptional({
+    description:
+      'Lista completa (substituição) de serviços (IDs) realizados por este profissional',
+    isArray: true,
+    type: String,
+    required: false,
+  })
+  servicesId?: string[];
 }

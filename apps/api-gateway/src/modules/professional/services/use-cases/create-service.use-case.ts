@@ -16,7 +16,7 @@ export class CreateServiceUseCase {
       throw new BadRequestException('Nenhum negócio selecionado');
 
     const { current_selected_business_slug } = currentUser;
-    const { duration, name, price_in_cents } = payload;
+    const { duration, name, price_in_cents, color, professionalsId } = payload;
 
     const serviceExists = await this.prismaService.service.findFirst({
       where: {
@@ -36,11 +36,38 @@ export class CreateServiceUseCase {
     if (serviceExists)
       throw new ConflictException('Serviço já cadastrado com este nome');
 
+    const selectedProfessionals = Array.isArray(professionalsId)
+      ? Array.from(new Set(professionalsId.filter(Boolean)))
+      : [];
+
+    if (selectedProfessionals.length) {
+      const count = await this.prismaService.professionalProfile.count({
+        where: {
+          id: { in: selectedProfessionals },
+          business: { slug: current_selected_business_slug },
+        },
+      });
+      if (count !== selectedProfessionals.length)
+        throw new BadRequestException(
+          'Profissional inválido para este negócio',
+        );
+    }
+
     await this.prismaService.service.create({
       data: {
         name,
         duration,
         price_in_cents,
+        ...(color ? { color } : {}),
+        professionals: {
+          createMany: {
+            data: selectedProfessionals.map((pid) => ({
+              professional_profile_id: pid,
+              active: true,
+            })),
+            skipDuplicates: true,
+          },
+        },
         business: {
           connect: {
             slug: current_selected_business_slug,
