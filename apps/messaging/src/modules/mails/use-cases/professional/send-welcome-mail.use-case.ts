@@ -19,12 +19,11 @@ export class SendWelcomeProfessionalMailUseCase
   ) {}
 
   async onApplicationBootstrap() {
-    await this.execute({
-      to: 'alanagabriele43@gmail.com',
-      firstName: 'Alana',
-
-      // to: 'chziegler445@gmail.com',
-    });
+    // await this.execute({
+    //   to: 'alanagabriele43@gmail.com',
+    //   firstName: 'Alana',
+    //   // to: 'chziegler445@gmail.com',
+    // });
   }
 
   @RabbitSubscribe({

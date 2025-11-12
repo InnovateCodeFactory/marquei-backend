@@ -6,7 +6,7 @@ import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { NotificationMessageBuilder } from '@app/shared/utils/notification-message-builder';
 import { tz } from '@date-fns/tz';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { RedisLockService } from 'apps/scheduler/src/infrastructure/locks/redis-lock.service';
 import { format } from 'date-fns';
 
@@ -23,20 +23,22 @@ export class ScheduleReminderUseCase implements OnModuleInit {
     // await this.execute();
   }
 
-  @Cron('*/15 * * * *', {
+  // Executa a cada 1 minuto; o lock de Redis evita concorrência.
+  @Cron(CronExpression.EVERY_MINUTE, {
     timeZone: 'America/Sao_Paulo',
   })
   async execute() {
     // Lock simples para evitar concorrência entre instâncias
+    // TTL curto + release explícito permite rodar a cada minuto sem overlap
     const lock = await this.redisLockService.tryAcquire({
       key: 'lock:schedule-reminders',
-      ttlInSeconds: 13 * 60, // 13 minutos
+      ttlInSeconds: 90, // 1.5 minutos
     });
     if (!lock) return;
 
     try {
       const nowUtc = new Date();
-      const GRACE_MIN = 2; // pega um pouco do passado para tolerar clock skew
+      const GRACE_MIN = 5; // tolera atrasos e stagger (evita late_due indevido)
       const dueLte = new Date(nowUtc.getTime());
       const dueGte = new Date(nowUtc.getTime() - GRACE_MIN * 60_000);
 
@@ -53,6 +55,8 @@ export class ScheduleReminderUseCase implements OnModuleInit {
       let lastId: string | null = null;
 
       while (true) {
+        // Renova o lock para execuções mais longas
+        await lock.renew(90).catch(() => void 0);
         const jobs = await this.prismaService.reminderJob.findMany({
           where: {
             status: { in: ['PENDING', 'SCHEDULED'] },
@@ -179,12 +183,16 @@ export class ScheduleReminderUseCase implements OnModuleInit {
           };
 
           const scheduleLater = async (jobId: string, fromDue: Date) => {
+            // Reagenda relativo ao presente para evitar cair no "late_due"
+            // quando o due original já está no passado.
+            const baseMs = Math.max(Date.now(), fromDue.getTime());
+            const newDue = new Date(baseMs + STAGGER_MS);
             await this.prismaService.reminderJob.update({
               where: { id: jobId },
               data: {
                 status: 'SCHEDULED',
                 scheduled_at_utc: new Date(),
-                due_at_utc: new Date(fromDue.getTime() + STAGGER_MS),
+                due_at_utc: newDue,
               },
             });
           };
