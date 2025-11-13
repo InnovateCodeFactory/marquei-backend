@@ -120,9 +120,9 @@ export class GetCustomerAppointmentsUseCase {
           hour: format(a.start_at_utc, 'HH:mm', { locale: ptBR, in: IN_TZ }),
         },
         status: a.status,
+        business_name: a.business_name,
         // se quiser expor depois:
         // notes: a.notes,
-        // businessName: a.business_name,
         // end_local: format(a.end_at_utc ?? addMinutes(a.start_at_utc, durationMin) as Date, 'HH:mm', { in: IN_TZ }),
       };
     });
