@@ -18,6 +18,11 @@ export class GetProfessionalsForAppointmentUseCase {
             slug: query.slug,
           },
           status: 'ACTIVE',
+          services: {
+            some: {
+              service_id: query.service_id,
+            },
+          },
         },
         select: {
           id: true,

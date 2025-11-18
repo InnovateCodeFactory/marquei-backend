@@ -9,4 +9,12 @@ export class GetProfessionalsForAppointmentDto {
     example: 'my-business-slug',
   })
   slug: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'The ID of the service to book an appointment for',
+    example: 'service-12345',
+  })
+  service_id: string;
 }
