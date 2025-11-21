@@ -2,7 +2,7 @@ import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
 import { PAYMENT_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { ResponseHandlerService } from '@app/shared/services';
-import { Controller, Get, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Post, Req, Res } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 
@@ -10,6 +10,7 @@ import { Request, Response } from 'express';
 @IsPublic()
 @ApiExcludeController()
 export class WebhooksController {
+  private readonly logger = new Logger(WebhooksController.name);
   constructor(
     private readonly responseHandler: ResponseHandlerService,
 
@@ -37,5 +38,26 @@ export class WebhooksController {
   @Get('stripe/success')
   async handleStripeSuccess(@Res() res: Response) {
     return res.redirect('exp://192.168.15.84:8081/--/success');
+  }
+
+  @Post('revenuecat')
+  async handleRevenueCatWebhook(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Body() body: any,
+  ) {
+    this.logger.debug(
+      `Received RevenueCat webhook: ${JSON.stringify(body, null, 2)}`,
+    );
+    return res.status(200).send('OK');
+    // return await this.responseHandler.handle({
+    //   method: () =>
+    //     this.rmqService.publishToQueue({
+    //       payload,
+    //       routingKey:
+    //         PAYMENT_QUEUES.WEBHOOKS.REVENUECAT_WEBHOOK_HANDLER_QUEUE,
+    //     }),
+    //   res,
+    // });
   }
 }
