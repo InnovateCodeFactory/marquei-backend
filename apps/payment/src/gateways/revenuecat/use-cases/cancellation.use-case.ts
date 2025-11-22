@@ -55,14 +55,14 @@ export class RevenueCatCancellationUseCase {
     await this.prismaService.businessSubscription.update({
       where: { id: subscription.id },
       data: {
-        status: 'CANCELED',
+        // Mantém o status atual (ACTIVE/TRIALING/etc.), mas indica que será cancelada ao final do período.
         cancel_at_period_end: true,
         current_period_end: newEndDate,
         subscription_histories: {
           create: {
             action: 'CANCELED',
             previousPlanId: subscription.planId,
-            reason: 'RevenueCat CANCELLATION',
+            reason: 'RevenueCat CANCELLATION (cancel_at_period_end)',
           },
         },
       },

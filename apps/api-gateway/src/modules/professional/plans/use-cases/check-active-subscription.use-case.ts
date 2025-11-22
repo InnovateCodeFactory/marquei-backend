@@ -27,12 +27,17 @@ export class CheckActiveSubscriptionUseCase {
         'Você não tem permissão para acessar este negócio',
       );
 
+    const now = new Date();
+
     // Check if business already has an active subscription in our DB
     const activeLocalSub =
       await this.prismaService.businessSubscription.findFirst({
         where: {
           businessId: business.id,
           status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] },
+          current_period_end: {
+            gt: now,
+          },
           plan: {
             billing_period: { not: 'FREE_TRIAL' },
           },
