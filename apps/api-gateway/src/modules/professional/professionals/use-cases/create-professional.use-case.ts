@@ -38,22 +38,15 @@ export class CreateProfessionalUseCase {
       select: {
         plan: {
           select: {
-            PlanBenefit: {
-              where: {
-                key: 'PROFESSIONALS',
-              },
-              select: {
-                intValue: true,
-              },
-            },
+            max_professionals_allowed: true,
           },
         },
       },
     });
 
-    const profLimitBenefit = activeSub?.plan.PlanBenefit[0];
+    const profLimitBenefit = activeSub?.plan.max_professionals_allowed;
 
-    const limit = profLimitBenefit?.intValue;
+    const limit = profLimitBenefit;
 
     const currentCount = await this.prismaService.professionalProfile.count({
       where: { business_id: user.current_selected_business_id },

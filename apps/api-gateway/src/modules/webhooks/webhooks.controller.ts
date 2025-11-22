@@ -46,18 +46,17 @@ export class WebhooksController {
     @Res() res: Response,
     @Body() body: any,
   ) {
+    // public api key: appl_iBbJkerbAfseJLbJxVBSmtbHupH
     this.logger.debug(
       `Received RevenueCat webhook: ${JSON.stringify(body, null, 2)}`,
     );
-    return res.status(200).send('OK');
-    // return await this.responseHandler.handle({
-    //   method: () =>
-    //     this.rmqService.publishToQueue({
-    //       payload,
-    //       routingKey:
-    //         PAYMENT_QUEUES.WEBHOOKS.REVENUECAT_WEBHOOK_HANDLER_QUEUE,
-    //     }),
-    //   res,
-    // });
+    return await this.responseHandler.handle({
+      method: () =>
+        this.rmqService.publishToQueue({
+          payload: body,
+          routingKey: PAYMENT_QUEUES.WEBHOOKS.REVENUE_CAT_WEBHOOK_HANDLER_QUEUE,
+        }),
+      res,
+    });
   }
 }

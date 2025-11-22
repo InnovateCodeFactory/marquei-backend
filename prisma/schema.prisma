@@ -465,48 +465,30 @@ model InAppNotification {
 }
 
 model Plan {
-  id              String        @id @default(cuid())
-  name            String
-  description     String?
-  stripeProductId String
-  stripePriceId   String        @unique // ID do preço no Stripe (price_xxxxx)
-  price_in_cents  Int
-  billing_period  BillingPeriod @default(MONTHLY) // mensal, anual...
-  is_active       Boolean       @default(true)
-  showing_order   Int? // para ordenação na exibição
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+
+  plan_id                   String @unique @default("free_trial") // ID do plano (RevenueCat, AppStore, Play Store...)
+  max_professionals_allowed Int    @default(1)
+
+  price_in_cents Int
+  billing_period BillingPeriod @default(MONTHLY) // mensal, anual...
+  is_active      Boolean       @default(true)
+  showing_order  Int? // para ordenação na exibição
 
   businesses BusinessSubscription[]
 
-  created_at  DateTime      @default(now())
-  updated_at  DateTime      @updatedAt
-  PlanBenefit PlanBenefit[]
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
-  @@index([stripeProductId])
-  @@index([stripePriceId])
-}
-
-model PlanBenefit {
-  id          String     @id @default(cuid())
-  planId      String
-  key         BenefitKey
-  order       Int? // ajuda a manter a ordem de exibição
-  stringValue String? // “Starter”, “Avançado”, “Ilimitado”…
-  intValue    Int? // 1, 5, 10…
-  boolValue   Boolean? // ✓ / ✗
-  created_at  DateTime   @default(now())
-
-  plan Plan @relation(fields: [planId], references: [id])
-
-  @@unique([planId, key]) // um único valor por chave em cada plano
-  @@index([planId])
+  @@index([plan_id], name: "idx_plan_id")
 }
 
 model BusinessSubscription {
   id                   String             @id @default(cuid())
   businessId           String
   planId               String
-  stripeCustomerId     String
-  stripeSubscriptionId String? // subscription_id do Stripe
   status               SubscriptionStatus @default(ACTIVE)
   current_period_start DateTime?
   current_period_end   DateTime?
@@ -521,7 +503,6 @@ model BusinessSubscription {
   Payment    Payment[]
 
   @@index([businessId])
-  @@index([stripeCustomerId])
 }
 
 model SubscriptionHistory {
@@ -541,7 +522,6 @@ model SubscriptionHistory {
 model Payment {
   id                     String        @id @default(cuid())
   businessSubscriptionId String
-  stripeInvoiceId        String        @unique
   amount_paid_in_cents   Int
   currency               String
   paid_at                DateTime
@@ -552,7 +532,6 @@ model Payment {
   created_at DateTime @default(now())
 
   @@index([businessSubscriptionId])
-  @@index([stripeInvoiceId])
 }
 
 model WebhookEvent {

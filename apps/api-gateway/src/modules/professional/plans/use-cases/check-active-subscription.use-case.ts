@@ -34,7 +34,7 @@ export class CheckActiveSubscriptionUseCase {
           businessId: business.id,
           status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] },
           plan: {
-            name: { not: 'Teste Gratuito' },
+            billing_period: { not: 'FREE_TRIAL' },
           },
         },
         select: { id: true },

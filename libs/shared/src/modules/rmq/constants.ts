@@ -7,6 +7,9 @@ export const PAYMENT_QUEUES = {
     STRIPE_CUSTOMER_SUBSCRIPTION_QUEUE:
       'payment.stripe_customer_subscription_queue',
     STRIPE_SETUP_INTENT_QUEUE: 'payment.stripe_setup_intent_queue',
+
+    REVENUE_CAT_WEBHOOK_HANDLER_QUEUE:
+      'payment.revenuecat_webhook_handler_queue',
   },
   USE_CASES: {
     CREATE_STRIPE_CUSTOMER_QUEUE: 'payment.create_stripe_customer_queue',

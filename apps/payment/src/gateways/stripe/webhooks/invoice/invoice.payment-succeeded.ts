@@ -48,60 +48,51 @@ export class InvoicePaymentSucceeded {
     event: Stripe.Event & { data: { object: Stripe.Invoice } },
   ) {
     // Idempotência
-    const invoiceId = event.data.object.id;
-    const existing = await this.prisma.payment.findUnique({
-      where: { stripeInvoiceId: invoiceId },
-      select: { id: true },
-    });
-    if (existing) {
-      this.logger.debug(`Invoice ${invoiceId} já processada; ignorando`);
-      return;
-    }
-
-    await this.createWebhookLog(event);
-
-    // Recarregue com expand nos prices da linha
-    const invoice = await this.stripe.invoices.retrieve(invoiceId, {
-      expand: ['lines.data.price'],
-    });
-
-    const billingReason = invoice.billing_reason;
-    const stripeCustomerId = invoice.customer as string;
-
-    const plan = await this.getPlanFromInvoice(invoice);
-    const businessSubscription = await this.findActiveSubscription({
-      stripe_customer_id: stripeCustomerId,
-    });
-
-    const commonData = this.mapInvoiceToPayment(invoice, invoiceId);
-
-    switch (billingReason) {
-      case 'subscription_create':
-        return this.handleSubscriptionCreate({
-          stripeCustomerId,
-          businessSubscription,
-          plan,
-          invoice,
-          commonData,
-        });
-
-      case 'subscription_cycle':
-      case 'subscription_threshold':
-      case 'subscription_update':
-        return this.handleSubscriptionUpdate(
-          businessSubscription,
-          plan,
-          invoice,
-          commonData,
-        );
-
-      case 'manual':
-        return this.handleManualInvoice(invoice);
-
-      default:
-        this.logger.warn(`Unhandled billing reason: ${billingReason}`);
-        return;
-    }
+    // const invoiceId = event.data.object.id;
+    // const existing = await this.prisma.payment.findUnique({
+    //   where: { stripeInvoiceId: invoiceId },
+    //   select: { id: true },
+    // });
+    // if (existing) {
+    //   this.logger.debug(`Invoice ${invoiceId} já processada; ignorando`);
+    //   return;
+    // }
+    // await this.createWebhookLog(event);
+    // // Recarregue com expand nos prices da linha
+    // const invoice = await this.stripe.invoices.retrieve(invoiceId, {
+    //   expand: ['lines.data.price'],
+    // });
+    // const billingReason = invoice.billing_reason;
+    // const stripeCustomerId = invoice.customer as string;
+    // const plan = await this.getPlanFromInvoice(invoice);
+    // const businessSubscription = await this.findActiveSubscription({
+    //   stripe_customer_id: stripeCustomerId,
+    // });
+    // const commonData = this.mapInvoiceToPayment(invoice, invoiceId);
+    // switch (billingReason) {
+    //   case 'subscription_create':
+    //     return this.handleSubscriptionCreate({
+    //       stripeCustomerId,
+    //       businessSubscription,
+    //       plan,
+    //       invoice,
+    //       commonData,
+    //     });
+    //   case 'subscription_cycle':
+    //   case 'subscription_threshold':
+    //   case 'subscription_update':
+    //     return this.handleSubscriptionUpdate(
+    //       businessSubscription,
+    //       plan,
+    //       invoice,
+    //       commonData,
+    //     );
+    //   case 'manual':
+    //     return this.handleManualInvoice(invoice);
+    //   default:
+    //     this.logger.warn(`Unhandled billing reason: ${billingReason}`);
+    //     return;
+    // }
   }
 
   private async handleSubscriptionCreate({
@@ -117,47 +108,44 @@ export class InvoicePaymentSucceeded {
     invoice: Stripe.Invoice;
     commonData: PaymentCreate; // <— aqui!
   }) {
-    const { start, end } = this.getPeriodFromMainLine(invoice);
-    const subscriptionId = this.getStripeSubscriptionId(invoice);
-
-    const business = await this.prisma.business.findFirst({
-      where: { stripe_customer_id: stripeCustomerId },
-      select: { id: true },
-    });
-    if (!business)
-      throw new Error(`Business não encontrado (customer=${stripeCustomerId})`);
-
-    if (businessSubscription) {
-      await this.prisma.businessSubscription.update({
-        where: { id: businessSubscription.id },
-        data: {
-          status: 'CANCELED',
-          subscription_histories: {
-            create: {
-              action: 'CANCELED',
-              previousPlanId: businessSubscription.planId,
-              reason: 'Upgrade para novo plano',
-            },
-          },
-        },
-      });
-    }
-
-    await this.prisma.businessSubscription.create({
-      data: {
-        business: { connect: { id: business.id } },
-        plan: { connect: { id: plan.id } },
-        stripeCustomerId,
-        stripeSubscriptionId: subscriptionId,
-        status: 'ACTIVE',
-        current_period_start: start ? new Date(start * 1000) : undefined,
-        current_period_end: end ? new Date(end * 1000) : undefined,
-        Payment: { create: commonData }, // agora bate com o tipo
-        subscription_histories: {
-          create: { action: 'CREATED', newPlanId: plan.id },
-        },
-      },
-    });
+    // const { start, end } = this.getPeriodFromMainLine(invoice);
+    // const subscriptionId = this.getStripeSubscriptionId(invoice);
+    // const business = await this.prisma.business.findFirst({
+    //   where: { stripe_customer_id: stripeCustomerId },
+    //   select: { id: true },
+    // });
+    // if (!business)
+    //   throw new Error(`Business não encontrado (customer=${stripeCustomerId})`);
+    // if (businessSubscription) {
+    //   await this.prisma.businessSubscription.update({
+    //     where: { id: businessSubscription.id },
+    //     data: {
+    //       status: 'CANCELED',
+    //       subscription_histories: {
+    //         create: {
+    //           action: 'CANCELED',
+    //           previousPlanId: businessSubscription.planId,
+    //           reason: 'Upgrade para novo plano',
+    //         },
+    //       },
+    //     },
+    //   });
+    // }
+    // await this.prisma.businessSubscription.create({
+    //   data: {
+    //     business: { connect: { id: business.id } },
+    //     plan: { connect: { id: plan.id } },
+    //     stripeCustomerId,
+    //     stripeSubscriptionId: subscriptionId,
+    //     status: 'ACTIVE',
+    //     current_period_start: start ? new Date(start * 1000) : undefined,
+    //     current_period_end: end ? new Date(end * 1000) : undefined,
+    //     Payment: { create: commonData }, // agora bate com o tipo
+    //     subscription_histories: {
+    //       create: { action: 'CREATED', newPlanId: plan.id },
+    //     },
+    //   },
+    // });
   }
 
   private async handleSubscriptionUpdate(
@@ -166,39 +154,34 @@ export class InvoicePaymentSucceeded {
     invoice: Stripe.Invoice,
     commonData: PaymentCreate, // <— aqui também!
   ) {
-    if (!businessSubscription) {
-      this.logger.warn('Assinatura local não encontrada para atualizar');
-      return;
-    }
-
-    const { start, end } = this.getPeriodFromMainLine(invoice);
-    const subscriptionId = this.getStripeSubscriptionId(invoice);
-
-    const updates: any = {
-      stripeSubscriptionId: subscriptionId,
-      status: 'ACTIVE',
-      Payment: { create: commonData },
-    };
-
-    if (start) updates.current_period_start = new Date(start * 1000);
-    if (end) updates.current_period_end = new Date(end * 1000);
-
-    const changedPlan = businessSubscription.planId !== plan.id;
-    updates.subscription_histories = {
-      create: {
-        action: 'RENEWED',
-        previousPlanId: changedPlan ? businessSubscription.planId : undefined,
-        newPlanId: changedPlan ? plan.id : undefined,
-      },
-    };
-    if (changedPlan) {
-      updates.plan = { connect: { id: plan.id } };
-    }
-
-    await this.prisma.businessSubscription.update({
-      where: { id: businessSubscription.id },
-      data: updates,
-    });
+    // if (!businessSubscription) {
+    //   this.logger.warn('Assinatura local não encontrada para atualizar');
+    //   return;
+    // }
+    // const { start, end } = this.getPeriodFromMainLine(invoice);
+    // const subscriptionId = this.getStripeSubscriptionId(invoice);
+    // const updates: any = {
+    //   stripeSubscriptionId: subscriptionId,
+    //   status: 'ACTIVE',
+    //   Payment: { create: commonData },
+    // };
+    // if (start) updates.current_period_start = new Date(start * 1000);
+    // if (end) updates.current_period_end = new Date(end * 1000);
+    // const changedPlan = businessSubscription.planId !== plan.id;
+    // updates.subscription_histories = {
+    //   create: {
+    //     action: 'RENEWED',
+    //     previousPlanId: changedPlan ? businessSubscription.planId : undefined,
+    //     newPlanId: changedPlan ? plan.id : undefined,
+    //   },
+    // };
+    // if (changedPlan) {
+    //   updates.plan = { connect: { id: plan.id } };
+    // }
+    // await this.prisma.businessSubscription.update({
+    //   where: { id: businessSubscription.id },
+    //   data: updates,
+    // });
   }
 
   private async handleManualInvoice(invoice: Stripe.Invoice) {
@@ -233,26 +216,23 @@ export class InvoicePaymentSucceeded {
   }
 
   private async getPlanFromInvoice(invoice: Stripe.Invoice) {
-    const line = this.getSubscriptionLine(invoice);
-    if (!line) throw new Error(`Invoice ${invoice.id} sem linhas válidas`);
-
-    // Tente via expand lines.data.price (Stripe.Price) primeiro
-    const priceObj = (line as any).price as Stripe.Price | string | null | undefined;
-    const priceId =
-      (typeof priceObj === 'string' ? priceObj : priceObj?.id) ??
-      // Fallback para shape alternativo (pricing.price_details.price)
-      (line as any)?.pricing?.price_details?.price;
-
-    if (!priceId)
-      throw new Error(
-        `Não foi possível identificar o priceId na invoice ${invoice.id}`,
-      );
-
-    const plan = await this.prisma.plan.findUnique({
-      where: { stripePriceId: priceId },
-    });
-    if (!plan) throw new Error(`Plano não encontrado para priceId: ${priceId}`);
-    return plan;
+    // const line = this.getSubscriptionLine(invoice);
+    // if (!line) throw new Error(`Invoice ${invoice.id} sem linhas válidas`);
+    // // Tente via expand lines.data.price (Stripe.Price) primeiro
+    // const priceObj = (line as any).price as Stripe.Price | string | null | undefined;
+    // const priceId =
+    //   (typeof priceObj === 'string' ? priceObj : priceObj?.id) ??
+    //   // Fallback para shape alternativo (pricing.price_details.price)
+    //   (line as any)?.pricing?.price_details?.price;
+    // if (!priceId)
+    //   throw new Error(
+    //     `Não foi possível identificar o priceId na invoice ${invoice.id}`,
+    //   );
+    // const plan = await this.prisma.plan.findUnique({
+    //   where: { stripePriceId: priceId },
+    // });
+    // if (!plan) throw new Error(`Plano não encontrado para priceId: ${priceId}`);
+    // return plan;
   }
 
   /** Extrai o período do ciclo a partir da linha principal de assinatura (não-proration) */
