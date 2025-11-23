@@ -5,6 +5,7 @@ import {
   TokenService,
 } from '@app/shared/services';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { CheckActiveSubscriptionUseCase } from '../../plans/use-cases/check-active-subscription.use-case';
 import { LoginDto } from '../dto/requests/login.dto';
 
 @Injectable()
@@ -14,6 +15,8 @@ export class LoginUseCase {
     private readonly hashingService: HashingService,
     private readonly tokenService: TokenService,
     private readonly fs: FileSystemService,
+
+    private readonly checkActiveSubscriptionUseCase: CheckActiveSubscriptionUseCase,
   ) {}
 
   async execute(loginDto: LoginDto) {
@@ -52,8 +55,8 @@ export class LoginUseCase {
     if (!user || !(await this.hashingService.compare(password, user?.password)))
       throw new BadRequestException('Credenciais inválidas');
 
-    const professionalProfile =
-      await this.prismaService.professionalProfile.findFirst({
+    const [professionalProfile, subscriptionStatus] = await Promise.all([
+      this.prismaService.professionalProfile.findFirst({
         where: {
           userId: user.id,
           business_id: user.CurrentSelectedBusiness?.[0]?.business?.id,
@@ -62,7 +65,14 @@ export class LoginUseCase {
           profile_image: true,
           phone: true,
         },
-      });
+      }),
+
+      this.checkActiveSubscriptionUseCase.execute({
+        current_selected_business_slug:
+          user?.CurrentSelectedBusiness?.[0]?.business?.slug,
+        id: user.id,
+      }),
+    ]);
 
     const { accessToken, refreshToken } =
       await this.tokenService.issueTokenPair({
@@ -99,6 +109,7 @@ export class LoginUseCase {
         }),
         phone: professionalProfile?.phone,
       },
+      subscription_status: subscriptionStatus,
     };
   }
 }

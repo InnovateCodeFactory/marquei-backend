@@ -75,7 +75,12 @@ export class PlansController {
     @Res() res: Response,
   ) {
     return await this.responseHandler.handle({
-      method: () => this.checkActiveSubscriptionUseCase.execute(currentUser),
+      method: () =>
+        this.checkActiveSubscriptionUseCase.execute({
+          current_selected_business_slug:
+            currentUser.current_selected_business_slug,
+          id: currentUser.id,
+        }),
       res,
     });
   }

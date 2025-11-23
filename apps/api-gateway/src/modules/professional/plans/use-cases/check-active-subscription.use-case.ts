@@ -1,12 +1,14 @@
 import { PrismaService } from '@app/shared';
-import { CurrentUser } from '@app/shared/types/app-request';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 
 @Injectable()
 export class CheckActiveSubscriptionUseCase {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async execute(currentUser: CurrentUser) {
+  async execute(currentUser: {
+    current_selected_business_slug: string;
+    id: string;
+  }) {
     if (!currentUser?.current_selected_business_slug)
       throw new UnauthorizedException(
         'Você não possui uma empresa selecionada',
@@ -15,10 +17,11 @@ export class CheckActiveSubscriptionUseCase {
     const business = await this.prismaService.business.findFirst({
       where: {
         slug: currentUser.current_selected_business_slug,
-        ownerId: currentUser.id,
+        // ownerId: currentUser.id,
       },
       select: {
         id: true,
+        ownerId: true,
       },
     });
 
@@ -38,13 +41,16 @@ export class CheckActiveSubscriptionUseCase {
           current_period_end: {
             gt: now,
           },
-          plan: {
-            billing_period: { not: 'FREE_TRIAL' },
-          },
+          // plan: {
+          //   billing_period: { not: 'FREE_TRIAL' },
+          // },
         },
         select: { id: true },
       });
 
-    return { has_active_subscription: !!activeLocalSub };
+    return {
+      has_active_subscription: !!activeLocalSub,
+      is_user_owner: business.ownerId === currentUser.id,
+    };
   }
 }
