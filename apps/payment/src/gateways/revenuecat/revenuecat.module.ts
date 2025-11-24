@@ -6,6 +6,8 @@ import {
   RevenueCatNonRenewingPurchaseUseCase,
   RevenueCatRenewalUseCase,
   RevenueCatUncancellationUseCase,
+  RevenueCatExpirationUseCase,
+  RevenueCatBillingIssueUseCase,
 } from './use-cases';
 import { RevenueCatWebhookHandlerService } from './webhooks';
 
@@ -18,6 +20,8 @@ import { RevenueCatWebhookHandlerService } from './webhooks';
     RevenueCatRenewalUseCase,
     RevenueCatUncancellationUseCase,
     RevenueCatNonRenewingPurchaseUseCase,
+    RevenueCatExpirationUseCase,
+    RevenueCatBillingIssueUseCase,
   ],
 })
 export class RevenueCatModule {}

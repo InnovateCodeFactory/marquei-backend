@@ -21,6 +21,7 @@ interface Business {
 interface BusinessSubscription {
   status: string;
   plan: Plan;
+  current_period_end: Date;
 }
 
 interface Plan {

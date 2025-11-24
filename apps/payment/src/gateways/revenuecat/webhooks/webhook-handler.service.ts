@@ -10,6 +10,8 @@ import {
   RevenueCatNonRenewingPurchaseUseCase,
   RevenueCatRenewalUseCase,
   RevenueCatUncancellationUseCase,
+  RevenueCatExpirationUseCase,
+  RevenueCatBillingIssueUseCase,
 } from '../use-cases';
 
 @Injectable()
@@ -22,6 +24,8 @@ export class RevenueCatWebhookHandlerService {
     private readonly renewalUseCase: RevenueCatRenewalUseCase,
     private readonly uncancellationUseCase: RevenueCatUncancellationUseCase,
     private readonly nonRenewingPurchaseUseCase: RevenueCatNonRenewingPurchaseUseCase,
+    private readonly expirationUseCase: RevenueCatExpirationUseCase,
+    private readonly billingIssueUseCase: RevenueCatBillingIssueUseCase,
   ) {}
 
   @RabbitSubscribe({
@@ -44,6 +48,8 @@ export class RevenueCatWebhookHandlerService {
         UNCANCELLATION: (e) => this.uncancellationUseCase.execute(e),
         NON_RENEWING_PURCHASE: (e) =>
           this.nonRenewingPurchaseUseCase.execute(e),
+        EXPIRATION: (e) => this.expirationUseCase.execute(e),
+        BILLING_ISSUE: (e) => this.billingIssueUseCase.execute(e),
       };
 
       const handler = eventMapper[event.type];

@@ -79,6 +79,9 @@ export class AuthGuard implements CanActivate {
         current_business_subscription_plan_billing_period:
           currentBusiness?.BusinessSubscription?.[0]?.plan?.billing_period ||
           null,
+        current_business_subscription_current_period_end:
+          currentBusiness?.BusinessSubscription?.[0]?.current_period_end ||
+          null,
         professional_profile_id:
           currentBusiness?.professionals?.[0]?.id || null,
       };

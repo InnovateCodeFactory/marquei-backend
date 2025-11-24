@@ -169,6 +169,7 @@ export class RedisService {
                   },
                   select: {
                     status: true,
+                    current_period_end: true,
                     plan: {
                       select: {
                         name: true,

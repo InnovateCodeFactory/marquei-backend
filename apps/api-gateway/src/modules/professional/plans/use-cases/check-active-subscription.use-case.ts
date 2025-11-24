@@ -51,6 +51,7 @@ export class CheckActiveSubscriptionUseCase {
     return {
       has_active_subscription: !!activeLocalSub,
       is_user_owner: business.ownerId === currentUser.id,
+      // is_user_owner: true,
     };
   }
 }

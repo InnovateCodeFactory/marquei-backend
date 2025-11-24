@@ -8,6 +8,8 @@ export class RevenueCatCancellationUseCase {
   constructor(private readonly prismaService: PrismaService) {}
 
   async execute(event: RevenueCatEvent) {
+    // Consider a short buffer to handle events that arrive slightly before/after expiration.
+    const EXPIRATION_BUFFER_MINUTES = 5;
     const slug =
       (event.subscriber_attributes?.business_slug?.value as string) ??
       event.app_user_id;
@@ -51,6 +53,40 @@ export class RevenueCatCancellationUseCase {
     const newEndDate = event.expiration_at_ms
       ? new Date(event.expiration_at_ms)
       : subscription.current_period_end;
+
+    const now = new Date();
+    const bufferDate = new Date(
+      now.getTime() + EXPIRATION_BUFFER_MINUTES * 60 * 1000,
+    );
+    const shouldExpireNow =
+      !!newEndDate && newEndDate.getTime() <= bufferDate.getTime();
+
+    // If the subscription is already expired or will expire within the buffer, immediately inactivate.
+    if (shouldExpireNow) {
+      await this.prismaService.businessSubscription.update({
+        where: { id: subscription.id },
+        data: {
+          status: 'CANCELED',
+          cancel_at_period_end: true,
+          current_period_end: newEndDate,
+          subscription_histories: {
+            create: {
+              action: 'CANCELED',
+              previousPlanId: subscription.planId,
+              reason:
+                'RevenueCat CANCELLATION (expired or expiring immediately)',
+            },
+          },
+        },
+      });
+
+      await this.prismaService.business.update({
+        where: { id: business.id },
+        data: { is_active: false },
+      });
+
+      return;
+    }
 
     await this.prismaService.businessSubscription.update({
       where: { id: subscription.id },

@@ -44,7 +44,9 @@ export interface RevenueCatEvent {
     | 'CANCELLATION'
     | 'UNCANCELLATION'
     | 'NON_RENEWING_PURCHASE'
-    | 'PRODUCT_CHANGE';
+    | 'PRODUCT_CHANGE'
+    | 'EXPIRATION'
+    | 'BILLING_ISSUE';
   id: string;
   app_id: string;
 }

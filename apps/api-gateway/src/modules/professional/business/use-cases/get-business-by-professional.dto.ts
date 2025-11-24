@@ -21,13 +21,13 @@ export class GetBusinessByProfessionalUseCase {
             userId: id,
           },
         },
-        is_active: true,
       },
       select: {
         id: true,
         slug: true,
         name: true,
         logo: true,
+        is_active: true,
       },
     });
 
@@ -38,6 +38,7 @@ export class GetBusinessByProfessionalUseCase {
         key: business.logo,
       }),
       is_the_current_selected: business.id === current_selected_business_id,
+      is_active: business.is_active,
     }));
   }
 }
