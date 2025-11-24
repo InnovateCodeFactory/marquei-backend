@@ -126,7 +126,7 @@ model BusinessReminderSettings {
   offsets_min_before Int[] @default([1440, 60])
 
   // Canais habilitados para o negócio
-  channels ReminderChannel[] @default([PUSH])
+  channels ReminderChannel[] @default([PUSH, WHATSAPP])
 
   timezone String @default("America/Sao_Paulo")
 
