@@ -12,7 +12,7 @@ export class SeedProfessionalPlansUseCase implements OnModuleInit {
       max_professionals_allowed: 1,
       price_in_cents: 0,
       billing_period: 'FREE_TRIAL',
-      is_active: false,
+      is_active: true,
       showing_order: 0,
     },
     {

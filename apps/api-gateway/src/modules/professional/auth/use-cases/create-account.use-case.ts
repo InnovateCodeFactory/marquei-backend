@@ -2,10 +2,7 @@ import { PrismaService } from '@app/shared';
 import { SendInAppNotificationDto } from '@app/shared/dto/messaging/in-app-notifications';
 import { SendWelcomeMailDto } from '@app/shared/dto/messaging/mail-notifications';
 import { DaysOfWeek, SendMailTypeEnum } from '@app/shared/enum';
-import {
-  MESSAGING_QUEUES,
-  PAYMENT_QUEUES,
-} from '@app/shared/modules/rmq/constants';
+import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { HashingService } from '@app/shared/services';
 import { getFirstName } from '@app/shared/utils';
@@ -14,6 +11,7 @@ import { CreateAccountDto } from '../dto/requests/create-account';
 
 @Injectable()
 export class CreateAccountUseCase {
+  private readonly FREE_TRIAL_DAYS = 14;
   private readonly daysOfWeek = [
     DaysOfWeek.SUNDAY,
     DaysOfWeek.MONDAY,
@@ -36,33 +34,40 @@ export class CreateAccountUseCase {
 
     const slug = this.makeSlugFromName(business.name);
 
-    const [existingUser, existingBusiness, mailValidation] = await Promise.all([
-      this.prismaService.user.findUnique({
-        where: { uq_user_email_type: { email, user_type: 'PROFESSIONAL' } },
-        select: { id: true },
-      }),
-      this.prismaService.business.findUnique({
-        where: { slug },
-        select: { id: true },
-      }),
-      this.prismaService.mailValidation.findFirst({
-        where: {
-          email,
-          type: SendMailTypeEnum.VALIDATION_CODE,
-          validated: true,
-          active: false,
-          created_at: {
-            gte: new Date(Date.now() - 15 * 60 * 1000), // 15 minutos
+    const [existingUser, existingBusiness, mailValidation, freeTrialPlan] =
+      await Promise.all([
+        this.prismaService.user.findUnique({
+          where: { uq_user_email_type: { email, user_type: 'PROFESSIONAL' } },
+          select: { id: true },
+        }),
+        this.prismaService.business.findUnique({
+          where: { slug },
+          select: { id: true },
+        }),
+        this.prismaService.mailValidation.findFirst({
+          where: {
+            email,
+            type: SendMailTypeEnum.VALIDATION_CODE,
+            validated: true,
+            active: false,
+            created_at: {
+              gte: new Date(Date.now() - 15 * 60 * 1000), // 15 minutos
+            },
           },
-        },
-        select: { id: true },
-      }),
-    ]);
+          select: { id: true },
+        }),
+        this.prismaService.plan.findFirst({
+          where: { plan_id: 'free_trial' },
+          select: { id: true },
+        }),
+      ]);
 
     if (!mailValidation) throw new BadRequestException('Email não validado');
     if (existingUser) throw new BadRequestException('Email já está em uso');
     if (existingBusiness)
       throw new BadRequestException('Negócio já cadastrado com esse nome');
+    if (!freeTrialPlan)
+      throw new BadRequestException('Plano FREE_TRIAL não configurado');
 
     const openingHours = this.daysOfWeek.map((day, index) => {
       const dayData = business.openingHours[index];
@@ -72,6 +77,11 @@ export class CreateAccountUseCase {
         closed: dayData.closed,
       };
     });
+
+    const now = new Date();
+    const trialEnd = new Date(
+      now.getTime() + this.FREE_TRIAL_DAYS * 24 * 60 * 60 * 1000,
+    );
 
     const newBusiness = await this.prismaService.business.create({
       data: {
@@ -109,6 +119,23 @@ export class CreateAccountUseCase {
         BusinessReminderSettings: {
           create: {
             is_active: true,
+          },
+        },
+        BusinessSubscription: {
+          create: {
+            planId: freeTrialPlan.id,
+            status: 'ACTIVE', // ou 'ACTIVE' se você preferir
+            current_period_start: now,
+            current_period_end: trialEnd,
+            cancel_at_period_end: true,
+            subscription_histories: {
+              create: {
+                action: 'CREATED',
+                previousPlanId: null,
+                newPlanId: freeTrialPlan.id,
+                reason: 'Free trial automático na criação do negócio',
+              },
+            },
           },
         },
       },
@@ -152,12 +179,12 @@ export class CreateAccountUseCase {
           professionalProfileId: professionalProfile.id,
         }),
       }),
-      this.rmqService.publishToQueue({
-        routingKey: PAYMENT_QUEUES.USE_CASES.CREATE_STRIPE_CUSTOMER_QUEUE,
-        payload: {
-          businessId: newBusiness.id,
-        },
-      }),
+      // this.rmqService.publishToQueue({
+      //   routingKey: PAYMENT_QUEUES.USE_CASES.CREATE_STRIPE_CUSTOMER_QUEUE,
+      //   payload: {
+      //     businessId: newBusiness.id,
+      //   },
+      // }),
       this.prismaService.currentSelectedBusiness.create({
         data: {
           business: { connect: { id: newBusiness.id } },
