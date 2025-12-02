@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/shared';
+import { Price } from '@app/shared/value-objects';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 
@@ -12,10 +13,37 @@ export class GetActivePlansUseCase {
         'Você não possui uma empresa selecionada',
       );
 
-    // TODO: Não agrupar mais. Apenas retornar os planos normalmente já que agora só há um preço por plano, mas mantendo a estrutura de retorno ao frontend.
-    // TODO: Alterar o recomendado para o plano premium
+    const plans = await this.prismaService.plan.findMany({
+      where: { is_active: true },
+      orderBy: [{ billing_period: 'asc' }, { showing_order: 'asc' }],
+    });
 
-    return [];
+    const grouped = new Map<
+      string,
+      { plan: string; options: any[]; benefits?: any[] }
+    >();
+
+    for (const p of plans) {
+      const periodLabel = this.getPlanBillingPeriod(p.billing_period);
+
+      if (!grouped.has(periodLabel)) {
+        grouped.set(periodLabel, { plan: periodLabel, options: [] });
+      }
+
+      const group = grouped.get(periodLabel)!;
+
+      group.options.push({
+        label: p.name,
+        value: new Price(p.price_in_cents).toCurrency(),
+        oldValue: null,
+        stripe_price_id: p.plan_id,
+        destactLabel: null,
+        max_professionals_allowed: p.max_professionals_allowed,
+        price_in_cents: p.price_in_cents,
+      });
+    }
+
+    return Array.from(grouped.values());
   }
 
   private getPlanBillingPeriod(billingPeriod: string): string {
