@@ -44,9 +44,14 @@ export const NotificationMessageBuilder = {
     time: string;
     service_name: string;
   }) => {
+    const lower = dayAndMonth?.toLowerCase?.() ?? '';
+    const needsPreposition = lower !== 'hoje' && lower !== 'amanhã';
+    const preposition = needsPreposition ? ' em ' : ' ';
+
     return {
       title: '⏰ Lembrete de agendamento',
-      body: `Lembrete: você tem um agendamento de ${service_name?.trim()} com ${professional_name?.trim()} em ${dayAndMonth} às ${time}.`,
+      body: `Lembrete: você tem um agendamento de ${service_name
+        ?.trim()} com ${professional_name?.trim()}${preposition}${dayAndMonth} às ${time}.`,
     };
   },
 
