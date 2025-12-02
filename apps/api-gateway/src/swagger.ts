@@ -28,7 +28,6 @@ export const swagger = (app: INestApplication) => {
       layout: 'modern',
       theme: 'bluePlanet',
       darkMode: true,
-      withFastify: true,
       hideDownloadButton: true,
       hideModels: true,
     }),

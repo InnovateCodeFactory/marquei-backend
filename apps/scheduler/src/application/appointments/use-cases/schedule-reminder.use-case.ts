@@ -8,7 +8,7 @@ import { tz } from '@date-fns/tz';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { RedisLockService } from 'apps/scheduler/src/infrastructure/locks/redis-lock.service';
-import { format } from 'date-fns';
+import { addDays, format } from 'date-fns';
 
 @Injectable()
 export class ScheduleReminderUseCase implements OnModuleInit {
@@ -113,7 +113,19 @@ export class ScheduleReminderUseCase implements OnModuleInit {
           const person = base.person;
           const tzid = appt?.timezone || 'America/Sao_Paulo';
           const inTZ = tz(tzid);
-          const dayAndMonth = format(appt.start_at_utc, 'dd/MM', { in: inTZ });
+          const dayAndMonthFormatted = format(appt.start_at_utc, 'dd/MM', {
+            in: inTZ,
+          });
+          const todayFormatted = format(nowUtc, 'dd/MM', { in: inTZ });
+          const tomorrowFormatted = format(addDays(nowUtc, 1), 'dd/MM', {
+            in: inTZ,
+          });
+          const dayAndMonth =
+            dayAndMonthFormatted === todayFormatted
+              ? 'hoje'
+              : dayAndMonthFormatted === tomorrowFormatted
+                ? 'amanhã'
+                : dayAndMonthFormatted;
           const time = format(appt.start_at_utc, 'HH:mm', { in: inTZ });
           const professionalName = appt.professional?.User?.name || '';
           const serviceName = appt.service?.name || '';
