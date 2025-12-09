@@ -54,3 +54,5 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+client_secret_324221970568-q1aka42rlqpupbtj4sjm0gu6peupmnd5.apps.googleusercontent.com.json

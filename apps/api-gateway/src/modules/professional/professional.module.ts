@@ -6,6 +6,7 @@ import { BusinessServiceTypeModule } from './business-service-type/business-serv
 import { BusinessModule } from './business/business.module';
 import { CustomersModule } from './customers/customers.module';
 import { InAppNotificationsModule } from './in-app-notifications/in-app-notifications.module';
+import { IntegrationsModule } from './integrations/integrations.module';
 import { PlansModule } from './plans/plans.module';
 import { ProfessionalsModule } from './professionals/professionals.module';
 import { ServicesModule } from './services/services.module';
@@ -26,6 +27,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     AppointmentsModule,
     ProfessionalsModule,
     InAppNotificationsModule,
+    IntegrationsModule,
     StatementModule,
     OnboardingModule,
     ProfessionalProfileModule,

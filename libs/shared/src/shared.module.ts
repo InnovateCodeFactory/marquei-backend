@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EnvSchemaType, envValidationSchema } from './environment';
 import { DatabaseModule } from './modules/database/database.module';
+import { GoogleCalendarModule } from './modules/google-calendar/google-calendar.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { RmqModule } from './modules/rmq/rmq.module';
 import {
@@ -35,6 +36,7 @@ import {
     }),
     ScheduleModule.forRoot(),
     DatabaseModule,
+    GoogleCalendarModule,
     RmqModule,
     RedisModule,
   ],
@@ -59,6 +61,7 @@ import {
     TokenService,
     EncryptionService,
     ScheduleModule,
+    GoogleCalendarModule,
   ],
 })
 export class LibsSharedModule {}

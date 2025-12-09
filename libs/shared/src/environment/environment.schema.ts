@@ -56,6 +56,10 @@ export type EnvSchemaType = {
   WHATSAPP_API_SESSION_ID: string;
 
   MAPBOX_ACCESS_TOKEN: string;
+
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
+  GOOGLE_CALENDAR_REDIRECT_URI: string;
 };
 
 export const envValidationSchema = Joi.object<EnvSchemaType>({
@@ -127,4 +131,8 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
   WHATSAPP_API_SESSION_ID: Joi.string().required(),
 
   MAPBOX_ACCESS_TOKEN: Joi.string().required(),
+
+  GOOGLE_CLIENT_ID: Joi.string().required(),
+  GOOGLE_CLIENT_SECRET: Joi.string().required(),
+  GOOGLE_CALENDAR_REDIRECT_URI: Joi.string().uri().required(),
 });
