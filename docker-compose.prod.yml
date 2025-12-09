@@ -2,12 +2,7 @@ version: "3.9"
 
 services:
   api-gateway:
-    build:
-      context: .
-      dockerfile: apps/api-gateway/Dockerfile
-      args:
-        APP_NAME: api-gateway
-        APP_PORT: 3000
+    image: ghcr.io/InnovateCodeFactory/marquei-api-gateway:latest
     container_name: api-gateway
     restart: always
     ports:
@@ -20,12 +15,7 @@ services:
       - redis_external_network
 
   messaging:
-    build:
-      context: .
-      dockerfile: apps/messaging/Dockerfile
-      args:
-        APP_NAME: messaging
-        APP_PORT: 3001
+    image: ghcr.io/InnovateCodeFactory/marquei-messaging:latest
     container_name: messaging
     restart: always
     environment:
@@ -36,12 +26,7 @@ services:
       - redis_external_network
 
   payment:
-    build:
-      context: .
-      dockerfile: apps/payment/Dockerfile
-      args:
-        APP_NAME: payment
-        APP_PORT: 3002
+    image: ghcr.io/InnovateCodeFactory/marquei-payment:latest
     container_name: payment
     restart: always
     environment:
@@ -52,12 +37,7 @@ services:
       - redis_external_network
 
   scheduler:
-    build:
-      context: .
-      dockerfile: apps/scheduler/Dockerfile
-      args:
-        APP_NAME: scheduler
-        APP_PORT: 3003
+    image: ghcr.io/InnovateCodeFactory/marquei-scheduler:latest
     container_name: scheduler
     restart: always
     environment:
