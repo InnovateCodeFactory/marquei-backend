@@ -8,7 +8,7 @@ ARG APP_PORT
 
 WORKDIR /app
 
-COPY pnpm-lock.yaml package.json .npmrc ./
+COPY pnpm-lock.yaml package.json ./
 RUN corepack enable && corepack prepare pnpm@latest --activate
 RUN pnpm fetch
 
@@ -40,6 +40,9 @@ RUN pnpm prisma generate
 # Build da aplicação
 WORKDIR /app
 RUN pnpm exec nest build ${APP_NAME}
+
+# Remove devDependencies, mantendo apenas deps de produção
+RUN pnpm prune --prod
 
 # ========================
 # Etapa 3: runner
