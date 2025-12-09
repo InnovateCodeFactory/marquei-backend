@@ -42,8 +42,8 @@ jobs:
         file: apps/${{ matrix.service.name }}/Dockerfile
         push: true
         tags: |
-          ghcr.io/InnovateCodeFactory/marquei-${{ matrix.service.name }}:latest
-          ghcr.io/InnovateCodeFactory/marquei-${{ matrix.service.name }}:${{ github.sha }}
+          ghcr.io/innovatecodefactory/marquei-${{ matrix.service.name }}:latest
+          ghcr.io/innovatecodefactory/marquei-${{ matrix.service.name }}:${{ github.sha }}
         build-args: |
           APP_NAME=${{ matrix.service.name }}
           APP_PORT=${{ matrix.service.port }}
