@@ -11,3 +11,6 @@ docker compose -f docker-compose.prod.yml pull
 
 # Sobe containers usando as novas imagens
 docker compose -f docker-compose.prod.yml up -d --remove-orphans
+
+# Limpa imagens que não estão sendo usadas por nenhum container
+docker image prune -af
