@@ -27,7 +27,7 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 RUN pnpm install --frozen-lockfile
 
 # Copia .env global para dentro da imagem
-COPY .env /app/.env
+# COPY .env /app/.env
 
 # Copia a pasta prisma da raiz para dentro da pasta do app
 RUN mkdir -p /app/apps/${APP_NAME}/prisma
@@ -57,7 +57,7 @@ WORKDIR /app
 COPY --from=builder /app/dist/apps/${APP_NAME} ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/.env .env
+# COPY --from=builder /app/.env .env
 
 ENV NODE_ENV=production
 ENV PORT=${APP_PORT}
