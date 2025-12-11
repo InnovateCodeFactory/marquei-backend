@@ -49,9 +49,30 @@ model User {
   UploadedMedia           UploadedMedia[]
   BusinessRating          BusinessRating[]
   BugReports              BugReports[]
+  integrations            UserIntegration[]
 
   @@unique([email, user_type], name: "uq_user_email_type")
   @@index([email, user_type], name: "idx_user_email_user_type")
+}
+
+model UserIntegration {
+  id              String              @id @default(cuid())
+  userId          String
+  provider        IntegrationProvider
+  providerAccount String?
+  access_token    String?
+  refresh_token   String?
+  scope           String?
+  token_type      String?
+  expiry_date     DateTime?
+  raw_tokens      Json?
+  created_at      DateTime            @default(now())
+  updated_at      DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, provider], name: "uq_user_provider_integration")
+  @@index([provider], name: "idx_integration_provider")
 }
 
 model Business {
@@ -842,4 +863,8 @@ enum BusinessPublicType {
   MALE
   FEMALE
   BOTH
+}
+
+enum IntegrationProvider {
+  GOOGLE_CALENDAR
 }

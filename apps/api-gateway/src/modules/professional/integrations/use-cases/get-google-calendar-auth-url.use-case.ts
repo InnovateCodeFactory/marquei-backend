@@ -10,10 +10,12 @@ export class GetGoogleCalendarAuthUrlUseCase {
 
   async execute(req: AppRequest): Promise<{ url: string }> {
     const user = req.user;
+    const body = (req.body || {}) as { returnTo?: string | null };
 
     const statePayload = {
       userId: user?.id ?? null,
       currentBusinessId: user?.current_selected_business_id ?? null,
+      returnTo: body.returnTo ?? null,
     };
 
     const state = Buffer.from(
@@ -28,4 +30,3 @@ export class GetGoogleCalendarAuthUrlUseCase {
     return { url };
   }
 }
-
