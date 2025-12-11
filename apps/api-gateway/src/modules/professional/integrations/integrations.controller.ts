@@ -1,3 +1,4 @@
+import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import { Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
@@ -45,6 +46,7 @@ export class GoogleCalendarIntegrationsController {
   @ApiOperation({
     summary: 'Google OAuth2 callback for Calendar integration',
   })
+  @IsPublic()
   async callback(
     @Query('code') code: string,
     @Query('state') state: string,
