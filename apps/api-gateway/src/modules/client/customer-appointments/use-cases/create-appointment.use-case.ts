@@ -3,6 +3,7 @@ import { SendInAppNotificationDto } from '@app/shared/dto/messaging/in-app-notif
 import { SendNewAppointmentProfessionalDto } from '@app/shared/dto/messaging/mail-notifications/send-new-appointment-professional.dto';
 import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifications';
 import { AppointmentStatusEnum } from '@app/shared/enum';
+import { GoogleCalendarService } from '@app/shared/modules/google-calendar/google-calendar.service';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import {
   RABBIT_EXCHANGE,
@@ -20,6 +21,8 @@ import { CreateCustomerAppointmentDto } from '../dto/requests/create-customer-ap
 
 const BUSINESS_TZ_ID = 'America/Sao_Paulo';
 const IN_TZ = tz(BUSINESS_TZ_ID);
+const GOOGLE_CALENDAR_QUEUE =
+  'api-gateway_client_customer-appointments_use-case.google_calendar-integration';
 
 @Injectable()
 export class CreateAppointmentUseCase {
@@ -28,18 +31,28 @@ export class CreateAppointmentUseCase {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly rmqService: RmqService,
+    private readonly googleCalendarService: GoogleCalendarService,
   ) {}
 
   async execute(payload: CreateCustomerAppointmentDto, request: AppRequest) {
     const { appointment_date, professional_id, service_id, notes } = payload;
 
-    // 1) Carrega duração do serviço (minutos)
-    const service = await this.prismaService.service.findUnique({
-      where: { id: service_id },
-      select: { duration: true, name: true, price_in_cents: true },
-    });
+    // 1) Carrega duração do serviço (minutos) e profissional
+    const [service, professional] = await Promise.all([
+      this.prismaService.service.findUnique({
+        where: { id: service_id },
+        select: { duration: true, name: true, price_in_cents: true },
+      }),
+      this.prismaService.professionalProfile.findUnique({
+        where: { id: professional_id },
+        select: { id: true, business_id: true, userId: true },
+      }),
+    ]);
     if (!service) {
       throw new BadRequestException('Serviço inválido.');
+    }
+    if (!professional) {
+      throw new BadRequestException('Profissional inválido.');
     }
 
     // 2) Interpreta a data de entrada como HORÁRIO LOCAL do negócio (SP)
@@ -130,6 +143,7 @@ export class CreateAppointmentUseCase {
         }),
       },
       select: {
+        id: true,
         customerPerson: { select: { name: true } },
         professional: {
           select: {
@@ -162,6 +176,7 @@ export class CreateAppointmentUseCase {
       durationHours > 0
         ? `${durationHours}h ${durationMinutes}min`
         : `${durationMinutes}min`;
+    const integrationUserId = professional.userId;
 
     await Promise.all([
       this.rmqService.publishToQueue({
@@ -203,9 +218,123 @@ export class CreateAppointmentUseCase {
         routingKey:
           MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_NEW_APPOINTMENT_MAIL_QUEUE,
       }),
+      this.rmqService.publishToQueue({
+        routingKey: GOOGLE_CALENDAR_QUEUE,
+        payload: {
+          userId: integrationUserId,
+          appointmentId: appointment.id,
+        },
+      }),
     ]);
 
     return null;
+  }
+
+  @RabbitSubscribe({
+    exchange: RABBIT_EXCHANGE,
+    queue: GOOGLE_CALENDAR_QUEUE,
+    routingKey: GOOGLE_CALENDAR_QUEUE,
+  })
+  async handleGoogleCalendarIntegration(msg: {
+    userId?: string;
+    appointmentId?: string;
+  }) {
+    try {
+      const { userId, appointmentId } = msg || {};
+      if (!userId || !appointmentId) return;
+
+      // 1) Verificar se o usuário (profissional) possui integração ativa com Google Calendar
+      const integration = await this.prismaService.userIntegration.findUnique({
+        where: {
+          id: `${userId}_GOOGLE_CALENDAR`,
+        },
+        select: {
+          access_token: true,
+          refresh_token: true,
+          scope: true,
+          token_type: true,
+          expiry_date: true,
+          raw_tokens: true,
+        },
+      });
+
+      if (!integration) return;
+
+      // 2) Buscar dados do agendamento
+      const appointment = await this.prismaService.appointment.findUnique({
+        where: { id: appointmentId },
+        select: {
+          start_at_utc: true,
+          end_at_utc: true,
+          timezone: true,
+          service: {
+            select: {
+              name: true,
+            },
+          },
+          professional: {
+            select: {
+              business: {
+                select: { name: true },
+              },
+            },
+          },
+          customerPerson: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (!appointment) return;
+
+      const tzId = appointment.timezone || BUSINESS_TZ_ID;
+
+      const startLocal = new TZDate(appointment.start_at_utc, tzId);
+      const endLocal = new TZDate(appointment.end_at_utc, tzId);
+
+      // 3) Montar tokens para o cliente OAuth
+      const tokens = {
+        ...(integration.raw_tokens as any),
+        access_token: integration.access_token ?? undefined,
+        refresh_token: integration.refresh_token ?? undefined,
+        scope: integration.scope ?? undefined,
+        token_type: integration.token_type ?? undefined,
+        expiry_date: integration.expiry_date
+          ? integration.expiry_date.getTime()
+          : undefined,
+      };
+
+      // 4) Criar evento no Google Calendar
+      await this.googleCalendarService.createEvent({
+        tokens,
+        event: {
+          summary: appointment.professional?.business?.name
+            ? `Agendamento ${appointment.professional.business.name}`
+            : 'Agendamento Marquei',
+          description:
+            appointment.service?.name && appointment.customerPerson?.name
+              ? `${appointment.service.name} para o cliente ${appointment.customerPerson.name}`
+              : (appointment.service?.name ??
+                appointment.customerPerson?.name ??
+                undefined),
+          start: {
+            dateTime: startLocal.toISOString(),
+            timeZone: tzId,
+          },
+          end: {
+            dateTime: endLocal.toISOString(),
+            timeZone: tzId,
+          },
+        },
+      });
+    } catch (error) {
+      this.logger.error(
+        'Erro ao integrar agendamento (cliente) com Google Calendar:',
+        (error as any)?.response?.data || error,
+      );
+    }
   }
 
   private toTZDateLocal(input: Date | string): TZDate {
@@ -233,7 +362,6 @@ export class CreateAppointmentUseCase {
     return new TZDate(y, mo - 1, d, hh, mm, ss || 0, BUSINESS_TZ_ID);
   }
 
-  // Mantém seu handler como estava
   @RabbitSubscribe({
     exchange: RABBIT_EXCHANGE,
     queue: 'check-customer-appointment-created',
