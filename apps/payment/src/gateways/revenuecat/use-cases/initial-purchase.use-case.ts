@@ -98,6 +98,11 @@ export class RevenueCatInitialPurchaseUseCase {
         },
       });
 
+      await this.prismaService.business.update({
+        where: { id: business.id },
+        data: { is_active: true },
+      });
+
       this.logger.debug(
         `Created new subscription for business "${slug}" with plan "${plan.plan_id}" from INITIAL_PURCHASE`,
       );
@@ -125,9 +130,13 @@ export class RevenueCatInitialPurchaseUseCase {
       },
     });
 
+    await this.prismaService.business.update({
+      where: { id: business.id },
+      data: { is_active: true },
+    });
+
     this.logger.debug(
       `Updated existing subscription for business "${slug}" with plan "${plan.plan_id}" from INITIAL_PURCHASE`,
     );
   }
 }
-

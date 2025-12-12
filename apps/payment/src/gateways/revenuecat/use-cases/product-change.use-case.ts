@@ -111,6 +111,11 @@ export class RevenueCatHandleProductChangeUseCase {
         },
       });
 
+      await this.prismaService.business.update({
+        where: { id: business.id },
+        data: { is_active: true },
+      });
+
       return;
     }
 
@@ -132,6 +137,11 @@ export class RevenueCatHandleProductChangeUseCase {
           },
         },
       },
+    });
+
+    await this.prismaService.business.update({
+      where: { id: business.id },
+      data: { is_active: true },
     });
   }
 }

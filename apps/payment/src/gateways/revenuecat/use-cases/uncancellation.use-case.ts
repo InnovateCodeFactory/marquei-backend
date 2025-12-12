@@ -64,6 +64,10 @@ export class RevenueCatUncancellationUseCase {
         },
       },
     });
+
+    await this.prismaService.business.update({
+      where: { id: business.id },
+      data: { is_active: true },
+    });
   }
 }
-
