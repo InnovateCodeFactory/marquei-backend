@@ -50,8 +50,7 @@ export const NotificationMessageBuilder = {
 
     return {
       title: '⏰ Lembrete de agendamento',
-      body: `Lembrete: você tem um agendamento de ${service_name
-        ?.trim()} com ${professional_name?.trim()}${preposition}${dayAndMonth} às ${time}.`,
+      body: `Lembrete: você tem um agendamento de ${service_name?.trim()} com ${professional_name?.trim()}${preposition}${dayAndMonth} às ${time}.`,
     };
   },
 
@@ -86,6 +85,24 @@ export const NotificationMessageBuilder = {
     return {
       title: '❌ Agendamento cancelado',
       body: `Seu agendamento de ${service_name?.trim()} com ${professional_name?.trim()} em ${dayAndMonth} às ${time} foi cancelado.`,
+    };
+  },
+
+  buildBusinessRatedWithCommentMessage: ({
+    reviewer_name,
+    business_name,
+    rating,
+    comment,
+  }: {
+    reviewer_name: string;
+    business_name: string;
+    rating: number;
+    comment: string;
+  }) => {
+    const starsLabel = rating === 1 ? 'estrela' : 'estrelas';
+    return {
+      title: '⭐ Nova avaliação',
+      body: `${reviewer_name?.trim()} avaliou ${business_name?.trim()} com ${rating} ${starsLabel}: "${comment?.trim()}"`,
     };
   },
 };

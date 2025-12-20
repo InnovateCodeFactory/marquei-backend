@@ -1,11 +1,22 @@
 import { PrismaService } from '@app/shared';
+import { SendInAppNotificationDto } from '@app/shared/dto/messaging/in-app-notifications';
+import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifications';
+import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
+import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { AppRequest } from '@app/shared/types/app-request';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { getTwoNames } from '@app/shared/utils';
+import { NotificationMessageBuilder } from '@app/shared/utils/notification-message-builder';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { RateBusinessDto } from '../dto/rate-business.dto';
 
 @Injectable()
 export class RateBusinessUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(RateBusinessUseCase.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly rmqService: RmqService,
+  ) {}
 
   async execute(dto: RateBusinessDto, req: AppRequest) {
     // validação básica do score
@@ -57,6 +68,76 @@ export class RateBusinessUseCase {
         dto.business_slug,
       );
     });
+
+    const trimmedComment = dto.comment?.trim();
+    if (!trimmedComment) return null;
+
+    const [business, reviewer] = await Promise.all([
+      this.prisma.business.findUnique({
+        where: { slug: dto.business_slug },
+        select: {
+          id: true,
+          name: true,
+          ownerId: true,
+          owner: { select: { id: true, push_token: true } },
+        },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { name: true },
+      }),
+    ]);
+
+    if (!business) return null;
+    if (business.ownerId === req.user.id) return null;
+
+    const ownerProfessionalProfile =
+      await this.prisma.professionalProfile.findFirst({
+        where: {
+          business_id: business.id,
+          userId: business.ownerId,
+        },
+        select: { id: true },
+      });
+
+    if (!ownerProfessionalProfile) {
+      this.logger.warn(
+        `Owner sem ProfessionalProfile para receber in-app notification (businessId=${business.id}, ownerId=${business.ownerId}).`,
+      );
+      return null;
+    }
+
+    const titleAndBody =
+      NotificationMessageBuilder.buildBusinessRatedWithCommentMessage({
+        reviewer_name: getTwoNames(reviewer?.name ?? 'Um cliente'),
+        business_name: business.name,
+        rating: dto.score,
+        comment: trimmedComment,
+      });
+
+    const pushTokens = business.owner.push_token
+      ? [business.owner.push_token]
+      : [];
+
+    await Promise.all([
+      this.rmqService.publishToQueue({
+        payload: new SendPushNotificationDto({
+          pushTokens,
+          title: titleAndBody.title,
+          body: titleAndBody.body,
+        }),
+        routingKey: MESSAGING_QUEUES.PUSH_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
+      }),
+      this.rmqService.publishToQueue({
+        payload: new SendInAppNotificationDto({
+          title: titleAndBody.title,
+          body: titleAndBody.body,
+          professionalProfileId: ownerProfessionalProfile.id,
+        }),
+        routingKey:
+          MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
+      }),
+    ]);
 
     return null;
   }
