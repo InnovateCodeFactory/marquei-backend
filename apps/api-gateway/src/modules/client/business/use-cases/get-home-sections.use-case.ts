@@ -80,6 +80,15 @@ export class GetHomeSectionsUseCase {
 
     const sections: Section[] = [];
 
+    if (hasCoords) {
+      sections.push({
+        key: 'nearby',
+        title: 'Próximos a você',
+        items: nearby?.items ?? [],
+        has_more: nearby?.hasMorePages ?? false,
+      });
+    }
+
     sections.push({
       key: 'recommended',
       title: 'Recomendados',
@@ -93,15 +102,6 @@ export class GetHomeSectionsUseCase {
         title: `Em ${stateInfo.name}`,
         items: byState?.items ?? [],
         has_more: byState?.hasMorePages ?? false,
-      });
-    }
-
-    if (hasCoords) {
-      sections.push({
-        key: 'nearby',
-        title: 'Próximos a você',
-        items: nearby?.items ?? [],
-        has_more: nearby?.hasMorePages ?? false,
       });
     }
 
