@@ -8,18 +8,48 @@ import { AppRequest } from '../types/app-request';
 
 export function getClientIp(req: Request | AppRequest): string | undefined {
   const cfIp = req.headers['cf-connecting-ip'];
+  const xRealIp = req.headers['x-real-ip'];
+  const xClientIp = req.headers['x-client-ip'];
+  const trueClientIp = req.headers['true-client-ip'];
+  const fastlyIp = req.headers['fastly-client-ip'];
 
   const xff = req.headers['x-forwarded-for'];
   const xffValue = Array.isArray(xff) ? xff[0] : xff;
 
   const remoteAddr = req.socket?.remoteAddress;
+  const reqIp = (req as any).ip as string | undefined;
+
+  const normalize = (ip?: string) =>
+    ip ? ip.replace(/^::ffff:/, '').trim() : undefined;
+  const isPrivateIp = (ip: string) => {
+    if (ip === '::1' || ip === '127.0.0.1') return true;
+    if (ip.startsWith('10.')) return true;
+    if (ip.startsWith('192.168.')) return true;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(ip)) return true;
+    if (ip.startsWith('fc') || ip.startsWith('fd')) return true; // IPv6 ULA
+    if (ip.startsWith('fe80:')) return true; // IPv6 link-local
+    return false;
+  };
+
+  const pickFromList = (value?: string) => {
+    if (!value) return undefined;
+    const ips = value
+      .split(',')
+      .map((item) => normalize(item))
+      .filter(Boolean) as string[];
+    if (!ips.length) return undefined;
+    return ips.find((ip) => !isPrivateIp(ip)) ?? ips[0];
+  };
 
   return (
+    (typeof xClientIp === 'string' ? normalize(xClientIp) : undefined) ||
+    (typeof trueClientIp === 'string' ? normalize(trueClientIp) : undefined) ||
     (typeof cfIp === 'string' ? cfIp : undefined) ||
-    (typeof xffValue === 'string'
-      ? xffValue.split(',')[0].trim()
-      : undefined) ||
-    remoteAddr
+    (typeof xRealIp === 'string' ? normalize(xRealIp) : undefined) ||
+    (typeof fastlyIp === 'string' ? normalize(fastlyIp) : undefined) ||
+    (typeof xffValue === 'string' ? pickFromList(xffValue) : undefined) ||
+    (reqIp ? normalize(reqIp) : undefined) ||
+    (remoteAddr ? normalize(remoteAddr) : undefined)
   );
 }
 

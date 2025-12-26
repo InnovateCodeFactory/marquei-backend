@@ -1,10 +1,21 @@
 import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
-import { Body, Controller, Get, Post, Query, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { FilterBusinessesDto } from './dto/requests/filter-businesses.dto';
 import { FindNearbyBusinessesDto } from './dto/requests/find-nearby-businesses.dto';
+import { FindRecommendedBusinessesDto } from './dto/requests/find-recommended-businesses.dto';
+import { GetHomeSectionsDto } from './dto/requests/get-home-sections.dto';
+import { GetSectionItemsDto } from './dto/requests/get-section-items.dto';
 import { GetAvailableTimesForServiceAndProfessionalDto } from './dto/requests/get-available-times-for-service-and-professional.dto';
 import { GetBusinessBySlugDto } from './dto/requests/get-business-by-slug.dto';
 import { GetProfessionalsForAppointmentDto } from './dto/requests/get-professionals.dto';
@@ -12,12 +23,16 @@ import { GetServicesDto } from './dto/requests/get-services.dto';
 import {
   FilterBusinessesUseCase,
   FindNearbyBusinessesUseCase,
+  FindRecommendedBusinessesUseCase,
+  GetHomeSectionsUseCase,
   GetAvailableTimesForServiceAndProfessionalUseCase,
   GetBusinessBySlugUseCase,
   GetBusinessCategoriesUseCase,
+  GetSectionItemsUseCase,
   GetProfessionalsForAppointmentUseCase,
   GetServicesUseCase,
 } from './use-cases';
+import { AppRequest } from '@app/shared/types/app-request';
 
 @Controller('client/business')
 @ApiTags('Clients - Business')
@@ -25,6 +40,9 @@ export class BusinessController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,
     private readonly findNearbyBusinessesUseCase: FindNearbyBusinessesUseCase,
+    private readonly findRecommendedBusinessesUseCase: FindRecommendedBusinessesUseCase,
+    private readonly getHomeSectionsUseCase: GetHomeSectionsUseCase,
+    private readonly getSectionItemsUseCase: GetSectionItemsUseCase,
     private readonly getBusinessBySlugUseCase: GetBusinessBySlugUseCase,
     private readonly getServicesUseCase: GetServicesUseCase,
     private readonly getProfessionalsForAppointmentUseCase: GetProfessionalsForAppointmentUseCase,
@@ -42,6 +60,47 @@ export class BusinessController {
   ) {
     return this.responseHandler.handle({
       method: () => this.findNearbyBusinessesUseCase.execute(body),
+      res,
+    });
+  }
+
+  @Post('recommended')
+  @IsPublic()
+  @ApiOperation({ summary: 'Find recommended businesses' })
+  async findRecommendedBusinesses(
+    @Body() body: FindRecommendedBusinessesDto,
+    @Res() res: Response,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.findRecommendedBusinessesUseCase.execute(body),
+      res,
+    });
+  }
+
+  @Post('sections')
+  @IsPublic()
+  @ApiOperation({ summary: 'Get dynamic home business sections' })
+  async getHomeSections(
+    @Body() body: GetHomeSectionsDto,
+    @Req() req: AppRequest,
+    @Res() res: Response,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.getHomeSectionsUseCase.execute(body, req),
+      res,
+    });
+  }
+
+  @Post('section-items')
+  @IsPublic()
+  @ApiOperation({ summary: 'Get items for a specific section' })
+  async getSectionItems(
+    @Body() body: GetSectionItemsDto,
+    @Req() req: AppRequest,
+    @Res() res: Response,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.getSectionItemsUseCase.execute(body, req),
       res,
     });
   }

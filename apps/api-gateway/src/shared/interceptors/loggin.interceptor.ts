@@ -40,6 +40,9 @@ const EXCLUDED_ENDPOINTS = [
   '/health',
   '/metrics',
   '/api/client/business/nearby',
+  '/api/client/business/recommended',
+  '/api/client/business/sections',
+  '/api/client/business/section-items',
   '/api/webhooks/stripe',
   '/api/professional/auth/register-push-token',
 ];
