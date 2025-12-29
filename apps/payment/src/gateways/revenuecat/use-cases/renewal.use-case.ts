@@ -9,9 +9,7 @@ export class RevenueCatRenewalUseCase {
   constructor(private readonly prismaService: PrismaService) {}
 
   async execute(event: RevenueCatEvent) {
-    const slug =
-      (event.subscriber_attributes?.business_slug?.value as string) ??
-      event.app_user_id;
+    const slug = event.app_user_id;
 
     const business = await this.prismaService.business.findUnique({
       where: { slug },
