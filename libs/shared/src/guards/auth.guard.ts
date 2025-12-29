@@ -10,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from '../decorators/isPublic.decorator';
 import { RedisService } from '../modules/redis/redis.service';
+import { ACCESS_TOKEN_COOKIE, getCookieValue } from '../utils/cookies';
 
 type UserType = 'PROFESSIONAL' | 'CUSTOMER';
 
@@ -38,7 +39,9 @@ export class AuthGuard implements CanActivate {
     if (isPublic) return true;
 
     const request = context.switchToHttp().getRequest<Request>();
-    const token = this.extractTokenFromHeader(request);
+    const token =
+      this.extractTokenFromHeader(request) ||
+      this.extractTokenFromCookies(request);
     if (!token) throw new UnauthorizedException('Token não fornecido');
 
     let payload: JwtPayload;
@@ -115,5 +118,9 @@ export class AuthGuard implements CanActivate {
     const [type, token] = request.headers.authorization?.split(' ') || [];
     if (type?.toLowerCase() === 'bearer' && token) return token;
     return undefined;
+  }
+
+  private extractTokenFromCookies(request: Request): string | undefined {
+    return getCookieValue(request, ACCESS_TOKEN_COOKIE);
   }
 }

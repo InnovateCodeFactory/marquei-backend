@@ -8,7 +8,11 @@ import {
 } from '@app/shared/utils';
 import { Price } from '@app/shared/value-objects';
 import { tz } from '@date-fns/tz';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import {
   addDays,
   addMinutes,
@@ -16,15 +20,19 @@ import {
   min as dfMin,
   endOfDay,
   format,
+  isAfter,
   isBefore,
+  isValid,
+  parseISO,
   startOfDay,
 } from 'date-fns';
+import { GetAppointmentsDto } from '../dto/requests/get-appointments.dto';
 
 @Injectable()
 export class GetAppointmentsUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(currentUser: CurrentUser) {
+  async execute(currentUser: CurrentUser, query?: GetAppointmentsDto) {
     if (!currentUser?.current_selected_business_id) {
       throw new UnauthorizedException(
         'You must select a business to view appointments.',
@@ -45,11 +53,21 @@ export class GetAppointmentsUseCase {
       );
     }
 
+    const { startDate, endDate } = this.parseDateRange(query);
+
     // Busca agendamentos
     const appointments = await this.prisma.appointment.findMany({
       where: {
         professionalProfileId: prof.id,
         status: { in: ['CONFIRMED', 'PENDING'] },
+        ...(startDate || endDate
+          ? {
+              start_at_utc: {
+                ...(startDate ? { gte: startDate } : {}),
+                ...(endDate ? { lte: endDate } : {}),
+              },
+            }
+          : {}),
       },
       select: {
         id: true,
@@ -81,6 +99,8 @@ export class GetAppointmentsUseCase {
       where: {
         professionalProfileId: prof.id,
         businessId: currentUser.current_selected_business_id,
+        ...(startDate ? { end_at_utc: { gte: startDate } } : {}),
+        ...(endDate ? { start_at_utc: { lte: endDate } } : {}),
       },
       select: {
         start_at_utc: true,
@@ -159,6 +179,34 @@ export class GetAppointmentsUseCase {
       items: formattedItems,
       unavailableHours,
     };
+  }
+
+  private parseDateRange(query?: GetAppointmentsDto): {
+    startDate?: Date;
+    endDate?: Date;
+  } {
+    if (!query?.start_date && !query?.end_date) {
+      return {};
+    }
+
+    const startDate = query?.start_date ? parseISO(query.start_date) : undefined;
+    const endDate = query?.end_date ? parseISO(query.end_date) : undefined;
+
+    if (startDate && !isValid(startDate)) {
+      throw new BadRequestException('Invalid start_date.');
+    }
+
+    if (endDate && !isValid(endDate)) {
+      throw new BadRequestException('Invalid end_date.');
+    }
+
+    if (startDate && endDate && isAfter(startDate, endDate)) {
+      throw new BadRequestException(
+        'start_date must be before end_date.',
+      );
+    }
+
+    return { startDate, endDate };
   }
 
   private buildUnavailableByDay(

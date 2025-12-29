@@ -10,9 +10,7 @@ export class RevenueCatCancellationUseCase {
   async execute(event: RevenueCatEvent) {
     // Consider a short buffer to handle events that arrive slightly before/after expiration.
     const EXPIRATION_BUFFER_MINUTES = 5;
-    const slug =
-      (event.subscriber_attributes?.business_slug?.value as string) ??
-      event.app_user_id;
+    const slug = event.app_user_id;
 
     const business = await this.prismaService.business.findUnique({
       where: { slug },

@@ -18,6 +18,7 @@ import { BlockTimesDto } from './dto/requests/block-times.dto';
 import { CancelAppointmentDto } from './dto/requests/cancel-appointment.dto';
 import { CreateAppointmentDto } from './dto/requests/create-appointment.dto';
 import { GetAvailableTimesDto } from './dto/requests/get-available-times.dto';
+import { GetAppointmentsDto } from './dto/requests/get-appointments.dto';
 import { RescheduleAppointmentDto } from './dto/requests/reschedule-appointment.dto';
 import {
   CreateAppointmentUseCase,
@@ -87,10 +88,11 @@ export class AppointmentsController {
   })
   async getAppointments(
     @Res() res: Response,
+    @Query() query: GetAppointmentsDto,
     @CurrentUserDecorator() user: CurrentUser,
   ) {
     return await this.responseHandler.handle({
-      method: () => this.getAppointmentsUseCase.execute(user),
+      method: () => this.getAppointmentsUseCase.execute(user, query),
       res,
     });
   }

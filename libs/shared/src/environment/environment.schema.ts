@@ -60,6 +60,11 @@ export type EnvSchemaType = {
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   GOOGLE_CALENDAR_REDIRECT_URI: string;
+
+  WEB_APP_ORIGINS?: string;
+  WEB_COOKIE_DOMAIN?: string;
+  WEB_COOKIE_SAMESITE?: string;
+  WEB_COOKIE_SECURE?: string;
 };
 
 export const envValidationSchema = Joi.object<EnvSchemaType>({
@@ -135,4 +140,11 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
   GOOGLE_CLIENT_ID: Joi.string().required(),
   GOOGLE_CLIENT_SECRET: Joi.string().required(),
   GOOGLE_CALENDAR_REDIRECT_URI: Joi.string().uri().required(),
+
+  WEB_APP_ORIGINS: Joi.string().allow('').default(''),
+  WEB_COOKIE_DOMAIN: Joi.string().allow('').default(''),
+  WEB_COOKIE_SAMESITE: Joi.string()
+    .valid('lax', 'strict', 'none')
+    .default('lax'),
+  WEB_COOKIE_SECURE: Joi.string().valid('true', 'false').default('false'),
 });

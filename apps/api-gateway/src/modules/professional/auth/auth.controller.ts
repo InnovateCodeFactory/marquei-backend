@@ -1,13 +1,22 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
+import { ErrorResponseDto } from '@app/shared/dto/error-response.dto';
+import { SuccessResponseDto } from '@app/shared/dto/success-response.dto';
+import { EnvSchemaType } from '@app/shared/environment';
 import { SendMailTypeEnum, UserTypeEnum } from '@app/shared/enum';
 import { ResponseHandlerService } from '@app/shared/services';
 import { AppRequest, CurrentUser } from '@app/shared/types/app-request';
+import {
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+  getCookieValue,
+} from '@app/shared/utils/cookies';
 import { getClientIp } from '@app/shared/utils';
 import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { MailValidationService } from 'apps/api-gateway/src/shared/services';
-import { Response } from 'express';
+import { CookieOptions, Request, Response } from 'express';
 import { CreateAccountDto } from './dto/requests/create-account';
 import { FirstAccessDto } from './dto/requests/firts-access.dto';
 import { LoginDto } from './dto/requests/login.dto';
@@ -31,6 +40,7 @@ import {
 @ApiTags('Professional - Auth')
 export class AuthController {
   constructor(
+    private readonly configService: ConfigService<EnvSchemaType>,
     private readonly responseHandler: ResponseHandlerService,
     private readonly mailService: MailValidationService,
 
@@ -49,21 +59,77 @@ export class AuthController {
     summary: 'Login user',
   })
   @IsPublic()
-  async login(@Res() res: Response, @Body() body: LoginDto) {
-    return this.responseHandler.handle({
-      method: () => this.loginUseCase.execute(body),
-      res,
-    });
+  async login(
+    @Res() res: Response,
+    @Req() req: Request,
+    @Body() body: LoginDto,
+  ) {
+    if (!this.isWebClient(req)) {
+      return this.responseHandler.handle({
+        method: () => this.loginUseCase.execute(body),
+        res,
+      });
+    }
+
+    try {
+      const data = await this.loginUseCase.execute(body);
+      this.setAuthCookies(res, data?.token, data?.refresh_token);
+      const { token, refresh_token, ...safeData } = data;
+
+      res.status(200).json(new SuccessResponseDto({ data: safeData }));
+      return;
+    } catch (error) {
+      res.status(error.status || 500).json(
+        new ErrorResponseDto({
+          message: error.message || 'Internal server error',
+        }),
+      );
+      return;
+    }
   }
 
   @Post('refresh')
   @ApiOperation({ summary: 'Refresh token (Professional)' })
   @IsPublic()
-  async refresh(@Res() res: Response, @Body() body: RefreshTokenDto) {
-    return this.responseHandler.handle({
-      method: () => this.refreshTokenUseCase.execute(body),
-      res,
-    });
+  async refresh(
+    @Res() res: Response,
+    @Req() req: Request,
+    @Body() body: RefreshTokenDto,
+  ) {
+    const refreshToken =
+      body?.refreshToken || getCookieValue(req, REFRESH_TOKEN_COOKIE);
+
+    if (!refreshToken) {
+      res.status(400).json(
+        new ErrorResponseDto({
+          message: 'Refresh token não fornecido',
+        }),
+      );
+      return;
+    }
+
+    if (!this.isWebClient(req)) {
+      return this.responseHandler.handle({
+        method: () => this.refreshTokenUseCase.execute({ refreshToken }),
+        res,
+      });
+    }
+
+    try {
+      const data = await this.refreshTokenUseCase.execute({ refreshToken });
+      this.setAuthCookies(res, data?.token, data?.refresh_token);
+      res
+        .status(200)
+        .json(new SuccessResponseDto({ data: { success: true } }));
+      return;
+    } catch (error) {
+      res.status(error.status || 500).json(
+        new ErrorResponseDto({
+          message: error.message || 'Internal server error',
+        }),
+      );
+      return;
+    }
   }
 
   @Post('logout')
@@ -71,13 +137,37 @@ export class AuthController {
   @IsPublic()
   async logout(
     @Res() res: Response,
+    @Req() req: Request,
     @Body() body: { refreshToken?: string; allDevices?: boolean },
     @CurrentUserDecorator() currentUser: CurrentUser,
   ) {
+    const refreshToken =
+      body?.refreshToken || getCookieValue(req, REFRESH_TOKEN_COOKIE);
+
+    if (this.isWebClient(req)) {
+      try {
+        const data = await this.logoutUseCase.execute({
+          refreshToken,
+          allDevices: body?.allDevices,
+          userId: currentUser?.id,
+        });
+        this.clearAuthCookies(res);
+        res.status(200).json(new SuccessResponseDto({ data }));
+        return;
+      } catch (error) {
+        res.status(error.status || 500).json(
+          new ErrorResponseDto({
+            message: error.message || 'Internal server error',
+          }),
+        );
+        return;
+      }
+    }
+
     return this.responseHandler.handle({
       method: () =>
         this.logoutUseCase.execute({
-          refreshToken: body?.refreshToken,
+          refreshToken,
           allDevices: body?.allDevices,
           userId: currentUser?.id,
         }),
@@ -204,5 +294,49 @@ export class AuthController {
       method: () => this.updatePasswordConfirmCodeUseCase.execute(body, req),
       res,
     });
+  }
+
+  private isWebClient(req: Request): boolean {
+    const header = req.headers['x-client-platform'];
+    if (Array.isArray(header)) {
+      return header.some((value) => value.toLowerCase() === 'web');
+    }
+    return header?.toLowerCase() === 'web';
+  }
+
+  private getCookieOptions(): CookieOptions {
+    const sameSite = this.configService.get('WEB_COOKIE_SAMESITE') || 'lax';
+    const domain = this.configService.get('WEB_COOKIE_DOMAIN') || undefined;
+    const secure =
+      this.configService.get('WEB_COOKIE_SECURE') === 'true' ||
+      this.configService.get('NODE_ENV') === 'production';
+
+    return {
+      httpOnly: true,
+      secure,
+      sameSite: sameSite as CookieOptions['sameSite'],
+      domain,
+      path: '/',
+    };
+  }
+
+  private setAuthCookies(
+    res: Response,
+    accessToken?: string,
+    refreshToken?: string,
+  ): void {
+    const options = this.getCookieOptions();
+    if (accessToken) {
+      res.cookie(ACCESS_TOKEN_COOKIE, accessToken, options);
+    }
+    if (refreshToken) {
+      res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, options);
+    }
+  }
+
+  private clearAuthCookies(res: Response): void {
+    const options = this.getCookieOptions();
+    res.clearCookie(ACCESS_TOKEN_COOKIE, options);
+    res.clearCookie(REFRESH_TOKEN_COOKIE, options);
   }
 }

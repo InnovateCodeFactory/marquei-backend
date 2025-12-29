@@ -9,8 +9,19 @@ import { swagger } from './swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
+  const allowedOrigins = (process.env.WEB_APP_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: '*',
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.length === 0) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error('Origin not allowed by CORS'), false);
+    },
+    credentials: true,
   });
   app.useGlobalPipes(
     new ValidationPipe({
