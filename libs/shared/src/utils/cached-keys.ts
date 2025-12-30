@@ -16,4 +16,14 @@ export const CachedKeys = {
     start_date: string;
     end_date: string;
   }) => `professional:analytics:${business_slug}:${start_date}_${end_date}`,
+
+  PROFESSIONAL_DASHBOARD_ANALYTICS: ({
+    business_slug,
+    end_date,
+    start_date,
+  }: {
+    business_slug: string;
+    start_date: string;
+    end_date: string;
+  }) => `professional:analytics:dashboard:${business_slug}:${start_date}_${end_date}`,
 };

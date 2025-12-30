@@ -28,22 +28,18 @@ export class FindCustomersUseCase {
       const s = search.trim();
       const terms = s.split(/\s+/);
 
-      where.AND = [
-        // AND de termos no nome (Person.name)
-        ...terms.map((term) => ({
-          person: {
-            name: { contains: term, mode: 'insensitive' },
-          },
-        })),
-        // Busca complementar por email/telefone (Person) OU sombras no vínculo
+      where.OR = [
         {
-          OR: [
-            { person: { email: { contains: s, mode: 'insensitive' } } },
-            { person: { phone: { contains: s, mode: 'insensitive' } } },
-            { email: { contains: s, mode: 'insensitive' } }, // sombra no vínculo
-            { phone: { contains: s, mode: 'insensitive' } }, // sombra no vínculo
-          ],
+          AND: terms.map((term) => ({
+            person: {
+              name: { contains: term, mode: 'insensitive' },
+            },
+          })),
         },
+        { person: { email: { contains: s, mode: 'insensitive' } } },
+        { person: { phone: { contains: s, mode: 'insensitive' } } },
+        { email: { contains: s, mode: 'insensitive' } },
+        { phone: { contains: s, mode: 'insensitive' } },
       ];
     }
 
