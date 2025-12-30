@@ -26,17 +26,21 @@ export class UpdateCustomerUseCase {
     if (!bc) throw new NotFoundException('Cliente não encontrado');
 
     const personData = this.cleanObject({
-      name: payload.name?.trim(),
-      email: payload.email?.trim().toLowerCase() || null,
-      phone: toE164(payload.phone) || null,
-      birthdate: payload.birthdate ? new Date(payload.birthdate) : null,
+      ...(payload.name !== undefined && { name: payload.name.trim() }),
+      ...(payload.email !== undefined && {
+        email: payload.email.trim().toLowerCase() || null,
+      }),
+      ...(payload.phone !== undefined && { phone: toE164(payload.phone) }),
+      ...(payload.birthdate !== undefined && {
+        birthdate: payload.birthdate ? new Date(payload.birthdate) : null,
+      }),
     });
 
     const bcData = this.cleanObject({
-      notes: payload.notes || null,
-      email: payload.email || null,
-      phone: payload.phone || null,
-      is_blocked: payload.isBlocked,
+      ...(payload.notes !== undefined && { notes: payload.notes || null }),
+      ...(payload.email !== undefined && { email: payload.email || null }),
+      ...(payload.phone !== undefined && { phone: payload.phone || null }),
+      ...(payload.isBlocked !== undefined && { is_blocked: payload.isBlocked }),
     });
 
     // Atualiza apenas se tiver campos
