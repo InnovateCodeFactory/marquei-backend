@@ -9,6 +9,7 @@ export type SystemGeneralSettings = {
   facebook_url: string | null;
   instagram_url: string | null;
   website_url: string | null;
+  website_client_url: string | null;
   twitter_url: string | null;
   linkedin_url: string | null;
   whatsapp_number: string | null;
@@ -61,6 +62,7 @@ export const systemGeneralSettings: Readonly<SystemGeneralSettings> =
     help_center_url: str(cfg.help_center_url),
     facebook_url: str(cfg.facebook_url),
     website_url: str(cfg.website_url),
+    website_client_url: str(cfg.website_client_url),
     instagram_url: str(cfg.instagram_url),
     twitter_url: str(cfg.twitter_url),
     linkedin_url: str(cfg.linkedin_url),
