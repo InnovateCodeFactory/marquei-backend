@@ -2,6 +2,7 @@ import { PrismaService } from '@app/shared';
 import { RedisService } from '@app/shared/modules/redis/redis.service';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { formatCpf, formatPhoneNumber } from '@app/shared/utils';
 import { SelectCurrentBusinessDto } from '../dto/requests/select-current-business.dto';
 import { FileSystemService } from '@app/shared/services';
 
@@ -100,11 +101,15 @@ export class SelectCurrentBusinessUseCase {
             id: dbUser.id,
             name: dbUser.name,
             email: dbUser.email,
-            document_number: dbUser.document_number,
+            document_number: dbUser.document_number
+              ? formatCpf(dbUser.document_number)
+              : null,
             profile_image: this.fs.getPublicUrl({
               key: professionalProfile?.profile_image || undefined,
             }),
-            phone: professionalProfile?.phone ?? null,
+            phone: professionalProfile?.phone
+              ? formatPhoneNumber(professionalProfile.phone)
+              : null,
           }
         : null,
     };

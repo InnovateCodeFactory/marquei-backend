@@ -4,6 +4,7 @@ import {
   HashingService,
   TokenService,
 } from '@app/shared/services';
+import { formatCpf, formatPhoneNumber } from '@app/shared/utils';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CheckActiveSubscriptionUseCase } from '../../plans/use-cases/check-active-subscription.use-case';
 import { LoginDto } from '../dto/requests/login.dto';
@@ -103,11 +104,11 @@ export class LoginUseCase {
         id: user.id,
         name: user.name,
         email: user?.email,
-        document_number: user?.document_number,
+        document_number: formatCpf(user.document_number),
         profile_image: this.fs.getPublicUrl({
           key: professionalProfile?.profile_image,
         }),
-        phone: professionalProfile?.phone,
+        phone: formatPhoneNumber(professionalProfile?.phone || ''),
       },
       subscription_status: subscriptionStatus,
     };

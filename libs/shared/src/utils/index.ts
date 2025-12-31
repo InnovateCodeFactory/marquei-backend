@@ -238,3 +238,15 @@ export function parseYmdToTZDate({
   const [, y, mo, d] = m.map(Number) as unknown as number[];
   return new TZDate(y, mo - 1, d, 0, 0, 0, tzId);
 }
+
+export function formatCpf(cpf: string): string {
+  const cleaned = cpf.replace(/\D/g, '');
+  if (cleaned.length !== 11) return cpf;
+
+  const part1 = cleaned.slice(0, 3);
+  const part2 = cleaned.slice(3, 6);
+  const part3 = cleaned.slice(6, 9);
+  const part4 = cleaned.slice(9, 11);
+
+  return `${part1}.${part2}.${part3}-${part4}`;
+}
