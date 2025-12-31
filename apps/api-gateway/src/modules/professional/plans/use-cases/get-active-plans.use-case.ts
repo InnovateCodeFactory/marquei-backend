@@ -1,18 +1,12 @@
 import { PrismaService } from '@app/shared';
 import { Price } from '@app/shared/value-objects';
-import { CurrentUser } from '@app/shared/types/app-request';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class GetActivePlansUseCase {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async execute(user: CurrentUser) {
-    if (!user?.current_selected_business_slug)
-      throw new UnauthorizedException(
-        'Você não possui uma empresa selecionada',
-      );
-
+  async execute() {
     const plans = await this.prismaService.plan.findMany({
       where: { is_active: true },
       orderBy: [{ billing_period: 'asc' }, { showing_order: 'asc' }],

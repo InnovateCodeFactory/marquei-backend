@@ -1,4 +1,5 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
+import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { Body, Controller, Get, Post, Res } from '@nestjs/common';
@@ -27,12 +28,10 @@ export class PlansController {
   @ApiOperation({
     summary: 'Get Active Plans',
   })
-  async getActivePlans(
-    @CurrentUserDecorator() currentUser: CurrentUser,
-    @Res() res: Response,
-  ) {
+  @IsPublic()
+  async getActivePlans(@Res() res: Response) {
     return await this.responseHandler.handle({
-      method: () => this.getActivePlansUseCase.execute(currentUser),
+      method: () => this.getActivePlansUseCase.execute(),
       res,
     });
   }
