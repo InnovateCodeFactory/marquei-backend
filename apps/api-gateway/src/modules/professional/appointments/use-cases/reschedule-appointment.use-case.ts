@@ -17,6 +17,7 @@ import {
 } from '@nestjs/common';
 import { addMinutes, format } from 'date-fns';
 import { RescheduleAppointmentDto } from '../dto/requests/reschedule-appointment.dto';
+import { ReminderChannel } from '@prisma/client';
 
 const BUSINESS_TZ_ID = 'America/Sao_Paulo';
 const IN_TZ = tz(BUSINESS_TZ_ID);
@@ -133,7 +134,7 @@ export class RescheduleAppointmentUseCase {
       });
 
     const reminderJobs: {
-      channel: string;
+      channel: ReminderChannel;
       due_at_utc: Date;
       personId: string;
       businessId: string;
