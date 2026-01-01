@@ -44,6 +44,7 @@ export class RescheduleCustomerAppointmentUseCase {
           select: {
             id: true,
             push_notification_enabled: true,
+            business_id: true,
             User: {
               select: {
                 push_token: true,
@@ -90,6 +91,7 @@ export class RescheduleCustomerAppointmentUseCase {
         select: {
           id: true,
           push_notification_enabled: true,
+          business_id: true,
           User: { select: { push_token: true, name: true } },
         },
       });
@@ -128,20 +130,78 @@ export class RescheduleCustomerAppointmentUseCase {
     }
 
     // 4) atualiza o agendamento
-    await this.prisma.appointment.update({
-      where: { id: current.id },
-      data: {
-        start_at_utc: startUtc,
-        end_at_utc: endUtc,
-        duration_minutes: effectiveService.duration,
-        timezone: BUSINESS_TZ_ID,
-        start_offset_minutes: startLocal.getTimezoneOffset(),
-        ...(dto.professional_id && {
-          professionalProfileId: newProfessionalId,
-        }),
-        ...(dto.service_id && { service_id: newServiceId }),
-      },
-    });
+    const reminderSettings =
+      await this.prisma.businessReminderSettings.findFirst({
+        where: {
+          businessId: effectiveProfessional.business_id,
+          is_active: true,
+        },
+        select: {
+          channels: true,
+          offsets_min_before: true,
+          businessId: true,
+        },
+      });
+
+    const reminderJobs: {
+      channel: string;
+      due_at_utc: Date;
+      personId: string;
+      businessId: string;
+      appointmentId: string;
+    }[] = [];
+
+    if (reminderSettings) {
+      const nowUtc = new Date();
+      for (const channel of reminderSettings.channels) {
+        for (const offsetMin of reminderSettings.offsets_min_before) {
+          const dueAtUtc = new Date(startLocal.getTime() - offsetMin * 60000);
+          if (dueAtUtc <= nowUtc) continue;
+          reminderJobs.push({
+            channel,
+            due_at_utc: dueAtUtc,
+            personId: current.personId,
+            businessId: reminderSettings.businessId,
+            appointmentId: current.id,
+          });
+        }
+      }
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.appointment.update({
+        where: { id: current.id },
+        data: {
+          start_at_utc: startUtc,
+          end_at_utc: endUtc,
+          duration_minutes: effectiveService.duration,
+          timezone: BUSINESS_TZ_ID,
+          start_offset_minutes: startLocal.getTimezoneOffset(),
+          ...(dto.professional_id && {
+            professionalProfileId: newProfessionalId,
+          }),
+          ...(dto.service_id && { service_id: newServiceId }),
+        },
+      }),
+      this.prisma.reminderJob.updateMany({
+        where: {
+          appointmentId: current.id,
+          status: { in: ['PENDING', 'SCHEDULED'] },
+        },
+        data: {
+          status: 'CANCELED',
+          error: 'appointment_rescheduled',
+        },
+      }),
+      ...(reminderJobs.length > 0
+        ? [
+            this.prisma.reminderJob.createMany({
+              data: reminderJobs,
+              skipDuplicates: true,
+            }),
+          ]
+        : []),
+    ]);
 
     // 5) montar mensagem
     const customerName = getTwoNames(current.customerPerson?.name || 'Cliente');

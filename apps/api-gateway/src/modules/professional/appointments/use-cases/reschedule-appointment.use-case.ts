@@ -43,6 +43,7 @@ export class RescheduleAppointmentUseCase {
         end_at_utc: true,
         timezone: true,
         duration_minutes: true,
+        personId: true,
         professionalProfileId: true,
         professional: {
           select: {
@@ -118,7 +119,45 @@ export class RescheduleAppointmentUseCase {
       );
     }
 
-    // Transação: update + evento
+    const reminderSettings =
+      await this.prisma.businessReminderSettings.findFirst({
+        where: {
+          businessId: appointment.professional.business_id,
+          is_active: true,
+        },
+        select: {
+          channels: true,
+          offsets_min_before: true,
+          businessId: true,
+        },
+      });
+
+    const reminderJobs: {
+      channel: string;
+      due_at_utc: Date;
+      personId: string;
+      businessId: string;
+      appointmentId: string;
+    }[] = [];
+
+    if (reminderSettings) {
+      const nowUtc = new Date();
+      for (const channel of reminderSettings.channels) {
+        for (const offsetMin of reminderSettings.offsets_min_before) {
+          const dueAtUtc = new Date(startLocal.getTime() - offsetMin * 60000);
+          if (dueAtUtc <= nowUtc) continue;
+          reminderJobs.push({
+            channel,
+            due_at_utc: dueAtUtc,
+            personId: appointment.personId,
+            businessId: reminderSettings.businessId,
+            appointmentId: appointment.id,
+          });
+        }
+      }
+    }
+
+    // Transação: update + evento + reminders
     await this.prisma.$transaction([
       this.prisma.appointment.update({
         where: { id: appointment.id },
@@ -142,6 +181,24 @@ export class RescheduleAppointmentUseCase {
           },
         },
       }),
+      this.prisma.reminderJob.updateMany({
+        where: {
+          appointmentId: appointment.id,
+          status: { in: ['PENDING', 'SCHEDULED'] },
+        },
+        data: {
+          status: 'CANCELED',
+          error: 'appointment_rescheduled',
+        },
+      }),
+      ...(reminderJobs.length > 0
+        ? [
+            this.prisma.reminderJob.createMany({
+              data: reminderJobs,
+              skipDuplicates: true,
+            }),
+          ]
+        : []),
     ]);
 
     // E-mail (se tiver)

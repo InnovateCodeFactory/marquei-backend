@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/shared';
+import { AppointmentStatusEnum } from '@app/shared/enum';
 import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifications';
 import { SendWhatsAppTextMessageDto } from '@app/shared/dto/messaging/whatsapp-notifications';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
@@ -75,6 +76,7 @@ export class ScheduleReminderUseCase implements OnModuleInit {
                 id: true,
                 start_at_utc: true,
                 timezone: true,
+                status: true,
                 service: { select: { name: true } },
                 professional: { select: { User: { select: { name: true } } } },
               },
@@ -92,6 +94,24 @@ export class ScheduleReminderUseCase implements OnModuleInit {
         });
 
         if (!jobs.length) break;
+
+        const businessIds = Array.from(
+          new Set(jobs.map((job) => job.businessId)),
+        );
+        const reminderSettings =
+          await this.prismaService.businessReminderSettings.findMany({
+            where: {
+              businessId: { in: businessIds },
+              is_active: true,
+            },
+            select: {
+              businessId: true,
+              offsets_min_before: true,
+            },
+          });
+        const settingsByBusiness = new Map(
+          reminderSettings.map((item) => [item.businessId, item]),
+        );
 
         // Agrupa por (appointmentId + due_at_utc) para aplicar stagger entre canais simultâneos
         const groups = new Map<string, typeof jobs>();
@@ -111,6 +131,59 @@ export class ScheduleReminderUseCase implements OnModuleInit {
           const base = groupJobs[0];
           const appt = base.appointment;
           const person = base.person;
+          const settings = settingsByBusiness.get(base.businessId);
+
+          const markSkipped = async (jobId: string, reason: string) => {
+            await this.prismaService.reminderJob.update({
+              where: { id: jobId },
+              data: {
+                status: 'SKIPPED',
+                error: reason,
+                attempts: { increment: 1 },
+              },
+            });
+          };
+
+          const skipGroup = async (reason: string) => {
+            await Promise.all(
+              groupJobs.map((job) => markSkipped(job.id, reason)),
+            );
+          };
+
+          if (!appt) {
+            await skipGroup('appointment_missing');
+            continue;
+          }
+
+          if (
+            ![AppointmentStatusEnum.PENDING, AppointmentStatusEnum.CONFIRMED]
+              .includes(appt.status as AppointmentStatusEnum)
+          ) {
+            await skipGroup('appointment_status_invalid');
+            continue;
+          }
+
+          if (!settings?.offsets_min_before?.length) {
+            await skipGroup('missing_reminder_settings');
+            continue;
+          }
+
+          const deltaMinutes = Math.round(
+            (appt.start_at_utc.getTime() - base.due_at_utc.getTime()) / 60000,
+          );
+          if (deltaMinutes <= 0) {
+            await skipGroup('appointment_time_invalid');
+            continue;
+          }
+
+          const toleranceMinutes = 3; // tolera pequenos ajustes e stagger
+          const matchesOffset = settings.offsets_min_before.some(
+            (offset) => Math.abs(offset - deltaMinutes) <= toleranceMinutes,
+          );
+          if (!matchesOffset) {
+            await skipGroup('appointment_rescheduled');
+            continue;
+          }
           const tzid = appt?.timezone || 'America/Sao_Paulo';
           const inTZ = tz(tzid);
           const dayAndMonthFormatted = format(appt.start_at_utc, 'dd/MM', {
@@ -179,17 +252,6 @@ export class ScheduleReminderUseCase implements OnModuleInit {
                 by_professional: false,
                 by_user_id: null,
                 reason: errorMsg?.slice(0, 200) || 'error',
-              },
-            });
-          };
-
-          const markSkipped = async (jobId: string, reason: string) => {
-            await this.prismaService.reminderJob.update({
-              where: { id: jobId },
-              data: {
-                status: 'SKIPPED',
-                error: reason,
-                attempts: { increment: 1 },
               },
             });
           };

@@ -60,6 +60,16 @@ export class CancelCustomerAppointmentUseCase {
         where: { id: appointment.id },
         data: { status: 'CANCELED' },
       }),
+      this.prisma.reminderJob.updateMany({
+        where: {
+          appointmentId: appointment.id,
+          status: { in: ['PENDING', 'SCHEDULED'] },
+        },
+        data: {
+          status: 'CANCELED',
+          error: 'appointment_canceled',
+        },
+      }),
       this.prisma.appointmentEvent.create({
         data: {
           appointmentId: appointment.id,
