@@ -17,6 +17,12 @@ export class GetBusinessBySlugUseCase {
       },
       select: {
         name: true,
+        description: true,
+        phone: true,
+        email: true,
+        website: true,
+        instagram: true,
+        opening_hours: true,
         // TODO: mudar pra cover_image
         coverImage: true,
         logo: true,
@@ -35,6 +41,12 @@ export class GetBusinessBySlugUseCase {
       latitude: business.latitude,
       longitude: business.longitude,
       slug: business.slug,
+      description: business.description,
+      phone: business.phone,
+      email: business.email,
+      website: business.website,
+      instagram: business.instagram,
+      opening_hours: business.opening_hours,
       cover_image: this.fs.getPublicUrl({ key: business.coverImage }),
       logo: this.fs.getPublicUrl({ key: business.logo }),
     };

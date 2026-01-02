@@ -18,6 +18,7 @@ import { GetHomeSectionsDto } from './dto/requests/get-home-sections.dto';
 import { GetSectionItemsDto } from './dto/requests/get-section-items.dto';
 import { GetAvailableTimesForServiceAndProfessionalDto } from './dto/requests/get-available-times-for-service-and-professional.dto';
 import { GetBusinessBySlugDto } from './dto/requests/get-business-by-slug.dto';
+import { GetBusinessProfessionalsDto } from './dto/requests/get-business-professionals.dto';
 import { GetProfessionalsForAppointmentDto } from './dto/requests/get-professionals.dto';
 import { GetServicesDto } from './dto/requests/get-services.dto';
 import {
@@ -27,6 +28,7 @@ import {
   GetHomeSectionsUseCase,
   GetAvailableTimesForServiceAndProfessionalUseCase,
   GetBusinessBySlugUseCase,
+  GetBusinessProfessionalsUseCase,
   GetBusinessCategoriesUseCase,
   GetSectionItemsUseCase,
   GetProfessionalsForAppointmentUseCase,
@@ -49,6 +51,7 @@ export class BusinessController {
     private readonly getAvailableTimesForServiceAndProfessionalUseCase: GetAvailableTimesForServiceAndProfessionalUseCase,
     private readonly getBusinessCategoriesUseCase: GetBusinessCategoriesUseCase,
     private readonly filterBusinessesUseCase: FilterBusinessesUseCase,
+    private readonly getBusinessProfessionalsUseCase: GetBusinessProfessionalsUseCase,
   ) {}
 
   @Post('nearby')
@@ -137,6 +140,19 @@ export class BusinessController {
   ) {
     return this.responseHandler.handle({
       method: () => this.getProfessionalsForAppointmentUseCase.execute(query),
+      res,
+    });
+  }
+
+  @Get('professionals')
+  @IsPublic()
+  @ApiOperation({ summary: 'Get professionals for business' })
+  async getBusinessProfessionals(
+    @Res() res: Response,
+    @Query() query: GetBusinessProfessionalsDto,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.getBusinessProfessionalsUseCase.execute(query),
       res,
     });
   }

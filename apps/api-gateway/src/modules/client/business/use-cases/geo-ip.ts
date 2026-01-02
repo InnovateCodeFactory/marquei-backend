@@ -60,8 +60,6 @@ export async function resolveStateInfoFromIp(
       http.get(`${GEOIP_URL}/${normalized}`, { timeout: 2500 }),
     );
 
-    console.log(JSON.stringify(data, null, 2));
-
     const country = data?.country_code;
     if (country && country !== 'BR') return null;
 
@@ -77,8 +75,6 @@ export async function resolveStateInfoFromIp(
         : (UF_TO_STATE_NAME[normalizedUf] ?? normalizedUf);
     return { uf: normalizedUf, name };
   } catch (err: any) {
-    console.log(JSON.stringify(err?.response?.data ?? err.message ?? err));
-
     return null;
   }
 }

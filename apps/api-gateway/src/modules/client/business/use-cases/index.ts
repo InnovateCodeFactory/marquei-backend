@@ -5,6 +5,7 @@ export * from './find-recommended-businesses.use-case';
 export * from './get-home-sections.use-case';
 export * from './get-available-times-for-service-and-professional.use-case';
 export * from './get-business-by-slug.use-case';
+export * from './get-business-professionals.use-case';
 export * from './get-business-categories.use-case';
 export * from './get-section-items.use-case';
 export * from './get-professionals-for-appointment.use-case';

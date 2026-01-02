@@ -35,8 +35,6 @@ export class GetHomeSectionsUseCase {
     const ip = getClientIp(req);
     const stateInfo = await resolveStateInfoFromIp(this.http, ip);
 
-    console.log(stateInfo);
-
     const recommendedPromise = this.findRecommendedBusinessesUseCase.execute({
       latitude: payload.latitude,
       longitude: payload.longitude,
