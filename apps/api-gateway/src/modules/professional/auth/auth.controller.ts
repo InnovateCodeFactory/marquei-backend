@@ -2,17 +2,17 @@ import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decora
 import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
 import { ErrorResponseDto } from '@app/shared/dto/error-response.dto';
 import { SuccessResponseDto } from '@app/shared/dto/success-response.dto';
-import { EnvSchemaType } from '@app/shared/environment';
 import { SendMailTypeEnum, UserTypeEnum } from '@app/shared/enum';
+import { EnvSchemaType } from '@app/shared/environment';
 import { ResponseHandlerService } from '@app/shared/services';
 import { AppRequest, CurrentUser } from '@app/shared/types/app-request';
+import { getClientIp } from '@app/shared/utils';
 import {
   ACCESS_TOKEN_COOKIE,
   CSRF_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
   getCookieValue,
 } from '@app/shared/utils/cookies';
-import { getClientIp } from '@app/shared/utils';
 import { Body, Controller, Post, Req, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -120,9 +120,7 @@ export class AuthController {
     try {
       const data = await this.refreshTokenUseCase.execute({ refreshToken });
       this.setAuthCookies(res, data?.token, data?.refresh_token);
-      res
-        .status(200)
-        .json(new SuccessResponseDto({ data: { success: true } }));
+      res.status(200).json(new SuccessResponseDto({ data: { success: true } }));
       return;
     } catch (error) {
       res.status(error.status || 500).json(
@@ -309,9 +307,7 @@ export class AuthController {
   private getCookieOptions(): CookieOptions {
     const sameSite = this.configService.get('WEB_COOKIE_SAMESITE') || 'lax';
     const domain = this.configService.get('WEB_COOKIE_DOMAIN') || undefined;
-    const secure =
-      this.configService.get('WEB_COOKIE_SECURE') === 'true' ||
-      this.configService.get('NODE_ENV') === 'production';
+    const secure = this.configService.get('NODE_ENV') === 'production';
 
     return {
       httpOnly: true,
