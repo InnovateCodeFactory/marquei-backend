@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import {
   ACCESS_TOKEN_COOKIE,
@@ -11,11 +12,20 @@ import {
   REFRESH_TOKEN_COOKIE,
   getCookieValue,
 } from '@app/shared/utils/cookies';
+import { IS_PUBLIC_KEY } from '@app/shared/decorators/isPublic.decorator';
 
 @Injectable()
 export class CsrfGuard implements CanActivate {
+  constructor(private readonly reflector: Reflector) {}
+
   canActivate(context: ExecutionContext): boolean {
     if (context.getType() !== 'http') return true;
+
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getClass(),
+      context.getHandler(),
+    ]);
+    if (isPublic) return true;
 
     const req = context.switchToHttp().getRequest<Request>();
     const method = (req.method || '').toUpperCase();
