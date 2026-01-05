@@ -2,9 +2,19 @@ import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
 import { PAYMENT_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { ResponseHandlerService } from '@app/shared/services';
-import { Body, Controller, Get, Logger, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Logger,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { Request, Response } from 'express';
+import { RevenueCatWebhookGuard } from './revenuecat-webhook.guard';
 
 @Controller('webhooks')
 @IsPublic()
@@ -41,6 +51,7 @@ export class WebhooksController {
   }
 
   @Post('revenuecat')
+  @UseGuards(RevenueCatWebhookGuard)
   async handleRevenueCatWebhook(
     @Req() req: Request,
     @Res() res: Response,

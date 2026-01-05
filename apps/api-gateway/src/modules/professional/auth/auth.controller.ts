@@ -8,6 +8,7 @@ import { ResponseHandlerService } from '@app/shared/services';
 import { AppRequest, CurrentUser } from '@app/shared/types/app-request';
 import {
   ACCESS_TOKEN_COOKIE,
+  CSRF_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
   getCookieValue,
 } from '@app/shared/utils/cookies';
@@ -16,6 +17,7 @@ import { Body, Controller, Post, Req, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { MailValidationService } from 'apps/api-gateway/src/shared/services';
+import { randomBytes } from 'crypto';
 import { CookieOptions, Request, Response } from 'express';
 import { CreateAccountDto } from './dto/requests/create-account';
 import { FirstAccessDto } from './dto/requests/firts-access.dto';
@@ -320,6 +322,13 @@ export class AuthController {
     };
   }
 
+  private getCsrfCookieOptions(): CookieOptions {
+    return {
+      ...this.getCookieOptions(),
+      httpOnly: false,
+    };
+  }
+
   private setAuthCookies(
     res: Response,
     accessToken?: string,
@@ -332,11 +341,18 @@ export class AuthController {
     if (refreshToken) {
       res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, options);
     }
+    this.setCsrfCookie(res);
   }
 
   private clearAuthCookies(res: Response): void {
     const options = this.getCookieOptions();
     res.clearCookie(ACCESS_TOKEN_COOKIE, options);
     res.clearCookie(REFRESH_TOKEN_COOKIE, options);
+    res.clearCookie(CSRF_TOKEN_COOKIE, this.getCsrfCookieOptions());
+  }
+
+  private setCsrfCookie(res: Response): void {
+    const token = randomBytes(32).toString('hex');
+    res.cookie(CSRF_TOKEN_COOKIE, token, this.getCsrfCookieOptions());
   }
 }

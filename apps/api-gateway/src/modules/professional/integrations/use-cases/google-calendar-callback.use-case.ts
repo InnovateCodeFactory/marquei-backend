@@ -1,6 +1,9 @@
 import { PrismaService } from '@app/shared';
 import { GoogleCalendarService } from '@app/shared/modules/google-calendar/google-calendar.service';
+import { RedisService } from '@app/shared/modules/redis/redis.service';
+import { EnvSchemaType } from '@app/shared/environment';
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 type GoogleCallbackState = {
   userId: string | null;
@@ -11,10 +14,13 @@ type GoogleCallbackState = {
 @Injectable()
 export class GoogleCalendarCallbackUseCase {
   private readonly logger = new Logger(GoogleCalendarCallbackUseCase.name);
+  private readonly statePrefix = 'oauth:google:state:';
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly googleCalendarService: GoogleCalendarService,
+    private readonly redis: RedisService,
+    private readonly config: ConfigService<EnvSchemaType>,
   ) {}
 
   async execute(params: {
@@ -30,10 +36,16 @@ export class GoogleCalendarCallbackUseCase {
 
     let payload: GoogleCallbackState | null = null;
     try {
-      const json = Buffer.from(state, 'base64url').toString('utf-8');
-      payload = JSON.parse(json) as GoogleCallbackState;
+      const key = `${this.statePrefix}${state}`;
+      const stored = await this.redis.get({ key });
+      if (!stored) {
+        this.logger.warn('State do Google nao encontrado ou expirado');
+        return { ok: false };
+      }
+      await this.redis.del({ key });
+      payload = JSON.parse(stored) as GoogleCallbackState;
     } catch (error) {
-      this.logger.error('Falha ao decodificar state do Google', error as any);
+      this.logger.error('Falha ao validar state do Google', error as any);
       return { ok: false };
     }
 
@@ -82,6 +94,31 @@ export class GoogleCalendarCallbackUseCase {
       `Google Calendar integrado com sucesso para userId=${userId}`,
     );
 
-    return { ok: true, returnTo: payload.returnTo ?? null };
+    const safeReturnTo = this.normalizeReturnTo(payload.returnTo);
+    return { ok: true, returnTo: safeReturnTo ?? null };
+  }
+
+  private normalizeReturnTo(value?: string | null): string | null {
+    if (!value) return null;
+    let url: URL;
+    try {
+      url = new URL(value);
+    } catch {
+      return null;
+    }
+    if (url.protocol !== 'https:') return null;
+    const allowedOrigins = this.getAllowedOrigins();
+    if (!allowedOrigins.size) return null;
+    if (!allowedOrigins.has(url.origin)) return null;
+    return url.toString();
+  }
+
+  private getAllowedOrigins(): Set<string> {
+    const raw = this.config.get('WEB_APP_ORIGINS') || '';
+    const origins = raw
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+    return new Set(origins);
   }
 }

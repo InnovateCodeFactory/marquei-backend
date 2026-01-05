@@ -26,6 +26,8 @@ export type EnvSchemaType = {
   STRIPE_PUBLISHABLE_KEY: string;
   STRIPE_WEBHOOK_SECRET: string;
 
+  REVENUE_CAT_BEARER_TOKEN: string;
+
   R2_ACCESS_KEY_ID: string;
   R2_SECRET_ACCESS_KEY: string;
   R2_BUCKET: string;
@@ -61,10 +63,9 @@ export type EnvSchemaType = {
   GOOGLE_CLIENT_SECRET: string;
   GOOGLE_CALENDAR_REDIRECT_URI: string;
 
-  WEB_APP_ORIGINS?: string;
-  WEB_COOKIE_DOMAIN?: string;
-  WEB_COOKIE_SAMESITE?: string;
-  WEB_COOKIE_SECURE?: string;
+  WEB_APP_ORIGINS: string;
+  WEB_COOKIE_DOMAIN: string;
+  WEB_COOKIE_SAMESITE: string;
 };
 
 export const envValidationSchema = Joi.object<EnvSchemaType>({
@@ -98,6 +99,8 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
   STRIPE_SECRET_KEY: Joi.string().required(),
   STRIPE_PUBLISHABLE_KEY: Joi.string().required(),
   STRIPE_WEBHOOK_SECRET: Joi.string().required(),
+
+  REVENUE_CAT_BEARER_TOKEN: Joi.string().required(),
 
   R2_ACCESS_KEY_ID: Joi.string().required(),
   R2_SECRET_ACCESS_KEY: Joi.string().required(),
@@ -141,10 +144,9 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
   GOOGLE_CLIENT_SECRET: Joi.string().required(),
   GOOGLE_CALENDAR_REDIRECT_URI: Joi.string().uri().required(),
 
-  WEB_APP_ORIGINS: Joi.string().allow('').default(''),
-  WEB_COOKIE_DOMAIN: Joi.string().allow('').default(''),
+  WEB_APP_ORIGINS: Joi.string(),
+  WEB_COOKIE_DOMAIN: Joi.string().allow(''),
   WEB_COOKIE_SAMESITE: Joi.string()
     .valid('lax', 'strict', 'none')
     .default('lax'),
-  WEB_COOKIE_SECURE: Joi.string().valid('true', 'false').default('false'),
 });

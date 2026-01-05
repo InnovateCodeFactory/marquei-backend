@@ -2,6 +2,7 @@ import { Request } from 'express';
 
 export const ACCESS_TOKEN_COOKIE = 'marquei_access_token';
 export const REFRESH_TOKEN_COOKIE = 'marquei_refresh_token';
+export const CSRF_TOKEN_COOKIE = 'marquei_csrf_token';
 
 export type CookieMap = Record<string, string>;
 

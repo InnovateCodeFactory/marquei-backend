@@ -5,7 +5,9 @@ import { EnvSchemaType } from '../environment';
 
 @Injectable()
 export class EncryptionService {
-  private readonly algorithm = 'aes-256-cbc';
+  private readonly algorithm = 'aes-256-gcm';
+  private readonly legacyAlgorithm = 'aes-256-cbc';
+  private readonly payloadPrefix = 'v2:';
   private readonly key: Buffer;
 
   constructor(private readonly configService: ConfigService<EnvSchemaType>) {
@@ -16,15 +18,16 @@ export class EncryptionService {
   }
 
   encrypt(text: string): { iv: string; encryptedData: string } {
-    const iv = randomBytes(16);
+    const iv = randomBytes(12);
     const cipher = createCipheriv(this.algorithm, this.key, iv);
 
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
+    const tag = cipher.getAuthTag().toString('hex');
 
     return {
       iv: iv.toString('hex'),
-      encryptedData: encrypted,
+      encryptedData: `${this.payloadPrefix}${encrypted}:${tag}`,
     };
   }
 
@@ -35,15 +38,33 @@ export class EncryptionService {
     encryptedText: string;
     iv: string;
   }): string {
-    const decipher = createDecipheriv(
-      this.algorithm,
+    if (encryptedText?.startsWith(this.payloadPrefix)) {
+      const payload = encryptedText.slice(this.payloadPrefix.length);
+      const [ciphertext, tag] = payload.split(':');
+      if (!ciphertext || !tag) {
+        throw new Error('Encrypted payload inválido');
+      }
+
+      const decipher = createDecipheriv(
+        this.algorithm,
+        this.key,
+        Buffer.from(iv, 'hex'),
+      );
+      decipher.setAuthTag(Buffer.from(tag, 'hex'));
+
+      let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      return decrypted;
+    }
+
+    const legacyDecipher = createDecipheriv(
+      this.legacyAlgorithm,
       this.key,
       Buffer.from(iv, 'hex'),
     );
 
-    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-
+    let decrypted = legacyDecipher.update(encryptedText, 'hex', 'utf8');
+    decrypted += legacyDecipher.final('utf8');
     return decrypted;
   }
 }

@@ -8,6 +8,7 @@ import { swagger } from './swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.set('trust proxy', 'loopback');
   app.setGlobalPrefix('api');
   const allowedOrigins = (process.env.WEB_APP_ORIGINS || '')
     .split(',')
@@ -37,9 +38,10 @@ async function bootstrap() {
   );
 
   const configService = app.get(ConfigService<EnvSchemaType>);
+  const isProd = configService.get('NODE_ENV') === 'production';
   const logger = new Logger('Main');
 
-  swagger(app);
+  !isProd && swagger(app);
 
   try {
     const PORT = configService.getOrThrow('PORT');
