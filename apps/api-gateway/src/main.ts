@@ -9,9 +9,12 @@ import { swagger } from './swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const configService = app.get(ConfigService<EnvSchemaType>);
   app.set('trust proxy', 'loopback');
   app.setGlobalPrefix('api');
-  const allowedOriginEntries = (process.env.WEB_APP_ORIGINS || '')
+  const allowedOriginEntries = (
+    configService.get<string>('WEB_APP_ORIGINS') || ''
+  )
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
@@ -61,7 +64,6 @@ async function bootstrap() {
     express.raw({ type: 'application/json' }), // necessário para verificar a assinatura
   );
 
-  const configService = app.get(ConfigService<EnvSchemaType>);
   const isProd = configService.get('NODE_ENV') === 'production';
   const logger = new Logger('Main');
 
