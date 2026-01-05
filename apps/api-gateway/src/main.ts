@@ -11,16 +11,39 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.set('trust proxy', 'loopback');
   app.setGlobalPrefix('api');
-  const allowedOrigins = (process.env.WEB_APP_ORIGINS || '')
+  const allowedOriginEntries = (process.env.WEB_APP_ORIGINS || '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
+  const allowedOrigins = new Set<string>();
+  const allowedHosts = new Set<string>();
+
+  for (const entry of allowedOriginEntries) {
+    try {
+      const parsed = new URL(entry);
+      allowedOrigins.add(parsed.origin);
+      allowedHosts.add(parsed.host);
+      continue;
+    } catch {}
+
+    try {
+      const parsed = new URL(`https://${entry}`);
+      allowedOrigins.add(parsed.origin);
+      allowedHosts.add(parsed.host);
+    } catch {
+      allowedOrigins.add(entry);
+    }
+  }
 
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.length === 0) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (allowedOrigins.size === 0) return callback(null, true);
+      if (allowedOrigins.has(origin)) return callback(null, true);
+      try {
+        const originHost = new URL(origin).host;
+        if (allowedHosts.has(originHost)) return callback(null, true);
+      } catch {}
       return callback(new Error('Origin not allowed by CORS'), false);
     },
     credentials: true,
