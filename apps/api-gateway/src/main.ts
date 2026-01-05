@@ -2,12 +2,13 @@ import { EnvSchemaType } from '@app/shared/environment';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import * as express from 'express';
 import { AppModule } from './app.module';
 import { swagger } from './swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.set('trust proxy', 'loopback');
   app.setGlobalPrefix('api');
   const allowedOrigins = (process.env.WEB_APP_ORIGINS || '')
