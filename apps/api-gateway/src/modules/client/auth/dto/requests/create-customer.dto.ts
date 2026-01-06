@@ -1,16 +1,22 @@
 import { removeSpecialCharacters, removeWhitespaces } from '@app/shared/utils';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class CreateUserCustomerDto {
   @IsString()
-  @IsNotEmpty()
-  @ApiProperty({
+  @IsOptional()
+  @ApiPropertyOptional({
     description: 'Device token for the customer',
     example: 'device_token_example',
   })
-  device_token: string;
+  device_token?: string;
 
   @IsEmail()
   @IsNotEmpty()

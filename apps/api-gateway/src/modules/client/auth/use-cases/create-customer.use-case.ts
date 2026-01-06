@@ -89,24 +89,27 @@ export class CreateCustomerUseCase {
       });
 
       // 4) Vincula Guest pelo device_token (se existir)
-      const guest = await tx.guest.findUnique({
-        where: { device_token: dto.device_token },
-        select: { id: true, userId: true },
-      });
+      const deviceToken = dto.device_token?.trim();
+      if (deviceToken) {
+        const guest = await tx.guest.findUnique({
+          where: { device_token: deviceToken },
+          select: { id: true, userId: true },
+        });
 
-      if (guest) {
-        // se já estava vinculado a outro user, você decide se bloqueia ou substitui:
-        if (guest.userId && guest.userId !== user.id) {
-          // Ex.: trocar vínculo para o novo usuário
-          await tx.guest.update({
-            where: { device_token: dto.device_token },
-            data: { user: { connect: { id: user.id } } },
-          });
-        } else if (!guest.userId) {
-          await tx.guest.update({
-            where: { device_token: dto.device_token },
-            data: { user: { connect: { id: user.id } } },
-          });
+        if (guest) {
+          // se já estava vinculado a outro user, você decide se bloqueia ou substitui:
+          if (guest.userId && guest.userId !== user.id) {
+            // Ex.: trocar vínculo para o novo usuário
+            await tx.guest.update({
+              where: { device_token: deviceToken },
+              data: { user: { connect: { id: user.id } } },
+            });
+          } else if (!guest.userId) {
+            await tx.guest.update({
+              where: { device_token: deviceToken },
+              data: { user: { connect: { id: user.id } } },
+            });
+          }
         }
       }
 
