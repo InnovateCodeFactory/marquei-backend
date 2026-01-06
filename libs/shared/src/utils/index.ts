@@ -6,7 +6,11 @@ import { ptBR } from 'date-fns/locale';
 import { Request } from 'express';
 import { AppRequest } from '../types/app-request';
 
-export function getClientIp(req: Request | AppRequest): string | undefined {
+export function getClientIp(
+  req?: Request | AppRequest | null,
+): string | undefined {
+  if (!req?.headers) return undefined;
+
   const cfIp = req.headers['cf-connecting-ip'];
   const xRealIp = req.headers['x-real-ip'];
   const xClientIp = req.headers['x-client-ip'];

@@ -3,7 +3,7 @@ import { AuthGuard } from '@app/shared/guards/auth.guard';
 import { getClientIp } from '@app/shared/utils';
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ClientModule } from './modules/client/client.module';
 import { PlansModule } from './modules/professional/plans/plans.module';
 import { ProfessionalModule } from './modules/professional/professional.module';
@@ -12,6 +12,7 @@ import { SeedModule } from './seed/seed.module';
 import { CsrfGuard } from './shared/guards/csrf.guard';
 import { LoggingInterceptor } from './shared/interceptors/loggin.interceptor';
 import { SharedModule } from './shared/shared.module';
+import { SafeThrottlerGuard } from './shared/guards/throttler.guard';
 @Module({
   imports: [
     LibsSharedModule,
@@ -30,7 +31,7 @@ import { SharedModule } from './shared/shared.module';
     SeedModule,
   ],
   providers: [
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: SafeThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: CsrfGuard },
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
