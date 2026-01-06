@@ -13,11 +13,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { RevenueCatWebhookGuard } from './revenuecat-webhook.guard';
 
 @Controller('webhooks')
 @IsPublic()
+@SkipThrottle()
 @ApiExcludeController()
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
