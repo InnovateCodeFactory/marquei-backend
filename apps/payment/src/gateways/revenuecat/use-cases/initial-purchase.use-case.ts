@@ -1,21 +1,36 @@
 import { PrismaService } from '@app/shared';
+import { SendWhatsAppTextMessageDto } from '@app/shared/dto/messaging/whatsapp-notifications';
+import { BuildInitialPurchaseMessage } from '@app/shared/messsage-builders';
+import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
+import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { RevenueCatEvent } from '../types';
 
 @Injectable()
 export class RevenueCatInitialPurchaseUseCase {
-  private readonly logger = new Logger(
-    RevenueCatInitialPurchaseUseCase.name,
-  );
+  private readonly logger = new Logger(RevenueCatInitialPurchaseUseCase.name);
 
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly rmqService: RmqService,
+  ) {}
 
   async execute(event: RevenueCatEvent) {
     const slug = event.app_user_id;
 
     const business = await this.prismaService.business.findUnique({
       where: { slug },
-      select: { id: true },
+      select: {
+        id: true,
+        name: true,
+        ownerId: true,
+        owner: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
     if (!business) {
@@ -36,8 +51,8 @@ export class RevenueCatInitialPurchaseUseCase {
       return;
     }
 
-    const existingSub =
-      await this.prismaService.businessSubscription.findFirst({
+    const existingSub = await this.prismaService.businessSubscription.findFirst(
+      {
         where: {
           businessId: business.id,
           status: {
@@ -51,7 +66,8 @@ export class RevenueCatInitialPurchaseUseCase {
             ],
           },
         },
-      });
+      },
+    );
 
     const periodStart = event.purchased_at_ms
       ? new Date(event.purchased_at_ms)
@@ -104,6 +120,7 @@ export class RevenueCatInitialPurchaseUseCase {
       this.logger.debug(
         `Created new subscription for business "${slug}" with plan "${plan.plan_id}" from INITIAL_PURCHASE`,
       );
+      await this.sendInitialPurchaseWhatsapp(business);
       return;
     }
 
@@ -136,5 +153,50 @@ export class RevenueCatInitialPurchaseUseCase {
     this.logger.debug(
       `Updated existing subscription for business "${slug}" with plan "${plan.plan_id}" from INITIAL_PURCHASE`,
     );
+
+    await this.sendInitialPurchaseWhatsapp(business);
+  }
+
+  private async sendInitialPurchaseWhatsapp(business: {
+    id: string;
+    name: string;
+    ownerId: string;
+    owner: { id: string; name: string };
+  }) {
+    try {
+      const ownerProfile =
+        await this.prismaService.professionalProfile.findFirst({
+          where: {
+            business_id: business.id,
+            userId: business.ownerId,
+          },
+          select: { phone: true },
+        });
+
+      const phone = ownerProfile?.phone;
+      if (!phone) {
+        this.logger.warn(
+          `Owner phone not found for business "${business.id}" on INITIAL_PURCHASE`,
+        );
+        return;
+      }
+
+      await this.rmqService.publishToQueue({
+        routingKey:
+          MESSAGING_QUEUES.WHATSAPP_NOTIFICATIONS.SEND_TEXT_MESSAGE_QUEUE,
+        payload: new SendWhatsAppTextMessageDto({
+          phone_number: phone,
+          message: BuildInitialPurchaseMessage.forWhatsapp({
+            name: business.owner.name,
+            business_name: business.name,
+          }),
+        }),
+      });
+    } catch (error) {
+      this.logger.error(
+        'Error sending INITIAL_PURCHASE whatsapp message',
+        error?.message || error,
+      );
+    }
   }
 }
