@@ -25,8 +25,13 @@ export class RevenueCatHandleProductChangeUseCase {
       return;
     }
 
-    const previousPlan = await this.prismaService.plan.findUnique({
-      where: { plan_id: event.product_id },
+    const previousPlan = await this.prismaService.plan.findFirst({
+      where: {
+        OR: [
+          { plan_id: event.product_id },
+          { plan_id_play_store: event.product_id },
+        ],
+      },
     });
 
     const newProductId = event.new_product_id;
@@ -37,8 +42,13 @@ export class RevenueCatHandleProductChangeUseCase {
       return;
     }
 
-    const newPlan = await this.prismaService.plan.findUnique({
-      where: { plan_id: newProductId },
+    const newPlan = await this.prismaService.plan.findFirst({
+      where: {
+        OR: [
+          { plan_id: newProductId },
+          { plan_id_play_store: newProductId },
+        ],
+      },
     });
 
     if (!newPlan) {

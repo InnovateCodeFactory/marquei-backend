@@ -40,8 +40,13 @@ export class RevenueCatInitialPurchaseUseCase {
       return;
     }
 
-    const plan = await this.prismaService.plan.findUnique({
-      where: { plan_id: event.product_id },
+    const plan = await this.prismaService.plan.findFirst({
+      where: {
+        OR: [
+          { plan_id: event.product_id },
+          { plan_id_play_store: event.product_id },
+        ],
+      },
     });
 
     if (!plan) {
