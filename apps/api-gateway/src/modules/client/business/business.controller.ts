@@ -1,4 +1,5 @@
 import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
+import { OptionalAuthGuard } from '@app/shared/guards/optional-auth.guard';
 import { ResponseHandlerService } from '@app/shared/services';
 import {
   Body,
@@ -8,6 +9,7 @@ import {
   Query,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
@@ -82,6 +84,7 @@ export class BusinessController {
 
   @Post('sections')
   @IsPublic()
+  @UseGuards(OptionalAuthGuard)
   @ApiOperation({ summary: 'Get dynamic home business sections' })
   async getHomeSections(
     @Body() body: GetHomeSectionsDto,
@@ -96,6 +99,7 @@ export class BusinessController {
 
   @Post('section-items')
   @IsPublic()
+  @UseGuards(OptionalAuthGuard)
   @ApiOperation({ summary: 'Get items for a specific section' })
   async getSectionItems(
     @Body() body: GetSectionItemsDto,
