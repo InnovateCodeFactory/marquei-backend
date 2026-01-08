@@ -1,8 +1,11 @@
 import { PrismaService } from '@app/shared';
+import { EnvSchemaType } from '@app/shared/environment';
 import { FileSystemService } from '@app/shared/services';
 import { buildAddress } from '@app/shared/utils';
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { FindNearbyBusinessesDto } from '../dto/requests/find-nearby-businesses.dto';
+import { canViewTestBusinesses } from '../utils/test-business-visibility';
 
 type RawRow = {
   id: string;
@@ -37,9 +40,12 @@ export class FindNearbyBusinessesUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly fs: FileSystemService,
+    private readonly config: ConfigService<EnvSchemaType>,
   ) {}
 
-  async execute(payload: FindNearbyBusinessesDto) {
+  async execute(
+    payload: FindNearbyBusinessesDto & { user_id?: string | null },
+  ) {
     const {
       latitude,
       longitude,
@@ -52,6 +58,10 @@ export class FindNearbyBusinessesUseCase {
     const offset = (page - 1) * limit;
     const categoryId = payload.category_id ?? null;
     const preferredContent = preferred_content ?? null;
+    const includeTestBusinesses = canViewTestBusinesses(
+      this.config,
+      payload.user_id,
+    );
 
     // Uma única query: retorna linhas + total (COUNT OVER)
     const rows = await this.prisma.$queryRaw<RawRow[]>`
@@ -67,7 +77,9 @@ export class FindNearbyBusinessesUseCase {
           ST_SetSRID(ST_MakePoint(b."longitude", b."latitude"), 4326)::geography
         ) AS geo
       FROM "Business" b
-      WHERE b."is_active" = true
+      WHERE
+        b."is_active" = true
+        AND (b."is_test" = false OR ${includeTestBusinesses}::boolean = true)
     )
   SELECT
     b."id",

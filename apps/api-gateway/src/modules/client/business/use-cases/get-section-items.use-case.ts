@@ -20,6 +20,7 @@ export class GetSectionItemsUseCase {
   async execute(payload: GetSectionItemsDto, req: AppRequest) {
     const page = payload.page ?? 1;
     const limit = payload.limit ?? 20;
+    const userId = req.user?.id;
     const hasCoords =
       typeof payload.latitude === 'number' &&
       typeof payload.longitude === 'number';
@@ -38,6 +39,7 @@ export class GetSectionItemsUseCase {
         longitude: payload.longitude,
         limit,
         page,
+        user_id: userId,
         ...(payload.radius && { radius: payload.radius }),
         ...(payload.preferred_content && {
           preferred_content: payload.preferred_content,
@@ -53,6 +55,7 @@ export class GetSectionItemsUseCase {
         limit,
         page,
         radius: payload.radius ?? 20_000,
+        user_id: userId,
         ...(payload.preferred_content && {
           preferred_content: payload.preferred_content,
         }),
@@ -67,6 +70,7 @@ export class GetSectionItemsUseCase {
         uf: stateUf,
         limit,
         page,
+        user_id: userId,
         ...(payload.preferred_content && {
           preferred_content: payload.preferred_content,
         }),

@@ -66,6 +66,7 @@ export type EnvSchemaType = {
   WEB_APP_ORIGINS: string;
   WEB_COOKIE_DOMAIN: string;
   WEB_COOKIE_SAMESITE: string;
+  TEST_BUSINESS_USER_WHITELIST: string;
 };
 
 export const envValidationSchema = Joi.object<EnvSchemaType>({
@@ -149,4 +150,5 @@ export const envValidationSchema = Joi.object<EnvSchemaType>({
   WEB_COOKIE_SAMESITE: Joi.string()
     .valid('lax', 'strict', 'none')
     .default('lax'),
+  TEST_BUSINESS_USER_WHITELIST: Joi.string().allow('').default(''),
 });
