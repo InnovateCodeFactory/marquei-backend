@@ -1,7 +1,10 @@
 import { PrismaService } from '@app/shared';
+import { EnvSchemaType } from '@app/shared/environment';
 import { FileSystemService } from '@app/shared/services';
 import { buildAddress } from '@app/shared/utils';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { canViewTestBusinesses } from '../utils/test-business-visibility';
 
 type RawRow = {
   id: string;
@@ -32,6 +35,7 @@ export class FindBusinessesByStateUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly fs: FileSystemService,
+    private readonly config: ConfigService<EnvSchemaType>,
   ) {}
 
   async execute(payload: {
@@ -40,6 +44,7 @@ export class FindBusinessesByStateUseCase {
     limit?: number;
     category_id?: string | null;
     preferred_content?: string | null;
+    user_id?: string | null;
   }) {
     const page = payload.page ?? 1;
     const limit = payload.limit ?? 5;
@@ -47,6 +52,10 @@ export class FindBusinessesByStateUseCase {
     const categoryId = payload.category_id ?? null;
     const preferredContent = payload.preferred_content ?? null;
     const uf = payload.uf?.trim().toUpperCase();
+    const includeTestBusinesses = canViewTestBusinesses(
+      this.config,
+      payload.user_id,
+    );
 
     if (!uf) {
       return {
@@ -64,7 +73,9 @@ export class FindBusinessesByStateUseCase {
     biz AS (
       SELECT b.*
       FROM "Business" b
-      WHERE b."is_active" = true
+      WHERE
+        b."is_active" = true
+        AND (b."is_test" = false OR ${includeTestBusinesses}::boolean = true)
     ),
     filtered AS (
       SELECT

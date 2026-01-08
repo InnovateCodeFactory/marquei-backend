@@ -92,6 +92,7 @@ model Business {
   public_type              BusinessPublicType        @default(BOTH)
   business_category_custom String? // categoria customizada, se aplicável
   is_active                Boolean                   @default(true)
+  is_test                  Boolean                   @default(false)
   is_verified              Boolean                   @default(false)
   is_featured              Boolean                   @default(false)
   rating                   Float                     @default(0.0)
@@ -136,6 +137,8 @@ model Business {
   @@index([ownerId], name: "idx_business_owner")
   @@index([businessCategoryId], name: "idx_business_category")
   @@index([businessServiceTypeId], name: "idx_business_service_type")
+  @@index([is_test], name: "idx_business_is_test")
+  @@index([is_active], name: "idx_business_is_active")
 }
 
 model BusinessReminderSettings {

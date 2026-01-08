@@ -1,8 +1,11 @@
 import { PrismaService } from '@app/shared';
+import { EnvSchemaType } from '@app/shared/environment';
 import { FileSystemService } from '@app/shared/services';
 import { buildAddress } from '@app/shared/utils';
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { FindRecommendedBusinessesDto } from '../dto/requests/find-recommended-businesses.dto';
+import { canViewTestBusinesses } from '../utils/test-business-visibility';
 
 type RawRow = {
   id: string;
@@ -39,9 +42,12 @@ export class FindRecommendedBusinessesUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly fs: FileSystemService,
+    private readonly config: ConfigService<EnvSchemaType>,
   ) {}
 
-  async execute(payload: FindRecommendedBusinessesDto) {
+  async execute(
+    payload: FindRecommendedBusinessesDto & { user_id?: string | null },
+  ) {
     const {
       latitude,
       longitude,
@@ -56,6 +62,10 @@ export class FindRecommendedBusinessesUseCase {
     const radius = payload.radius ?? null;
     const hasCoords =
       typeof latitude === 'number' && typeof longitude === 'number';
+    const includeTestBusinesses = canViewTestBusinesses(
+      this.config,
+      payload.user_id,
+    );
 
     const rows = hasCoords
       ? await this.prisma.$queryRaw<RawRow[]>`
@@ -71,7 +81,9 @@ export class FindRecommendedBusinessesUseCase {
           ST_SetSRID(ST_MakePoint(b."longitude", b."latitude"), 4326)::geography
         ) AS geo
       FROM "Business" b
-      WHERE b."is_active" = true
+      WHERE
+        b."is_active" = true
+        AND (b."is_test" = false OR ${includeTestBusinesses}::boolean = true)
     ),
     filtered AS (
       SELECT
@@ -163,7 +175,9 @@ export class FindRecommendedBusinessesUseCase {
     biz AS (
       SELECT b.*
       FROM "Business" b
-      WHERE b."is_active" = true
+      WHERE
+        b."is_active" = true
+        AND (b."is_test" = false OR ${includeTestBusinesses}::boolean = true)
     ),
     filtered AS (
       SELECT

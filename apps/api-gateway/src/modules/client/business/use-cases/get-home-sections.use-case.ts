@@ -26,6 +26,7 @@ export class GetHomeSectionsUseCase {
 
   async execute(payload: GetHomeSectionsDto, req: AppRequest) {
     const limit = payload.limit ?? 5;
+    const userId = req.user?.id;
     const hasCoords =
       typeof payload.latitude === 'number' &&
       typeof payload.longitude === 'number';
@@ -40,6 +41,7 @@ export class GetHomeSectionsUseCase {
       longitude: payload.longitude,
       limit,
       page: 1,
+      user_id: userId,
       ...(payload.radius && { radius: payload.radius }),
       ...(payload.preferred_content && {
         preferred_content: payload.preferred_content,
@@ -53,6 +55,7 @@ export class GetHomeSectionsUseCase {
           limit,
           page: 1,
           radius: nearbyRadius,
+          user_id: userId,
           ...(payload.preferred_content && {
             preferred_content: payload.preferred_content,
           }),
@@ -64,6 +67,7 @@ export class GetHomeSectionsUseCase {
           uf: stateInfo.uf,
           limit,
           page: 1,
+          user_id: userId,
           ...(payload.preferred_content && {
             preferred_content: payload.preferred_content,
           }),
