@@ -46,7 +46,7 @@ export class CustomerAppointmentsController {
   }
 
   @Get('next-appointment')
-  @ApiOperation({ summary: 'Get the next appointment for the customer' })
+  @ApiOperation({ summary: 'Get upcoming appointments for the customer' })
   async getNextAppointment(@Res() res: Response, @Req() req: AppRequest) {
     return await this.responseHandler.handle({
       method: () => this.getNextAppointmentUseCase.execute(req),
