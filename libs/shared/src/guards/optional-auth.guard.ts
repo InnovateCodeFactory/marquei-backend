@@ -1,0 +1,101 @@
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { Request } from 'express';
+import { RedisService } from '../modules/redis/redis.service';
+import { ACCESS_TOKEN_COOKIE, getCookieValue } from '../utils/cookies';
+
+type UserType = 'PROFESSIONAL' | 'CUSTOMER';
+
+interface JwtPayload {
+  id: string;
+  user_type: UserType;
+}
+
+@Injectable()
+export class OptionalAuthGuard implements CanActivate {
+  constructor(
+    private readonly redisService: RedisService,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (context.getType() !== 'http') return true;
+
+    const request = context.switchToHttp().getRequest<Request>();
+    const token =
+      this.extractTokenFromHeader(request) ||
+      this.extractTokenFromCookies(request);
+    if (!token) return true;
+
+    let payload: JwtPayload;
+    try {
+      payload = await this.jwtService.verifyAsync<JwtPayload>(token);
+    } catch {
+      return true;
+    }
+
+    if (!payload?.id || !payload?.user_type) return true;
+
+    const { id: userId, user_type } = payload;
+
+    if (user_type === 'PROFESSIONAL') {
+      const user =
+        await this.redisService.getCurrentUserProfessionalFromRequest({
+          userId,
+        });
+      if (!user) return true;
+
+      const currentBusiness = user.CurrentSelectedBusiness?.[0]?.business;
+
+      (request as any).user = {
+        id: user.id,
+        user_type: user.user_type,
+        push_token: user?.push_token || null,
+        current_selected_business_slug: currentBusiness?.slug || null,
+        current_selected_business_id: currentBusiness?.id || null,
+        current_business_subscription_status:
+          currentBusiness?.BusinessSubscription?.[0]?.status || null,
+        current_business_subscription_plan_name:
+          currentBusiness?.BusinessSubscription?.[0]?.plan?.name || null,
+        current_business_subscription_plan_billing_period:
+          currentBusiness?.BusinessSubscription?.[0]?.plan?.billing_period ||
+          null,
+        current_business_subscription_current_period_end:
+          currentBusiness?.BusinessSubscription?.[0]?.current_period_end ||
+          null,
+        professional_profile_id:
+          currentBusiness?.professionals?.[0]?.id || null,
+      };
+
+      return true;
+    }
+
+    if (user_type === 'CUSTOMER') {
+      const user = await this.redisService.getCurrentUserCustomerFromRequest({
+        userId,
+      });
+      if (!user) return true;
+
+      (request as any).user = {
+        id: user.id,
+        user_type: user.user_type,
+        push_token: user?.push_token || null,
+        personId: user?.personId || null,
+      };
+
+      return true;
+    }
+
+    return true;
+  }
+
+  private extractTokenFromHeader(request: Request): string | undefined {
+    const [type, token] = request.headers.authorization?.split(' ') || [];
+    if (type?.toLowerCase() === 'bearer' && token) return token;
+    return undefined;
+  }
+
+  private extractTokenFromCookies(request: Request): string | undefined {
+    return getCookieValue(request, ACCESS_TOKEN_COOKIE);
+  }
+}

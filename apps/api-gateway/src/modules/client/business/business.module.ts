@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
+import { OptionalAuthGuard } from '@app/shared/guards/optional-auth.guard';
 import { BusinessController } from './business.controller';
 import {
   FilterBusinessesUseCase,
@@ -20,6 +21,7 @@ import {
   controllers: [BusinessController],
   imports: [HttpModule],
   providers: [
+    OptionalAuthGuard,
     FindNearbyBusinessesUseCase,
     FindRecommendedBusinessesUseCase,
     FindBusinessesByStateUseCase,
