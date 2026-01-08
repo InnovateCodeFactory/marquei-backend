@@ -14,7 +14,7 @@ export class GetNextAppointmentUseCase {
   async execute({ user }: AppRequest) {
     const nowUtc = new Date();
 
-    const nextAppointment = await this.prismaService.appointment.findFirst({
+    const nextAppointments = await this.prismaService.appointment.findMany({
       where: {
         customerPerson: { user: { id: user.id } },
         status: { in: ['PENDING', 'CONFIRMED'] },
@@ -31,7 +31,7 @@ export class GetNextAppointmentUseCase {
         professional: {
           select: {
             id: true,
-            business: { select: { slug: true } },
+            business: { select: { slug: true, name: true } },
             User: { select: { name: true } },
           },
         },
@@ -46,42 +46,45 @@ export class GetNextAppointmentUseCase {
       },
     });
 
-    if (!nextAppointment) return null;
+    if (!nextAppointments.length) return [];
 
-    const zoneId = nextAppointment.timezone || 'America/Sao_Paulo';
-    const IN_TZ = tz(zoneId);
+    return nextAppointments.map((nextAppointment) => {
+      const zoneId = nextAppointment.timezone || 'America/Sao_Paulo';
+      const IN_TZ = tz(zoneId);
 
-    const durationMin =
-      nextAppointment.duration_minutes ?? nextAppointment.service.duration;
+      const durationMin =
+        nextAppointment.duration_minutes ?? nextAppointment.service.duration;
 
-    return {
-      id: nextAppointment.id,
-      business_slug: nextAppointment.professional.business.slug,
-      professional: {
-        id: nextAppointment.professional.id,
-        name: getTwoNames(nextAppointment.professional.User.name),
-      },
-      service: {
-        id: nextAppointment.service.id,
-        name: nextAppointment.service.name,
-        duration: formatDuration(durationMin),
-        price: new Price(nextAppointment.service.price_in_cents).toCurrency(),
-      },
-      date: {
-        day: format(nextAppointment.start_at_utc, 'dd', {
-          locale: ptBR,
-          in: IN_TZ,
-        }),
-        month: format(nextAppointment.start_at_utc, 'MMM', {
-          locale: ptBR,
-          in: IN_TZ,
-        }),
-        hour: format(nextAppointment.start_at_utc, 'HH:mm', {
-          locale: ptBR,
-          in: IN_TZ,
-        }),
-      },
-      status: nextAppointment.status,
-    };
+      return {
+        id: nextAppointment.id,
+        business_slug: nextAppointment.professional.business.slug,
+        business_name: nextAppointment.professional.business.name,
+        professional: {
+          id: nextAppointment.professional.id,
+          name: getTwoNames(nextAppointment.professional.User.name),
+        },
+        service: {
+          id: nextAppointment.service.id,
+          name: nextAppointment.service.name,
+          duration: formatDuration(durationMin),
+          price: new Price(nextAppointment.service.price_in_cents).toCurrency(),
+        },
+        date: {
+          day: format(nextAppointment.start_at_utc, 'dd', {
+            locale: ptBR,
+            in: IN_TZ,
+          }),
+          month: format(nextAppointment.start_at_utc, 'MMM', {
+            locale: ptBR,
+            in: IN_TZ,
+          }),
+          hour: format(nextAppointment.start_at_utc, 'HH:mm', {
+            locale: ptBR,
+            in: IN_TZ,
+          }),
+        },
+        status: nextAppointment.status,
+      };
+    });
   }
 }
