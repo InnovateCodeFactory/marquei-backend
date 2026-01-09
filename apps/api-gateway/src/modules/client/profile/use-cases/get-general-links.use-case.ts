@@ -11,6 +11,7 @@ export class GetGeneralLinksUseCase {
     const terms = systemGeneralSettings.terms_of_service_url;
 
     return {
+      contact_email: systemGeneralSettings.contact_email,
       instagram_url: systemGeneralSettings.instagram_url,
       linkedin_url: systemGeneralSettings.linkedin_url,
       whatsapp_number: systemGeneralSettings.whatsapp_number,
