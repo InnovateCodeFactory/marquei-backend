@@ -6,3 +6,5 @@ export * from './edit-business.use-case';
 export * from './upload-business-images.use-case';
 export * from './get-business-details.use-case';
 export * from './geocode-address.use-case';
+export * from './get-amenities.use-case';
+export * from './update-business-amenities.use-case';

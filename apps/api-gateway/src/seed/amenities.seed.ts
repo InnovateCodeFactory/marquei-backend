@@ -101,19 +101,19 @@ export class AmenitiesSeed implements OnModuleInit {
     {
       title: 'Pagamento em Dinheiro',
       type: 'cash_payment',
-      icon: 'money',
+      icon: 'cash',
       lib: 'MaterialCommunityIcons',
     },
     {
       title: 'Atendimento Masculino',
       type: 'male_service',
-      icon: 'male',
+      icon: 'gender-male',
       lib: 'MaterialCommunityIcons',
     },
     {
       title: 'Atendimento Feminino',
       type: 'female_service',
-      icon: 'female',
+      icon: 'gender-female',
       lib: 'MaterialCommunityIcons',
     },
     {
@@ -125,7 +125,7 @@ export class AmenitiesSeed implements OnModuleInit {
     {
       title: 'Profissionais Certificados',
       type: 'certified_professionals',
-      icon: 'badge-check',
+      icon: 'certificate',
       lib: 'MaterialCommunityIcons',
     },
     {

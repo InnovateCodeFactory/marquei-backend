@@ -131,6 +131,7 @@ model Business {
   BusinessReminderSettings BusinessReminderSettings?
   ReminderJob              ReminderJob[]
   ProfessionalTimesBlock   ProfessionalTimesBlock[]
+  amenities                BusinessAmenity[]
 
   @@index([slug], name: "idx_business_slug")
   @@index([name], name: "idx_business_name")
@@ -721,12 +722,29 @@ model GuestVisit {
   @@index([device_token], name: "idx_guestvisit_device_token")
 }
 
+model BusinessAmenity {
+  businessId String
+  amenityId  String
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  amenity  Amenities @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  // ✅ evita duplicar a mesma comodidade no mesmo business
+  @@id([businessId, amenityId])
+  // ✅ índices úteis p/ filtros
+  @@index([amenityId], name: "idx_business_amenity_amenity")
+  @@index([businessId], name: "idx_business_amenity_business")
+}
+
 model Amenities {
   id    String      @id @default(cuid())
   title String
   type  AmenityType @unique
   icon  String
   lib   String
+
+  // ✅ many-to-many via join table
+  businesses BusinessAmenity[]
 }
 
 // ENUMS

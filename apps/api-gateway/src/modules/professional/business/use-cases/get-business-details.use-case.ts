@@ -1,6 +1,7 @@
 import { PrismaService } from '@app/shared';
 import { FileSystemService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
+import { normalizeAmenityIcon } from '@app/shared/utils';
 import {
   BadRequestException,
   Injectable,
@@ -39,6 +40,19 @@ export class GetBusinessDetailsUseCase {
         logo: true,
         coverImage: true,
         slug: true,
+        amenities: {
+          select: {
+            amenity: {
+              select: {
+                id: true,
+                title: true,
+                type: true,
+                icon: true,
+                lib: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -54,6 +68,14 @@ export class GetBusinessDetailsUseCase {
       cover_image: business.coverImage
         ? this.fileSystem.getPublicUrl({ key: business.coverImage })
         : null,
+      amenities: (business.amenities || [])
+        .map((item) => item.amenity)
+        .filter(Boolean)
+        .map((amenity) => ({
+          ...amenity,
+          icon: normalizeAmenityIcon(amenity.icon),
+        }))
+        .sort((a, b) => a.title.localeCompare(b.title)),
     };
   }
 }

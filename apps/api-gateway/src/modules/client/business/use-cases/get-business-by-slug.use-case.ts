@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/shared';
+import { normalizeAmenityIcon } from '@app/shared/utils';
 import { FileSystemService } from '@app/shared/services';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { GetBusinessBySlugDto } from '../dto/requests/get-business-by-slug.dto';
@@ -30,6 +31,19 @@ export class GetBusinessBySlugUseCase {
         longitude: true,
         slug: true,
         id: true,
+        amenities: {
+          select: {
+            amenity: {
+              select: {
+                id: true,
+                title: true,
+                type: true,
+                icon: true,
+                lib: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -49,6 +63,14 @@ export class GetBusinessBySlugUseCase {
       opening_hours: business.opening_hours,
       cover_image: this.fs.getPublicUrl({ key: business.coverImage }),
       logo: this.fs.getPublicUrl({ key: business.logo }),
+      amenities: (business.amenities || [])
+        .map((item) => item.amenity)
+        .filter(Boolean)
+        .map((amenity) => ({
+          ...amenity,
+          icon: normalizeAmenityIcon(amenity.icon),
+        }))
+        .sort((a, b) => a.title.localeCompare(b.title)),
     };
   }
 }
