@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { OnboardingController } from './onboarding.controller';
 import {
+  CheckBusinessSlugUseCase,
   SendMailValidationTokenUseCase,
   SendPhoneValidationTokenUseCase,
   ValidateMailUseCase,
@@ -10,6 +11,7 @@ import {
 @Module({
   controllers: [OnboardingController],
   providers: [
+    CheckBusinessSlugUseCase,
     SendPhoneValidationTokenUseCase,
     ValidatePhoneUseCase,
     SendMailValidationTokenUseCase,
@@ -17,4 +19,3 @@ import {
   ],
 })
 export class OnboardingModule {}
-

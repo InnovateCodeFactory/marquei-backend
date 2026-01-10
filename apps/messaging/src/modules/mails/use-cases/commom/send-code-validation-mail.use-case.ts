@@ -52,6 +52,8 @@ export class SendCodeValidationMailUseCase {
     const code = codeGenerator({ length: 6, onlyNumbers: true });
     const expiresAt = new Date(Date.now() + TOKEN_EXPIRATION_MS);
 
+    console.log({ code });
+
     let createdId: string | undefined;
 
     // 1) Desativar anteriores + criar novo registro (PENDING) em transação

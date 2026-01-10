@@ -721,7 +721,43 @@ model GuestVisit {
   @@index([device_token], name: "idx_guestvisit_device_token")
 }
 
+model Amenities {
+  id    String      @id @default(cuid())
+  title String
+  type  AmenityType @unique
+  icon  String
+  lib   String
+}
+
 // ENUMS
+
+enum AmenityType {
+  wifi
+  parking
+  free_parking
+  air_conditioning
+  climatized_environment
+  accessibility
+  bathroom
+  accessible_bathroom
+  waiting_room
+  tv
+  ambient_music
+  coffee
+  water
+  drinks
+  pet_friendly
+  kids_area
+  card_payment
+  pix_payment
+  cash_payment
+  male_service
+  female_service
+  kids_service
+  certified_professionals
+  products_for_sale
+  private_environment
+}
 
 enum GuestOrigin {
   APP

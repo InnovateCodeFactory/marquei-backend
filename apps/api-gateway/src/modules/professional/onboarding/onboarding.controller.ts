@@ -4,9 +4,11 @@ import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import { Response } from 'express';
+import { CheckBusinessSlugDto } from './dto/requests/check-business-slug.dto';
 import { SendPhoneValidationTokenDto } from './dto/requests/send-phone-validation-token.dto';
 import { ValidatePhoneDto } from './dto/requests/validate-phone.dto';
 import {
+  CheckBusinessSlugUseCase,
   SendMailValidationTokenUseCase,
   SendPhoneValidationTokenUseCase,
   ValidateMailUseCase,
@@ -19,11 +21,25 @@ import { SendMailValidationTokenDto } from './dto/requests/send-mail-validation-
 export class OnboardingController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,
+    private readonly checkBusinessSlugUseCase: CheckBusinessSlugUseCase,
     private readonly sendPhoneValidationTokenUseCase: SendPhoneValidationTokenUseCase,
     private readonly validatePhoneUseCase: ValidatePhoneUseCase,
     private readonly sendMailValidationTokenUseCase: SendMailValidationTokenUseCase,
     private readonly validateMailUseCase: ValidateMailUseCase,
   ) {}
+
+  @Post('check-business-slug')
+  @ApiOperation({ summary: 'Check business slug availability (Professional)' })
+  @IsPublic()
+  async checkBusinessSlug(
+    @Body() dto: CheckBusinessSlugDto,
+    @Res() res: Response,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.checkBusinessSlugUseCase.execute(dto),
+      res,
+    });
+  }
 
   @Post('send-phone-validation-token')
   @ApiOperation({ summary: 'Send phone validation token (Professional)' })

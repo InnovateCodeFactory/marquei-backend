@@ -5,7 +5,7 @@ import { DaysOfWeek, SendMailTypeEnum } from '@app/shared/enum';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { HashingService } from '@app/shared/services';
-import { getFirstName } from '@app/shared/utils';
+import { getFirstName, slugifyBusinessName } from '@app/shared/utils';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateAccountDto } from '../dto/requests/create-account';
 
@@ -32,7 +32,7 @@ export class CreateAccountUseCase {
     const { name, email, password, documentNumber, phone, business } =
       registerDto;
 
-    const slug = this.makeSlugFromName(business.name);
+    const slug = slugifyBusinessName(business.name);
 
     const [existingUser, existingBusiness, mailValidation, freeTrialPlan] =
       await Promise.all([
@@ -205,12 +205,4 @@ export class CreateAccountUseCase {
     return null;
   }
 
-  private makeSlugFromName(name: string): string {
-    return name
-      .normalize('NFD') // separa letras de acentos
-      .replace(/[\u0300-\u036f]/g, '') // remove acentos
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-') // troca não alfanumérico por hífen
-      .replace(/^-|-$/g, ''); // remove hífen no começo/fim
-  }
 }
