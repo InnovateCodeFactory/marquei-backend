@@ -2,7 +2,7 @@ import { PrismaService } from '@app/shared';
 import { RedisService } from '@app/shared/modules/redis/redis.service';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { Injectable } from '@nestjs/common';
-import { RegisterPushTokenDto } from '../dto/requests/register-push-token.dto';
+import { RegisterProfessionalPushTokenDto } from '../dto/requests/register-push-token.dto';
 
 @Injectable()
 export class RegisterPushTokenUseCase {
@@ -11,7 +11,10 @@ export class RegisterPushTokenUseCase {
     private readonly redisService: RedisService,
   ) {}
 
-  async execute(body: RegisterPushTokenDto, currentUser: CurrentUser) {
+  async execute(
+    body: RegisterProfessionalPushTokenDto,
+    currentUser: CurrentUser,
+  ) {
     const { push_token } = body;
 
     if (currentUser?.push_token && push_token === currentUser.push_token)

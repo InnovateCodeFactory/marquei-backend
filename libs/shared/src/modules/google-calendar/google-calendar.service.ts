@@ -175,6 +175,24 @@ export class GoogleCalendarService {
   }
 
   /**
+   * Revoga os tokens OAuth do Google para desconectar a integração.
+   */
+  async revokeTokens(tokens: GoogleOAuthTokens): Promise<void> {
+    const client = this.createOAuthClient();
+    const tokenToRevoke = tokens.refresh_token ?? tokens.access_token;
+    if (!tokenToRevoke) {
+      return;
+    }
+
+    try {
+      await client.revokeToken(tokenToRevoke);
+      this.logger.debug('Google OAuth tokens revogados com sucesso');
+    } catch (error) {
+      this.logger.warn('Falha ao revogar tokens do Google', error as any);
+    }
+  }
+
+  /**
    * Exemplo direto baseado no código do Google:
    * lista os próximos eventos usando o arquivo de credenciais local.
    *

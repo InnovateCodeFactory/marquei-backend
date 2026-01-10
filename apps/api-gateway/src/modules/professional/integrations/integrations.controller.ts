@@ -5,6 +5,7 @@ import { Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import {
+  DisconnectGoogleCalendarUseCase,
   GetGoogleCalendarAuthUrlUseCase,
   GetGoogleCalendarStatusUseCase,
   GoogleCalendarCallbackUseCase,
@@ -18,6 +19,7 @@ export class GoogleCalendarIntegrationsController {
     private readonly getGoogleCalendarAuthUrlUseCase: GetGoogleCalendarAuthUrlUseCase,
     private readonly googleCalendarCallbackUseCase: GoogleCalendarCallbackUseCase,
     private readonly getGoogleCalendarStatusUseCase: GetGoogleCalendarStatusUseCase,
+    private readonly disconnectGoogleCalendarUseCase: DisconnectGoogleCalendarUseCase,
   ) {}
 
   @Post('auth-url')
@@ -38,6 +40,17 @@ export class GoogleCalendarIntegrationsController {
   async getStatus(@Req() req: AppRequest, @Res() res: Response) {
     return this.responseHandler.handle({
       method: () => this.getGoogleCalendarStatusUseCase.execute(req),
+      res,
+    });
+  }
+
+  @Post('disconnect')
+  @ApiOperation({
+    summary: 'Disconnect Google Calendar integration for current professional',
+  })
+  async disconnect(@Req() req: AppRequest, @Res() res: Response) {
+    return this.responseHandler.handle({
+      method: () => this.disconnectGoogleCalendarUseCase.execute(req),
       res,
     });
   }
