@@ -18,13 +18,16 @@ import { Response } from 'express';
 import { EditBusinessDto } from './dto/requests/edit-business.dto';
 import { GeocodeAddressDto } from './dto/requests/geocode-address.dto';
 import { SelectCurrentBusinessDto } from './dto/requests/select-current-business.dto';
+import { UpdateBusinessAmenitiesDto } from './dto/requests/update-business-amenities.dto';
 import {
+  GetAmenitiesUseCase,
   GeocodeAddressUseCase,
   GetBusinessByProfessionalUseCase,
   GetBusinessDetailsUseCase,
   GetCurrentSubscriptionUseCase,
   GetProfessionalsUseCase,
   GetProfilePresentationUseCase,
+  UpdateBusinessAmenitiesUseCase,
 } from './use-cases';
 import { EditBusinessUseCase } from './use-cases/edit-business.use-case';
 import { SelectCurrentBusinessUseCase } from './use-cases/select-current-business.use-case';
@@ -44,6 +47,8 @@ export class BusinessController {
     private readonly uploadBusinessImagesUseCase: UploadBusinessImagesUseCase,
     private readonly getBusinessDetailsUseCase: GetBusinessDetailsUseCase,
     private readonly geocodeAddressUseCase: GeocodeAddressUseCase,
+    private readonly getAmenitiesUseCase: GetAmenitiesUseCase,
+    private readonly updateBusinessAmenitiesUseCase: UpdateBusinessAmenitiesUseCase,
   ) {}
 
   @Get('get-business-by-professional')
@@ -139,6 +144,35 @@ export class BusinessController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.getBusinessDetailsUseCase.execute(currentUser),
+      res,
+    });
+  }
+
+  @Get('amenities')
+  @ApiOperation({
+    summary: 'List amenities',
+    description: 'Returns all available amenities for selection.',
+  })
+  async getAmenities(@Res() res: Response) {
+    return await this.responseHandler.handle({
+      method: () => this.getAmenitiesUseCase.execute(),
+      res,
+    });
+  }
+
+  @Patch('amenities')
+  @ApiOperation({
+    summary: 'Update business amenities',
+    description: 'Updates amenities for the selected business.',
+  })
+  async updateAmenities(
+    @Res() res: Response,
+    @CurrentUserDecorator() currentUser: CurrentUser,
+    @Body() payload: UpdateBusinessAmenitiesDto,
+  ) {
+    return await this.responseHandler.handle({
+      method: () =>
+        this.updateBusinessAmenitiesUseCase.execute(currentUser, payload),
       res,
     });
   }

@@ -74,6 +74,18 @@ export function slugifyBusinessName(name: string): string {
     .replace(/^-|-$/g, ''); // remove hifen no comeco/fim
 }
 
+export function normalizeAmenityIcon(icon: string): string {
+  const map: Record<string, string> = {
+    female: 'gender-female',
+    male: 'gender-male',
+    money: 'cash',
+    'badge-check': 'certificate',
+  };
+
+  if (!icon) return icon;
+  return map[icon] ?? icon;
+}
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',

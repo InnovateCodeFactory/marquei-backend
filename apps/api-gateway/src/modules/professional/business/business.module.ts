@@ -3,10 +3,12 @@ import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { BusinessController } from './business.controller';
 import {
+  GetAmenitiesUseCase,
   GetBusinessByProfessionalUseCase,
   GetCurrentSubscriptionUseCase,
   GetProfessionalsUseCase,
   GetProfilePresentationUseCase,
+  UpdateBusinessAmenitiesUseCase,
 } from './use-cases';
 import { SelectCurrentBusinessUseCase } from './use-cases/select-current-business.use-case';
 import { EditBusinessUseCase } from './use-cases/edit-business.use-case';
@@ -28,6 +30,8 @@ import { GeocodeAddressUseCase } from './use-cases';
     UploadBusinessImagesUseCase,
     GetBusinessDetailsUseCase,
     GeocodeAddressUseCase,
+    GetAmenitiesUseCase,
+    UpdateBusinessAmenitiesUseCase,
   ],
 })
 export class BusinessModule {}
