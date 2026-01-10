@@ -22,6 +22,9 @@ import { CookieOptions, Request, Response } from 'express';
 import { RegisterPushTokenDto } from '../../client/auth/dto/requests/register-push-token.dto';
 import { CreateAccountDto } from './dto/requests/create-account';
 import { FirstAccessDto } from './dto/requests/firts-access.dto';
+import { ForgotPasswordRequestDto } from './dto/requests/forgot-password-request.dto';
+import { ForgotPasswordResetDto } from './dto/requests/forgot-password-reset.dto';
+import { ForgotPasswordValidateDto } from './dto/requests/forgot-password-validate.dto';
 import { LoginDto } from './dto/requests/login.dto';
 import { RefreshTokenDto } from './dto/requests/refresh-token.dto';
 import { UpdatePasswordConfirmCodeDto } from './dto/requests/update-password-confirm-code.dto';
@@ -34,8 +37,11 @@ import {
   LogoutUseCase,
   RefreshTokenUseCase,
   RegisterPushTokenUseCase,
+  RequestPasswordResetUseCase,
+  ResetPasswordUseCase,
   UpdatePasswordConfirmCodeUseCase,
   UpdatePasswordUseCase,
+  ValidatePasswordResetCodeUseCase,
 } from './use-cases';
 
 @Controller('professional/auth')
@@ -52,6 +58,9 @@ export class AuthController {
     private readonly registerPushTokenUseCase: RegisterPushTokenUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly logoutUseCase: LogoutUseCase,
+    private readonly requestPasswordResetUseCase: RequestPasswordResetUseCase,
+    private readonly validatePasswordResetCodeUseCase: ValidatePasswordResetCodeUseCase,
+    private readonly resetPasswordUseCase: ResetPasswordUseCase,
     private readonly updatePasswordUseCase: UpdatePasswordUseCase,
     private readonly updatePasswordConfirmCodeUseCase: UpdatePasswordConfirmCodeUseCase,
   ) {}
@@ -262,6 +271,46 @@ export class AuthController {
           code: body.code,
           request_id: body.request_id,
         }),
+      res,
+    });
+  }
+
+  @Post('forgot-password/request')
+  @ApiOperation({ summary: 'Request password reset (Professional)' })
+  @IsPublic()
+  async requestPasswordReset(
+    @Res() res: Response,
+    @Body() body: ForgotPasswordRequestDto,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.requestPasswordResetUseCase.execute(body),
+      res,
+    });
+  }
+
+  @Post('forgot-password/validate')
+  @ApiOperation({ summary: 'Validate password reset code (Professional)' })
+  @IsPublic()
+  async validatePasswordResetCode(
+    @Res() res: Response,
+    @Body() body: ForgotPasswordValidateDto,
+    @Req() req: AppRequest,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.validatePasswordResetCodeUseCase.execute(body, req),
+      res,
+    });
+  }
+
+  @Post('forgot-password/reset')
+  @ApiOperation({ summary: 'Reset password (Professional)' })
+  @IsPublic()
+  async resetPassword(
+    @Res() res: Response,
+    @Body() body: ForgotPasswordResetDto,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.resetPasswordUseCase.execute(body),
       res,
     });
   }

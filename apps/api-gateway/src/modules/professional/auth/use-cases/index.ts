@@ -4,5 +4,8 @@ export * from './login.use-case';
 export * from './logout.use-case';
 export * from './refresh-token.use-case';
 export * from './register-push-token.use-case';
+export * from './request-password-reset.use-case';
+export * from './reset-password.use-case';
 export * from './update-password-confirm-code.use-case';
 export * from './update-password.use-case';
+export * from './validate-password-reset-code.use-case';

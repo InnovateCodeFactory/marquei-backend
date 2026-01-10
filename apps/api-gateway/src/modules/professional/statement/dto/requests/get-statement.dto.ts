@@ -86,4 +86,12 @@ export class GetStatementDto {
     example: ['12345', '67890'],
   })
   professional_ids?: string[];
+
+  @IsString()
+  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'Search term to filter statement data',
+    example: 'Maria',
+  })
+  search?: string;
 }

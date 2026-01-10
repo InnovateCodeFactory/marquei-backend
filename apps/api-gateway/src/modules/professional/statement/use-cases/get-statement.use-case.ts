@@ -53,6 +53,7 @@ export class GetStatementUseCase implements OnModuleInit {
       start_date,
       type,
       calculate_totals,
+      search,
     } = query;
 
     const pageNumber = Number(page);
@@ -74,6 +75,124 @@ export class GetStatementUseCase implements OnModuleInit {
     if (type) where.type = type.toUpperCase();
     if (professional_ids && professional_ids.length > 0) {
       where.professionalProfileId = { in: professional_ids };
+    }
+
+    const searchTerm = search?.trim();
+    if (searchTerm) {
+      const searchDigits = searchTerm.replace(/\D/g, '');
+      const searchOr: any[] = [
+        {
+          id: {
+            contains: searchTerm,
+            mode: 'insensitive',
+          },
+        },
+        {
+          description: {
+            contains: searchTerm,
+            mode: 'insensitive',
+          },
+        },
+        {
+          appointmentId: {
+            contains: searchTerm,
+            mode: 'insensitive',
+          },
+        },
+        {
+          professional_profile: {
+            User: {
+              name: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+          },
+        },
+        {
+          appointment: {
+            service: {
+              name: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+          },
+        },
+        {
+          appointment: {
+            notes: {
+              contains: searchTerm,
+              mode: 'insensitive',
+            },
+          },
+        },
+        {
+          appointment: {
+            customerPerson: {
+              name: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+          },
+        },
+        {
+          appointment: {
+            customerPerson: {
+              email: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+          },
+        },
+      ];
+
+      if (searchDigits) {
+        searchOr.push(
+          {
+            appointment: {
+              customerPerson: {
+                phone: {
+                  contains: searchDigits,
+                },
+              },
+            },
+          },
+          {
+            professional_profile: {
+              phone: {
+                contains: searchDigits,
+              },
+            },
+          },
+        );
+
+        const numericValue = Number(searchDigits);
+        if (Number.isFinite(numericValue) && numericValue > 0) {
+          searchOr.push({ value_in_cents: numericValue });
+          searchOr.push({ value_in_cents: numericValue * 100 });
+        }
+      }
+
+      const normalizedTerm = searchTerm.toLowerCase();
+      if (
+        ['entrada', 'receita', 'income', 'ganho', 'credito'].includes(
+          normalizedTerm,
+        )
+      ) {
+        searchOr.push({ type: 'INCOME' });
+      }
+      if (
+        ['saida', 'despesa', 'expense', 'outcome', 'debito'].includes(
+          normalizedTerm,
+        )
+      ) {
+        searchOr.push({ type: 'OUTCOME' });
+      }
+
+      where.OR = searchOr;
     }
 
     const monthStart = startOfMonth(new Date());
