@@ -1,12 +1,15 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
-import { CurrentUser } from '@app/shared/types/app-request';
-import { Body, Controller, Headers, Post, Res } from '@nestjs/common';
+import { AppRequest, CurrentUser } from '@app/shared/types/app-request';
+import { Body, Controller, Headers, Post, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CreateUserCustomerDto } from './dto/requests/create-customer.dto';
 import { CustomerFirstAccessDto } from './dto/requests/customer-first-access.dto';
+import { ForgotPasswordRequestDto } from './dto/requests/forgot-password-request.dto';
+import { ForgotPasswordResetDto } from './dto/requests/forgot-password-reset.dto';
+import { ForgotPasswordValidateDto } from './dto/requests/forgot-password-validate.dto';
 import { RefreshTokenDto } from './dto/requests/refresh-token.dto';
 import { RegisterVisitDto } from './dto/requests/register-visit.dto';
 import { RegisterPushTokenDto } from './dto/requests/register-push-token.dto';
@@ -14,6 +17,9 @@ import {
   CreateCustomerUseCase,
   CustomerFirstAccessUseCase,
   LoginUseCase,
+  RequestPasswordResetUseCase,
+  ResetPasswordUseCase,
+  ValidatePasswordResetCodeUseCase,
 } from './use-cases';
 import { LogoutUseCase } from './use-cases/logout.use-case';
 import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
@@ -34,6 +40,9 @@ export class AuthController {
     private readonly registerVisitUseCase: RegisterVisitUseCase,
     private readonly registerPushTokenUseCase: RegisterPushTokenUseCase,
     private readonly registerGuestPushTokenUseCase: RegisterGuestPushTokenUseCase,
+    private readonly requestPasswordResetUseCase: RequestPasswordResetUseCase,
+    private readonly validatePasswordResetCodeUseCase: ValidatePasswordResetCodeUseCase,
+    private readonly resetPasswordUseCase: ResetPasswordUseCase,
   ) {}
 
   @Post('first-access')
@@ -140,6 +149,46 @@ export class AuthController {
         this.logoutUseCase.execute({
           refreshToken: body?.refreshToken,
         }),
+      res,
+    });
+  }
+
+  @Post('forgot-password/request')
+  @ApiOperation({ summary: 'Request password reset (Customer)' })
+  @IsPublic()
+  async requestPasswordReset(
+    @Res() res: Response,
+    @Body() body: ForgotPasswordRequestDto,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.requestPasswordResetUseCase.execute(body),
+      res,
+    });
+  }
+
+  @Post('forgot-password/validate')
+  @ApiOperation({ summary: 'Validate password reset code (Customer)' })
+  @IsPublic()
+  async validatePasswordResetCode(
+    @Res() res: Response,
+    @Body() body: ForgotPasswordValidateDto,
+    @Req() req: AppRequest,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.validatePasswordResetCodeUseCase.execute(body, req),
+      res,
+    });
+  }
+
+  @Post('forgot-password/reset')
+  @ApiOperation({ summary: 'Reset password (Customer)' })
+  @IsPublic()
+  async resetPassword(
+    @Res() res: Response,
+    @Body() body: ForgotPasswordResetDto,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.resetPasswordUseCase.execute(body),
       res,
     });
   }

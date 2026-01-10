@@ -4,6 +4,9 @@ import {
   CreateCustomerUseCase,
   CustomerFirstAccessUseCase,
   LoginUseCase,
+  RequestPasswordResetUseCase,
+  ResetPasswordUseCase,
+  ValidatePasswordResetCodeUseCase,
 } from './use-cases';
 import { LogoutUseCase } from './use-cases/logout.use-case';
 import { RefreshTokenUseCase } from './use-cases/refresh-token.use-case';
@@ -22,6 +25,9 @@ import { RegisterGuestPushTokenUseCase } from './use-cases/register-guest-push-t
     RegisterVisitUseCase,
     RegisterPushTokenUseCase,
     RegisterGuestPushTokenUseCase,
+    RequestPasswordResetUseCase,
+    ValidatePasswordResetCodeUseCase,
+    ResetPasswordUseCase,
   ],
 })
 export class AuthModule {}
