@@ -31,6 +31,7 @@ export class GetActivePlansUseCase {
         value: new Price(p.price_in_cents).toCurrency(),
         oldValue: null,
         stripe_price_id: p.plan_id,
+        plan_id_play_store: p.plan_id_play_store,
         destactLabel: null,
         max_professionals_allowed: p.max_professionals_allowed,
         price_in_cents: p.price_in_cents,

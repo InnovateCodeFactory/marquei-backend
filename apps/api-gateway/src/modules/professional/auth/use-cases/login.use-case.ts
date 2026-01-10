@@ -56,11 +56,15 @@ export class LoginUseCase {
     if (!user || !(await this.hashingService.compare(password, user?.password)))
       throw new BadRequestException('Credenciais inválidas');
 
-    const [professionalProfile, subscriptionStatus] = await Promise.all([
+    const currentBusiness = user.CurrentSelectedBusiness?.[0]?.business || null;
+    const isOwner = currentBusiness?.ownerId === user.id;
+
+    const [professionalProfile, subscriptionStatus, servicesCount] =
+      await Promise.all([
       this.prismaService.professionalProfile.findFirst({
         where: {
           userId: user.id,
-          business_id: user.CurrentSelectedBusiness?.[0]?.business?.id,
+          business_id: currentBusiness?.id,
         },
         select: {
           profile_image: true,
@@ -70,9 +74,17 @@ export class LoginUseCase {
 
       this.checkActiveSubscriptionUseCase.execute({
         current_selected_business_slug:
-          user?.CurrentSelectedBusiness?.[0]?.business?.slug,
+          currentBusiness?.slug,
         id: user.id,
       }),
+      isOwner && currentBusiness?.id
+        ? this.prismaService.service.count({
+            where: {
+              businessId: currentBusiness.id,
+              is_active: true,
+            },
+          })
+        : Promise.resolve(0),
     ]);
 
     const { accessToken, refreshToken } =
@@ -85,21 +97,19 @@ export class LoginUseCase {
       token: accessToken,
       refresh_token: refreshToken,
       user: {
-        is_the_owner:
-          user.CurrentSelectedBusiness?.[0]?.business?.ownerId === user.id,
-        ...(user.CurrentSelectedBusiness?.[0]?.business?.slug && {
+        is_the_owner: isOwner,
+        ...(currentBusiness?.slug && {
           current_selected_business_slug:
-            user.CurrentSelectedBusiness[0].business.slug,
-          current_selected_business_name:
-            user.CurrentSelectedBusiness[0].business.name,
+            currentBusiness.slug,
+          current_selected_business_name: currentBusiness.name,
         }),
         first_access: user.first_access,
         has_push_token: user?.push_token !== null,
         current_selected_business_cover_image: this.fs.getPublicUrl({
-          key: user.CurrentSelectedBusiness?.[0]?.business?.coverImage,
+          key: currentBusiness?.coverImage,
         }),
         current_selected_business_logo: this.fs.getPublicUrl({
-          key: user.CurrentSelectedBusiness?.[0]?.business?.logo,
+          key: currentBusiness?.logo,
         }),
         id: user.id,
         name: user.name,
@@ -111,6 +121,7 @@ export class LoginUseCase {
         phone: formatPhoneNumber(professionalProfile?.phone || ''),
       },
       subscription_status: subscriptionStatus,
+      should_open_create_service_modal: isOwner && servicesCount === 0,
     };
   }
 }

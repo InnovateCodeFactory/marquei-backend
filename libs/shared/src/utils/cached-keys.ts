@@ -26,4 +26,7 @@ export const CachedKeys = {
     start_date: string;
     end_date: string;
   }) => `professional:analytics:dashboard:${business_slug}:${start_date}_${end_date}`,
+
+  CUSTOMER_PASSWORD_RESET: ({ request_id }: { request_id: string }) =>
+    `customer:password-reset:${request_id}`,
 };
