@@ -7,6 +7,9 @@ export const CachedKeys = {
     request_id: string;
   }) => `professional:password-update:${user_id}:${request_id}`,
 
+  PROFESSIONAL_PASSWORD_RESET: ({ request_id }: { request_id: string }) =>
+    `professional:password-reset:${request_id}`,
+
   PROFESSIONAL_ANALYTICS: ({
     business_slug,
     end_date,

@@ -10,8 +10,11 @@ import {
   LogoutUseCase,
   RefreshTokenUseCase,
   RegisterPushTokenUseCase,
+  RequestPasswordResetUseCase,
+  ResetPasswordUseCase,
   UpdatePasswordConfirmCodeUseCase,
   UpdatePasswordUseCase,
+  ValidatePasswordResetCodeUseCase,
 } from './use-cases';
 
 @Module({
@@ -26,6 +29,9 @@ import {
     RegisterPushTokenUseCase,
     RefreshTokenUseCase,
     LogoutUseCase,
+    RequestPasswordResetUseCase,
+    ValidatePasswordResetCodeUseCase,
+    ResetPasswordUseCase,
     UpdatePasswordUseCase,
     UpdatePasswordConfirmCodeUseCase,
 
