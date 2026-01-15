@@ -307,7 +307,7 @@ export class CreateAppointmentUseCase {
       };
 
       // 4) Criar evento no Google Calendar
-      await this.googleCalendarService.createEvent({
+      const createdEvent = await this.googleCalendarService.createEvent({
         tokens,
         event: {
           summary: appointment.professional?.business?.name
@@ -329,6 +329,13 @@ export class CreateAppointmentUseCase {
           },
         },
       });
+
+      if (createdEvent?.id) {
+        await this.prismaService.appointment.update({
+          where: { id: appointmentId },
+          data: { google_calendar_event_id: createdEvent.id },
+        });
+      }
     } catch (error) {
       this.logger.error(
         'Erro ao integrar agendamento (cliente) com Google Calendar:',

@@ -1,21 +1,25 @@
 import { PrismaService } from '@app/shared';
 import { SendInAppNotificationDto } from '@app/shared/dto/messaging/in-app-notifications';
 import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifications';
+import { GoogleCalendarService } from '@app/shared/modules/google-calendar/google-calendar.service';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { AppRequest } from '@app/shared/types/app-request';
 import { getClientIp, getTwoNames } from '@app/shared/utils';
 import { NotificationMessageBuilder } from '@app/shared/utils/notification-message-builder';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CancelCustomerAppointmentDto } from '../dto/requests/cancel-appointment.dto';
 
 @Injectable()
 export class CancelCustomerAppointmentUseCase {
+  private readonly logger = new Logger(CancelCustomerAppointmentUseCase.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly rmqService: RmqService,
+    private readonly googleCalendarService: GoogleCalendarService,
   ) {}
 
   async execute(body: CancelCustomerAppointmentDto, req: AppRequest) {
@@ -28,6 +32,7 @@ export class CancelCustomerAppointmentUseCase {
         id: true,
         status: true,
         start_at_utc: true,
+        google_calendar_event_id: true,
         service: {
           select: {
             name: true,
@@ -41,6 +46,7 @@ export class CancelCustomerAppointmentUseCase {
         professional: {
           select: {
             id: true,
+            userId: true,
             User: {
               select: {
                 push_token: true,
@@ -82,6 +88,54 @@ export class CancelCustomerAppointmentUseCase {
         },
       }),
     ]);
+
+    if (
+      appointment.google_calendar_event_id &&
+      appointment.professional?.userId
+    ) {
+      try {
+        const integration = await this.prisma.userIntegration.findUnique({
+          where: { id: `${appointment.professional.userId}_GOOGLE_CALENDAR` },
+          select: {
+            access_token: true,
+            refresh_token: true,
+            scope: true,
+            token_type: true,
+            expiry_date: true,
+            raw_tokens: true,
+          },
+        });
+
+        if (integration) {
+          const tokens = {
+            ...(integration.raw_tokens as any),
+            access_token: integration.access_token ?? undefined,
+            refresh_token: integration.refresh_token ?? undefined,
+            scope: integration.scope ?? undefined,
+            token_type: integration.token_type ?? undefined,
+            expiry_date: integration.expiry_date
+              ? integration.expiry_date.getTime()
+              : undefined,
+          };
+
+          await Promise.all([
+            this.googleCalendarService.deleteEvent({
+              tokens,
+              eventId: appointment.google_calendar_event_id,
+            }),
+            this.prisma.appointment.update({
+              where: { id: appointment.id },
+              data: { google_calendar_event_id: null },
+            }),
+          ]);
+        }
+      } catch (error) {
+        this.logger.error(
+          'Erro ao remover evento no Google Calendar (cliente):',
+          (error as any)?.response?.data || error,
+        );
+      }
+    }
 
     const bodyAndTitle =
       NotificationMessageBuilder.buildAppointmentCancelledMessageForProfessional(

@@ -1,6 +1,7 @@
 import { PrismaService } from '@app/shared';
 import { SendInAppNotificationDto } from '@app/shared/dto/messaging/in-app-notifications';
 import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifications';
+import { GoogleCalendarService } from '@app/shared/modules/google-calendar/google-calendar.service';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { AppRequest } from '@app/shared/types/app-request';
@@ -10,6 +11,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { addMinutes, format } from 'date-fns';
@@ -21,9 +23,12 @@ const IN_TZ = tz(BUSINESS_TZ_ID);
 
 @Injectable()
 export class RescheduleCustomerAppointmentUseCase {
+  private readonly logger = new Logger(RescheduleCustomerAppointmentUseCase.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly rmqService: RmqService,
+    private readonly googleCalendarService: GoogleCalendarService,
   ) {}
 
   async execute(dto: RescheduleCustomerAppointmentDto, req: AppRequest) {
@@ -33,7 +38,12 @@ export class RescheduleCustomerAppointmentUseCase {
     // 1) pega o agendamento + tudo que a gente precisa
     const current = await this.prisma.appointment.findUnique({
       where: { id: dto.appointment_id },
-      include: {
+      select: {
+        id: true,
+        personId: true,
+        service_id: true,
+        professionalProfileId: true,
+        google_calendar_event_id: true,
         service: {
           select: {
             id: true,
@@ -46,6 +56,8 @@ export class RescheduleCustomerAppointmentUseCase {
             id: true,
             push_notification_enabled: true,
             business_id: true,
+            userId: true,
+            business: { select: { name: true } },
             User: {
               select: {
                 push_token: true,
@@ -93,6 +105,8 @@ export class RescheduleCustomerAppointmentUseCase {
           id: true,
           push_notification_enabled: true,
           business_id: true,
+          userId: true,
+          business: { select: { name: true } },
           User: { select: { push_token: true, name: true } },
         },
       });
@@ -245,6 +259,109 @@ export class RescheduleCustomerAppointmentUseCase {
           MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
       }),
     ]);
+
+    if (current.google_calendar_event_id) {
+      try {
+        const buildTokens = async (userId: string) => {
+          const integration = await this.prisma.userIntegration.findUnique({
+            where: { id: `${userId}_GOOGLE_CALENDAR` },
+            select: {
+              access_token: true,
+              refresh_token: true,
+              scope: true,
+              token_type: true,
+              expiry_date: true,
+              raw_tokens: true,
+            },
+          });
+
+          if (!integration) return null;
+
+          return {
+            ...(integration.raw_tokens as any),
+            access_token: integration.access_token ?? undefined,
+            refresh_token: integration.refresh_token ?? undefined,
+            scope: integration.scope ?? undefined,
+            token_type: integration.token_type ?? undefined,
+            expiry_date: integration.expiry_date
+              ? integration.expiry_date.getTime()
+              : undefined,
+          };
+        };
+
+        const tzId = BUSINESS_TZ_ID;
+        const professionalChanged =
+          newProfessionalId !== current.professionalProfileId;
+
+        if (professionalChanged && current.professional?.userId) {
+          const oldTokens = await buildTokens(current.professional.userId);
+          if (oldTokens) {
+            await this.googleCalendarService.deleteEvent({
+              tokens: oldTokens,
+              eventId: current.google_calendar_event_id,
+            });
+          }
+
+          if (effectiveProfessional?.userId) {
+            const newTokens = await buildTokens(effectiveProfessional.userId);
+            if (newTokens) {
+              const createdEvent = await this.googleCalendarService.createEvent({
+                tokens: newTokens,
+                event: {
+                  summary: effectiveProfessional?.business?.name
+                    ? `Agendamento ${effectiveProfessional.business.name}`
+                    : 'Agendamento Marquei',
+                  description:
+                    effectiveService?.name && current.customerPerson?.name
+                      ? `${effectiveService.name} para o cliente ${current.customerPerson.name}`
+                      : (effectiveService?.name ??
+                        current.customerPerson?.name ??
+                        undefined),
+                  start: {
+                    dateTime: startLocal.toISOString(),
+                    timeZone: tzId,
+                  },
+                  end: {
+                    dateTime: endLocal.toISOString(),
+                    timeZone: tzId,
+                  },
+                },
+              });
+
+              if (createdEvent?.id) {
+                await this.prisma.appointment.update({
+                  where: { id: current.id },
+                  data: { google_calendar_event_id: createdEvent.id },
+                });
+              }
+            }
+          }
+        } else if (current.professional?.userId) {
+          const tokens = await buildTokens(current.professional.userId);
+          if (tokens) {
+            await this.googleCalendarService.updateEvent({
+              tokens,
+              eventId: current.google_calendar_event_id,
+              event: {
+                start: {
+                  dateTime: startLocal.toISOString(),
+                  timeZone: tzId,
+                },
+                end: {
+                  dateTime: endLocal.toISOString(),
+                  timeZone: tzId,
+                },
+              },
+            });
+          }
+        }
+      } catch (error) {
+        this.logger.error(
+          'Erro ao atualizar evento no Google Calendar (cliente):',
+          (error as any)?.response?.data || error,
+        );
+      }
+    }
 
     return null;
   }

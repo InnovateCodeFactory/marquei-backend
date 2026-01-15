@@ -320,6 +320,8 @@ model Appointment {
   start_offset_minutes Int // ex.: -180
   duration_minutes     Int
 
+  google_calendar_event_id String?
+
   professional   ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
   service        Service             @relation(fields: [service_id], references: [id])
   customerPerson Person              @relation(fields: [personId], references: [id])
