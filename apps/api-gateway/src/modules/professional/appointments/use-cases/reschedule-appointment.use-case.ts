@@ -1,5 +1,6 @@
 import { PrismaService } from '@app/shared';
 import { SendRescheduleAppointmentMailDto } from '@app/shared/dto/messaging/mail-notifications';
+import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifications';
 import { GoogleCalendarService } from '@app/shared/modules/google-calendar/google-calendar.service';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
@@ -9,6 +10,7 @@ import {
   getClientIp,
   getTwoNames,
 } from '@app/shared/utils';
+import { NotificationMessageBuilder } from '@app/shared/utils/notification-message-builder';
 import { Price } from '@app/shared/value-objects';
 import { TZDate, tz } from '@date-fns/tz';
 import {
@@ -67,7 +69,11 @@ export class RescheduleAppointmentUseCase {
           },
         },
         customerPerson: {
-          select: { name: true, email: true },
+          select: {
+            name: true,
+            email: true,
+            user: { select: { push_token: true } },
+          },
         },
       },
     });
@@ -207,6 +213,31 @@ export class RescheduleAppointmentUseCase {
           ]
         : []),
     ]);
+
+    const customerPushToken = appointment.customerPerson?.user?.push_token;
+    if (customerPushToken) {
+      const dayAndMonth = format(newStartUtc, 'dd/MM', { in: IN_TZ });
+      const time = format(newStartUtc, 'HH:mm', { in: IN_TZ });
+      const professionalName = getTwoNames(appointment.professional.User.name);
+      const message =
+        NotificationMessageBuilder.buildAppointmentRescheduledMessageForCustomer(
+          {
+            professional_name: professionalName || 'Profissional',
+            dayAndMonth,
+            time,
+            service_name: appointment.service.name,
+          },
+        );
+
+      await this.rmqService.publishToQueue({
+        payload: new SendPushNotificationDto({
+          pushTokens: [customerPushToken],
+          title: message.title,
+          body: message.body,
+        }),
+        routingKey: MESSAGING_QUEUES.PUSH_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
+      });
+    }
 
     if (appointment.google_calendar_event_id && appointment.professional?.userId) {
       try {

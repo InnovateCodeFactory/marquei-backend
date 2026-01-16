@@ -1,5 +1,6 @@
 import { PrismaService } from '@app/shared';
 import { SendCancelAppointmentMailDto } from '@app/shared/dto/messaging/mail-notifications/send-cancel-appointment.dto';
+import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifications';
 import { GoogleCalendarService } from '@app/shared/modules/google-calendar/google-calendar.service';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
@@ -9,6 +10,7 @@ import {
   getClientIp,
   getTwoNames,
 } from '@app/shared/utils';
+import { NotificationMessageBuilder } from '@app/shared/utils/notification-message-builder';
 import { Price } from '@app/shared/value-objects';
 import { tz } from '@date-fns/tz';
 import {
@@ -63,6 +65,7 @@ export class CancelAppointmentUseCase {
           select: {
             name: true,
             email: true,
+            user: { select: { push_token: true } },
           },
         },
       },
@@ -113,6 +116,28 @@ export class CancelAppointmentUseCase {
         },
       }),
     ]);
+
+    const customerPushToken = appointment.customerPerson?.user?.push_token;
+    if (customerPushToken) {
+      const zoneId = appointment.timezone || 'America/Sao_Paulo';
+      const IN_TZ = tz(zoneId);
+      const message =
+        NotificationMessageBuilder.buildAppointmentCancelledMessageForCustomer({
+          professional_name: getTwoNames(appointment.professional.User.name),
+          dayAndMonth: format(appointment.start_at_utc, 'dd/MM', { in: IN_TZ }),
+          time: format(appointment.start_at_utc, 'HH:mm', { in: IN_TZ }),
+          service_name: appointment.service.name,
+        });
+
+      await this.rmqService.publishToQueue({
+        payload: new SendPushNotificationDto({
+          pushTokens: [customerPushToken],
+          title: message.title,
+          body: message.body,
+        }),
+        routingKey: MESSAGING_QUEUES.PUSH_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
+      });
+    }
 
     if (appointment.google_calendar_event_id && appointment.professional?.userId) {
       try {

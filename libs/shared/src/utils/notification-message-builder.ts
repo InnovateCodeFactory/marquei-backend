@@ -88,6 +88,40 @@ export const NotificationMessageBuilder = {
     };
   },
 
+  buildAppointmentCreatedMessageForCustomer: ({
+    professional_name,
+    dayAndMonth,
+    time,
+    service_name,
+  }: {
+    professional_name: string;
+    dayAndMonth: string;
+    time: string;
+    service_name: string;
+  }) => {
+    return {
+      title: '🗓️ Novo agendamento',
+      body: `Seu agendamento de ${service_name?.trim()} com ${professional_name?.trim()} foi criado para ${dayAndMonth} às ${time}.`,
+    };
+  },
+
+  buildAppointmentRescheduledMessageForCustomer: ({
+    professional_name,
+    dayAndMonth,
+    time,
+    service_name,
+  }: {
+    professional_name: string;
+    dayAndMonth: string;
+    time: string;
+    service_name: string;
+  }) => {
+    return {
+      title: '🔁 Agendamento atualizado',
+      body: `Seu agendamento de ${service_name?.trim()} com ${professional_name?.trim()} foi remarcado para ${dayAndMonth} às ${time}.`,
+    };
+  },
+
   buildBusinessRatedWithCommentMessage: ({
     reviewer_name,
     business_name,

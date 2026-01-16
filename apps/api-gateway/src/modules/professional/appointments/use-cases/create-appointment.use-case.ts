@@ -1,22 +1,26 @@
 import { PrismaService } from '@app/shared';
+import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifications';
 import {
   RABBIT_EXCHANGE,
   RmqService,
 } from '@app/shared/modules/rmq/rmq.service';
 import { GoogleCalendarService } from '@app/shared/modules/google-calendar/google-calendar.service';
+import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { AppRequest } from '@app/shared/types/app-request';
-import { getClientIp } from '@app/shared/utils';
-import { TZDate } from '@date-fns/tz';
+import { getClientIp, getTwoNames } from '@app/shared/utils';
+import { NotificationMessageBuilder } from '@app/shared/utils/notification-message-builder';
+import { TZDate, tz } from '@date-fns/tz';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import {
   BadRequestException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { addMinutes } from 'date-fns';
+import { addMinutes, format } from 'date-fns';
 import { CreateAppointmentDto } from '../dto/requests/create-appointment.dto';
 
 const BUSINESS_TZ_ID = 'America/Sao_Paulo';
+const IN_TZ = tz(BUSINESS_TZ_ID);
 const GOOGLE_CALENDAR_QUEUE =
   'api-gateway_professional_create-appointment_use-case.google_calendar-integration';
 
@@ -62,14 +66,26 @@ export class CreateAppointmentUseCase {
           id: professional_id,
           business_id: user.current_selected_business_id,
         },
-        select: { id: true, business_id: true, userId: true },
+        select: {
+          id: true,
+          business_id: true,
+          userId: true,
+          User: { select: { name: true } },
+        },
       }),
       this.prisma.businessCustomer.findFirst({
         where: {
           id: customer_id,
           businessId: user.current_selected_business_id,
         },
-        select: { personId: true },
+        select: {
+          personId: true,
+          person: {
+            select: {
+              user: { select: { push_token: true } },
+            },
+          },
+        },
       }),
     ]);
 
@@ -205,7 +221,29 @@ export class CreateAppointmentUseCase {
       }
     }
 
-    // TODO: disparar e-mail/push para o cliente (se aplicável)
+    const customerPushToken = bc.person?.user?.push_token;
+    if (customerPushToken) {
+      const dayAndMonth = format(startLocal, 'dd/MM', { in: IN_TZ });
+      const time = format(startLocal, 'HH:mm', { in: IN_TZ });
+      const professionalName = getTwoNames(professional.User?.name || '');
+      const message =
+        NotificationMessageBuilder.buildAppointmentCreatedMessageForCustomer({
+          professional_name: professionalName || 'Profissional',
+          dayAndMonth,
+          time,
+          service_name: service.name,
+        });
+
+      await this.rmqService.publishToQueue({
+        payload: new SendPushNotificationDto({
+          pushTokens: [customerPushToken],
+          title: message.title,
+          body: message.body,
+        }),
+        routingKey: MESSAGING_QUEUES.PUSH_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
+      });
+    }
+
     return null;
   }
 
