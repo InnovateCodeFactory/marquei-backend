@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/shared';
+import { systemGeneralSettings } from '@app/shared/config/system-general-settings';
 import { SendInAppNotificationDto } from '@app/shared/dto/messaging/in-app-notifications';
 import { SendWhatsAppTextMessageDto } from '@app/shared/dto/messaging/whatsapp-notifications';
 import { BuildNewProfessionalMessage } from '@app/shared/messsage-builders';
@@ -18,6 +19,7 @@ import { CreateProfessionalDto } from '../dto/requests/create-professional.dto';
 
 @Injectable()
 export class CreateProfessionalUseCase {
+  private readonly maxProfessionalsForFeaturedBusiness = 999;
   private readonly logger = new Logger(CreateProfessionalUseCase.name);
 
   constructor(
@@ -30,6 +32,10 @@ export class CreateProfessionalUseCase {
     if (!user.current_selected_business_id)
       throw new UnauthorizedException('Você não tem uma empresa selecionada');
 
+    const iosStoreLink = systemGeneralSettings.marquei_pro_app_store_url ?? '';
+    const androidStoreLink =
+      systemGeneralSettings.marquei_pro_play_store_url ?? '';
+
     const activeSub = await this.prismaService.businessSubscription.findFirst({
       where: {
         businessId: user.current_selected_business_id,
@@ -41,10 +47,17 @@ export class CreateProfessionalUseCase {
             max_professionals_allowed: true,
           },
         },
+        business: {
+          select: {
+            is_featured: true,
+          },
+        },
       },
     });
 
-    const profLimitBenefit = activeSub?.plan.max_professionals_allowed;
+    const profLimitBenefit = activeSub?.business?.is_featured
+      ? this.maxProfessionalsForFeaturedBusiness
+      : activeSub?.plan.max_professionals_allowed;
 
     const limit = profLimitBenefit;
 
@@ -146,10 +159,8 @@ export class CreateProfessionalUseCase {
               business_name: professional.business.name,
               username: payload.email,
               password: temporary_password,
-              ios_link:
-                'https://apps.apple.com/br/app/marquei-agendamentos/id6444930241',
-              android_link:
-                'https://play.google.com/store/apps/details?id=com.marquei.agendamentos',
+              ios_link: iosStoreLink,
+              android_link: androidStoreLink,
             }),
           }),
         }),
@@ -194,10 +205,8 @@ export class CreateProfessionalUseCase {
             message: BuildNewProfessionalMessage.welcomeOnlyWhatsapp({
               name: getFirstName(payload.name),
               business_name: professional.business.name,
-              ios_link:
-                'https://apps.apple.com/br/app/marquei-agendamentos/id6444930241',
-              android_link:
-                'https://play.google.com/store/apps/details?id=com.marquei.agendamentos',
+              ios_link: iosStoreLink,
+              android_link: androidStoreLink,
             }),
           }),
         }),

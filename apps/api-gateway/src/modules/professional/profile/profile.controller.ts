@@ -1,4 +1,5 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
+import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
 import { AppRequest, CurrentUser } from '@app/shared/types/app-request';
 import {
@@ -96,6 +97,7 @@ export class ProfessionalProfileController {
 
   @Get('general-links')
   @ApiOperation({ summary: 'Get system general links' })
+  @IsPublic()
   async getGeneralLinks(@Res() res: Response) {
     return await this.responseHandler.handle({
       method: () => this.getGeneralLinksUseCase.execute(),
@@ -105,6 +107,7 @@ export class ProfessionalProfileController {
 
   @Get('general-link')
   @ApiOperation({ summary: 'Get a specific system link by key' })
+  @IsPublic()
   async getGeneralLink(
     @Res() res: Response,
     @Query() query: GetGeneralLinkDto,

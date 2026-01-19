@@ -1,5 +1,5 @@
 import { PrismaService } from '@app/shared';
-import { normalizeAmenityIcon } from '@app/shared/utils';
+import { buildAddress, normalizeAmenityIcon } from '@app/shared/utils';
 import { FileSystemService } from '@app/shared/services';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { GetBusinessBySlugDto } from '../dto/requests/get-business-by-slug.dto';
@@ -31,6 +31,12 @@ export class GetBusinessBySlugUseCase {
         longitude: true,
         slug: true,
         id: true,
+        street: true,
+        number: true,
+        neighbourhood: true,
+        city: true,
+        uf: true,
+        complement: true,
         amenities: {
           select: {
             amenity: {
@@ -63,6 +69,14 @@ export class GetBusinessBySlugUseCase {
       opening_hours: business.opening_hours,
       cover_image: this.fs.getPublicUrl({ key: business.coverImage }),
       logo: this.fs.getPublicUrl({ key: business.logo }),
+      address: buildAddress({
+        street: business.street,
+        number: business.number,
+        neighbourhood: business.neighbourhood,
+        city: business.city,
+        uf: business.uf,
+        complement: business.complement,
+      }),
       amenities: (business.amenities || [])
         .map((item) => item.amenity)
         .filter(Boolean)
