@@ -73,9 +73,9 @@ export class SendCodeValidationMailUseCase {
 
         const { encryptedData, iv } = this.encryptionService.encrypt(code);
 
-        const created = await tx.mailValidation.create({
-          data: {
-            request_id, // único
+        const created = await tx.mailValidation.upsert({
+          where: { request_id },
+          update: {
             email,
             type,
             user_type,
@@ -84,7 +84,21 @@ export class SendCodeValidationMailUseCase {
             status: MailValidationStatusEnum.PENDING,
             active: true,
             expires_at: expiresAt,
-            // message_id só após enviar
+            attempts: 0,
+            validated: false,
+            validated_at: null,
+            message_id: null,
+          },
+          create: {
+            request_id,
+            email,
+            type,
+            user_type,
+            code_ciphertext: encryptedData,
+            code_iv: iv,
+            status: MailValidationStatusEnum.PENDING,
+            active: true,
+            expires_at: expiresAt,
           },
           select: { id: true },
         });
