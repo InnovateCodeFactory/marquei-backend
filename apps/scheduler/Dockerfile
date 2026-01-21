@@ -34,8 +34,8 @@ RUN mkdir -p /app/apps/${APP_NAME}/prisma
 COPY prisma /app/apps/${APP_NAME}/prisma
 
 # Gera Prisma Client do app específico
-WORKDIR /app/apps/${APP_NAME}
-RUN pnpm prisma generate
+WORKDIR /app
+RUN pnpm prisma:generate -- --schema apps/${APP_NAME}/prisma/schema.prisma
 
 # Build da aplicação
 WORKDIR /app
