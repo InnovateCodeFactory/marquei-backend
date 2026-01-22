@@ -50,6 +50,7 @@ model User {
   BusinessRating          BusinessRating[]
   BugReports              BugReports[]
   integrations            UserIntegration[]
+  businessRatingPrompts   BusinessRatingPrompt[]
 
   @@unique([email, user_type], name: "uq_user_email_type")
   @@index([email, user_type], name: "idx_user_email_user_type")
@@ -132,6 +133,7 @@ model Business {
   ReminderJob              ReminderJob[]
   ProfessionalTimesBlock   ProfessionalTimesBlock[]
   amenities                BusinessAmenity[]
+  businessRatingPrompts    BusinessRatingPrompt[]
 
   @@index([slug], name: "idx_business_slug")
   @@index([name], name: "idx_business_name")
@@ -204,6 +206,22 @@ model BusinessRating {
   @@unique([business_slug, userId], name: "uq_business_user_rating") // um usuário só pode avaliar um negócio uma vez
   @@index([business_slug], name: "idx_business_rating_business")
   @@index([userId], name: "idx_business_rating_user")
+}
+
+model BusinessRatingPrompt {
+  id            String    @id @default(cuid())
+  business_slug String
+  userId        String
+  dismissed_at  DateTime?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  business Business @relation(fields: [business_slug], references: [slug])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@index([business_slug, userId], name: "idx_rating_prompt_business_user")
+  @@index([business_slug], name: "idx_rating_prompt_business")
+  @@index([userId], name: "idx_rating_prompt_user")
 }
 
 model CurrentSelectedBusiness {
