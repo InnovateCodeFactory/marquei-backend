@@ -134,6 +134,7 @@ export class GetAvailableTimesUseCase {
           professionalProfileId: professional_id,
           start_at_utc: { lt: dayEndUtc },
           end_at_utc: { gt: dayStartUtc },
+          status: { in: ['CONFIRMED', 'PENDING'] },
         },
         select: {
           start_at_utc: true,
