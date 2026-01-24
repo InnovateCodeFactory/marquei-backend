@@ -13,10 +13,10 @@ export class GetAvailableTimesDto {
   @IsString()
   @IsNotEmpty()
   @ApiProperty({
-    description: 'The ID of the professional providing the service.',
+    description: 'The professional profile ID providing the service.',
     example: '67890',
   })
-  professional_id: string;
+  professional_profile_id: string;
 
   @IsISO8601()
   @IsNotEmpty()

@@ -71,6 +71,7 @@ export class GetAppointmentsUseCase {
       },
       select: {
         id: true,
+        professionalProfileId: true,
         notes: true,
         status: true,
         start_at_utc: true,
@@ -151,6 +152,7 @@ export class GetAppointmentsUseCase {
         notes: a.notes,
         professional: {
           id: a.professional.User.id,
+          professional_profile_id: a.professionalProfileId,
           name: getTwoNames(a.professional.User.name),
         },
         start_date: startUtc,

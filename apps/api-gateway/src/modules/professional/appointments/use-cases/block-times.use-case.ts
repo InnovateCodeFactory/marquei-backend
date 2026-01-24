@@ -84,9 +84,11 @@ export class BlockTimesUseCase {
           professionalProfileId: professional_profile_id,
           start_at_utc: { lt: itv.endUtc },
           end_at_utc: { gt: itv.startUtc },
+          status: { in: ['CONFIRMED', 'PENDING'] },
         },
         select: { id: true },
       });
+
       if (overlapping) {
         throw new BadRequestException(
           'Existe(m) agendamento(s) existentes no período. Desmarque os serviços antes de bloquear este horário.',
