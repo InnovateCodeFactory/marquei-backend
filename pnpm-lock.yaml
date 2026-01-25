@@ -67,7 +67,7 @@ importers:
         version: 0.4.1(@prisma/client@6.19.2(prisma@6.8.2(typescript@5.9.3))(typescript@5.9.3))
       '@scalar/nestjs-api-reference':
         specifier: ^1.0.5
-        version: 1.0.19
+        version: 1.0.20
       amqp-connection-manager:
         specifier: ^4.1.14
         version: 4.1.15(amqplib@0.10.9)
@@ -1142,20 +1142,20 @@ packages:
   '@prisma/get-platform@6.8.2':
     resolution: {integrity: sha512-vXSxyUgX3vm1Q70QwzwkjeYfRryIvKno1SXbIqwSptKwqKzskINnDUcx85oX+ys6ooN2ATGSD0xN2UTfg6Zcow==}
 
-  '@scalar/core@0.3.33':
-    resolution: {integrity: sha512-eEnj3Xl66VhD5h+Py+r3k3C5GuXucfUNc9o6XfGU/lKJTN9foEa9wgwyH2Lr6IHCtn+SoIgCn3ZS9g1REcXeZQ==}
+  '@scalar/core@0.3.34':
+    resolution: {integrity: sha512-dZnpkrnjiPvPLa/sIdjoaxdVoYowWUqC5nCCXJI+29laMIII6dCze8ThxLPGN1b9gJ8cYcQwBrwr+RNCjqJgdQ==}
     engines: {node: '>=20'}
 
-  '@scalar/helpers@0.2.8':
-    resolution: {integrity: sha512-aXXRF4sCaiGZIRpZ1MUcnl8y0Q9pPG1VXqQMWacVWDh6zQN9cuayTC/TbODzWeldp50sgJ1E8MpHvpeV7CEF9g==}
+  '@scalar/helpers@0.2.9':
+    resolution: {integrity: sha512-Y4ffJF0yELdwZ0BKgonqn3SumIgRn1WKyYCVHD+TDM7qRFChdGRypyt20+efHs26fmJeyBAIIv2laICj5uimiw==}
     engines: {node: '>=20'}
 
-  '@scalar/nestjs-api-reference@1.0.19':
-    resolution: {integrity: sha512-mNFRruxBt3IqJpqQz5iT+9Hpr2I0Ryfjb2G6q/R9xUTUED+k1RHgCcdEcmsJ8v5RQBA3evrXzYZmd9NbquiP0w==}
+  '@scalar/nestjs-api-reference@1.0.20':
+    resolution: {integrity: sha512-kpxFMo0jtrnACIEO8vWll/JlmNOG+DV2hPuP5UTMj3Yi8MygNZBrJ1i0ZSMegdH11cvlRbx0+yfHtEt9JCdybg==}
     engines: {node: '>=20'}
 
-  '@scalar/types@0.5.9':
-    resolution: {integrity: sha512-aj3Zju0HsyI2SCIPPejRGLsGCfkf5CRv4QLHcZB36uUo5WuzQ/PN4wxJPc5JpT0t+gLNj7lWjv/+RxDR0w57OA==}
+  '@scalar/types@0.5.10':
+    resolution: {integrity: sha512-37qAHQC2J7O+Mt8u0HOZttTQPQ1OEWKWxo9SMbahYKTosL9k1KtTG2F3EB33EkW3WqEVQitkUKrM0+MVM2HeYQ==}
     engines: {node: '>=20'}
 
   '@scarf/scarf@1.4.0':
@@ -1813,8 +1813,8 @@ packages:
   base64-js@1.5.1:
     resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
 
-  baseline-browser-mapping@2.9.17:
-    resolution: {integrity: sha512-agD0MgJFUP/4nvjqzIB29zRPUuCF7Ge6mEv9s8dHrtYD7QWXRcx75rOADE/d5ah1NI+0vkDl0yorDd5U852IQQ==}
+  baseline-browser-mapping@2.9.18:
+    resolution: {integrity: sha512-e23vBV1ZLfjb9apvfPk4rHVu2ry6RIr2Wfs+O324okSidrX7pTAnEJPCh/O5BtRlr7QtZI7ktOP3vsqr7Z5XoA==}
     hasBin: true
 
   bcryptjs@3.0.3:
@@ -5569,19 +5569,19 @@ snapshots:
     dependencies:
       '@prisma/debug': 6.8.2
 
-  '@scalar/core@0.3.33':
+  '@scalar/core@0.3.34':
     dependencies:
-      '@scalar/types': 0.5.9
+      '@scalar/types': 0.5.10
 
-  '@scalar/helpers@0.2.8': {}
+  '@scalar/helpers@0.2.9': {}
 
-  '@scalar/nestjs-api-reference@1.0.19':
+  '@scalar/nestjs-api-reference@1.0.20':
     dependencies:
-      '@scalar/core': 0.3.33
+      '@scalar/core': 0.3.34
 
-  '@scalar/types@0.5.9':
+  '@scalar/types@0.5.10':
     dependencies:
-      '@scalar/helpers': 0.2.8
+      '@scalar/helpers': 0.2.9
       nanoid: 5.1.6
       type-fest: 5.4.1
       zod: 4.3.6
@@ -6460,7 +6460,7 @@ snapshots:
 
   base64-js@1.5.1: {}
 
-  baseline-browser-mapping@2.9.17: {}
+  baseline-browser-mapping@2.9.18: {}
 
   bcryptjs@3.0.3: {}
 
@@ -6509,7 +6509,7 @@ snapshots:
 
   browserslist@4.28.1:
     dependencies:
-      baseline-browser-mapping: 2.9.17
+      baseline-browser-mapping: 2.9.18
       caniuse-lite: 1.0.30001766
       electron-to-chromium: 1.5.278
       node-releases: 2.0.27

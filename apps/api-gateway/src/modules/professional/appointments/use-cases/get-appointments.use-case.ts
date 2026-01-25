@@ -191,7 +191,9 @@ export class GetAppointmentsUseCase {
       return {};
     }
 
-    const startDate = query?.start_date ? parseISO(query.start_date) : undefined;
+    const startDate = query?.start_date
+      ? parseISO(query.start_date)
+      : undefined;
     const endDate = query?.end_date ? parseISO(query.end_date) : undefined;
 
     if (startDate && !isValid(startDate)) {
@@ -203,9 +205,7 @@ export class GetAppointmentsUseCase {
     }
 
     if (startDate && endDate && isAfter(startDate, endDate)) {
-      throw new BadRequestException(
-        'start_date must be before end_date.',
-      );
+      throw new BadRequestException('start_date must be before end_date.');
     }
 
     return { startDate, endDate };

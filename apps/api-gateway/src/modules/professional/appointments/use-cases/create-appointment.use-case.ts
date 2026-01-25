@@ -1,11 +1,11 @@
 import { PrismaService } from '@app/shared';
 import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifications';
-import { GoogleCalendarService } from '@app/shared/modules/google-calendar/google-calendar.service';
-import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import {
   RABBIT_EXCHANGE,
   RmqService,
 } from '@app/shared/modules/rmq/rmq.service';
+import { GoogleCalendarService } from '@app/shared/modules/google-calendar/google-calendar.service';
+import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { AppRequest } from '@app/shared/types/app-request';
 import { getClientIp, getTwoNames } from '@app/shared/utils';
 import { NotificationMessageBuilder } from '@app/shared/utils/notification-message-builder';
@@ -124,7 +124,6 @@ export class CreateAppointmentUseCase {
         professionalProfileId: professional_id,
         start_at_utc: { lt: endUtc },
         end_at_utc: { gt: startUtc },
-        status: { in: ['CONFIRMED', 'PENDING'] },
       },
       select: { id: true },
     });
@@ -357,15 +356,16 @@ export class CreateAppointmentUseCase {
       const createdEvent = await this.googleCalendarService.createEvent({
         tokens,
         event: {
-          summary: appointment.professional?.business?.name
-            ? `Agendamento ${appointment.professional.business.name}`
-            : 'Agendamento Marquei',
+          summary:
+            appointment.professional?.business?.name
+              ? `Agendamento ${appointment.professional.business.name}`
+              : 'Agendamento Marquei',
           description:
             appointment.service?.name && appointment.customerPerson?.name
               ? `${appointment.service.name} para o cliente ${appointment.customerPerson.name}`
-              : (appointment.service?.name ??
+              : appointment.service?.name ??
                 appointment.customerPerson?.name ??
-                undefined),
+                undefined,
           start: {
             dateTime: startLocal.toISOString(),
             timeZone: tz,
