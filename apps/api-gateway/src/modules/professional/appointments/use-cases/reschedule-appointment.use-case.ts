@@ -19,9 +19,9 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
+import { ReminderChannel } from '@prisma/client';
 import { addMinutes, format } from 'date-fns';
 import { RescheduleAppointmentDto } from '../dto/requests/reschedule-appointment.dto';
-import { ReminderChannel } from '@prisma/client';
 
 const BUSINESS_TZ_ID = 'America/Sao_Paulo';
 const IN_TZ = tz(BUSINESS_TZ_ID);
@@ -122,6 +122,7 @@ export class RescheduleAppointmentUseCase {
         professionalProfileId: appointment.professionalProfileId,
         start_at_utc: { lt: newEndUtc },
         end_at_utc: { gt: newStartUtc },
+        status: { in: ['PENDING', 'CONFIRMED'] },
       },
       select: { id: true },
     });
@@ -239,7 +240,10 @@ export class RescheduleAppointmentUseCase {
       });
     }
 
-    if (appointment.google_calendar_event_id && appointment.professional?.userId) {
+    if (
+      appointment.google_calendar_event_id &&
+      appointment.professional?.userId
+    ) {
       try {
         const integration = await this.prisma.userIntegration.findUnique({
           where: {

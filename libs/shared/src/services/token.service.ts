@@ -64,10 +64,10 @@ export class TokenService {
     return this.config.get('JWT_REFRESH_SECRET') || this.accessSecret;
   }
 
-  async signAccessToken(payload: JwtPayloadBase): Promise<string> {
+  async signAccessToken(payload: any): Promise<string> {
     return this.jwtService.signAsync(payload, {
       secret: this.accessSecret,
-      expiresIn: this.accessExpiresIn,
+      expiresIn: this.accessExpiresIn as any,
     });
   }
 
@@ -122,7 +122,7 @@ export class TokenService {
     const jti = randomUUID();
     const token = await this.jwtService.signAsync(
       { ...payload, jti },
-      { secret: this.refreshSecret, expiresIn: this.refreshExpiresIn },
+      { secret: this.refreshSecret, expiresIn: this.refreshExpiresIn as any },
     );
 
     const ttl = this.parseDurationToSeconds(this.refreshExpiresIn);
