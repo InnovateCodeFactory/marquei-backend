@@ -1,6 +1,6 @@
 import { PrismaService } from '@app/shared';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { getTwoNames } from '@app/shared/utils';
+import { formatAppointmentStatus, getTwoNames } from '@app/shared/utils';
 import { Price } from '@app/shared/value-objects';
 import { tz } from '@date-fns/tz';
 import { Injectable, NotFoundException } from '@nestjs/common';
@@ -32,8 +32,10 @@ export class GetCustomerAppointmentsUseCase {
         end_at_utc: true,
         timezone: true,
         duration_minutes: true,
+        professionalProfileId: true,
         service: {
           select: {
+            id: true,
             name: true,
             price_in_cents: true,
             duration: true, // fallback
@@ -41,7 +43,7 @@ export class GetCustomerAppointmentsUseCase {
         },
         professional: {
           select: {
-            User: { select: { name: true } },
+            User: { select: { id: true, name: true } },
           },
         },
       },
@@ -65,7 +67,8 @@ export class GetCustomerAppointmentsUseCase {
 
       return {
         id: appt.id,
-        status: appt.status,
+        status: formatAppointmentStatus(appt.status),
+        status_raw: appt.status,
         date: {
           day: format(appt.start_at_utc, 'dd', { in: IN_TZ }),
           month: format(appt.start_at_utc, 'MMM', { in: IN_TZ }),
@@ -73,10 +76,13 @@ export class GetCustomerAppointmentsUseCase {
           hour_end: hourEnd,
         },
         service: {
+          id: appt.service.id,
           name: appt.service.name,
           price: new Price(appt.service.price_in_cents).toCurrency(),
         },
         professional: {
+          id: appt.professional.User.id,
+          professional_profile_id: appt.professionalProfileId,
           name: getTwoNames(appt.professional.User.name),
         },
       };
