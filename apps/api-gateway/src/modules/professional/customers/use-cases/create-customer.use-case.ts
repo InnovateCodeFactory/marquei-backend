@@ -7,27 +7,24 @@ import {
 } from '@nestjs/common';
 import { CreateCustomerDto } from '../dto/requests/create-customer.dto';
 
-export function toE164(phone?: string | null) {
+export function normalizePhoneBR(phone?: string | null) {
   if (!phone) return null;
-  // caso 1: já vem com +55
-  if (phone.startsWith('+55')) {
-    return `+55${phone.slice(2)}`; // garante que não tenha +550...
+  const digits = phone.replace(/\D/g, '');
+  if (!digits) return null;
+  let normalized = digits.replace(/^0+/, '');
+  if (normalized.startsWith('55') && normalized.length > 11) {
+    normalized = normalized.slice(2);
   }
-  // caso 2: começa com 55 mas sem +
-  if (phone.startsWith('55')) {
-    return `+${phone}`;
-  }
-  // caso 3: número local → assume Brasil
-  return `+55${phone}`;
+  return normalized;
 }
 
 function normalizeInput(dto: CreateCustomerDto) {
   return {
-    name: dto.name.trim(),
+    name: dto.name?.trim(),
     email: dto.email ? dto.email.trim().toLowerCase() : null,
-    phone: dto.phone ? toE164(dto.phone) : null,
+    phone: dto.phone ? normalizePhoneBR(dto.phone) : null,
     birthdate: dto.birthdate ? new Date(dto.birthdate) : null,
-    notes: dto.notes ?? null,
+    notes: dto.notes ? dto.notes.trim() : null,
   };
 }
 
@@ -93,8 +90,8 @@ export class CreateCustomerUseCase {
         person: { connect: { id: personId } },
         // campos contextuais do negócio:
         notes: n.notes || undefined,
-        email: payload.email || undefined, // opcional: sombra “como foi cadastrado no negócio”
-        phone: payload.phone || undefined, // idem
+        email: n.email || undefined, // opcional: sombra “como foi cadastrado no negócio”
+        phone: n.phone || undefined, // idem
       },
       select: { id: true },
     });

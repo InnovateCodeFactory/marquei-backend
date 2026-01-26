@@ -17,8 +17,10 @@ export class CreateCustomerUseCase {
   ) {}
 
   async execute(dto: CreateUserCustomerDto) {
+    const name = dto.name.trim();
     const email = dto.email.trim().toLowerCase();
     const phone = dto.phone.trim();
+    const deviceToken = dto.device_token?.trim();
 
     // regra de negócio: um mesmo email não pode existir para user_type=CUSTOMER
     const existingUserByEmail = await this.prisma.user.findFirst({
@@ -51,7 +53,7 @@ export class CreateCustomerUseCase {
         (
           await tx.person.create({
             data: {
-              name: dto.name.trim(),
+              name,
               email,
               phone,
             },
@@ -74,7 +76,7 @@ export class CreateCustomerUseCase {
       // 3) Cria o User CUSTOMER
       const user = await tx.user.create({
         data: {
-          name: dto.name.trim(),
+          name,
           email,
           password: passwordHash,
           user_type: 'CUSTOMER',
@@ -89,7 +91,6 @@ export class CreateCustomerUseCase {
       });
 
       // 4) Vincula Guest pelo device_token (se existir)
-      const deviceToken = dto.device_token?.trim();
       if (deviceToken) {
         const guest = await tx.guest.findUnique({
           where: { device_token: deviceToken },
@@ -117,7 +118,7 @@ export class CreateCustomerUseCase {
       await this.rmqService.publishToQueue({
         payload: new SendWelcomeMailDto({
           to: email,
-          firstName: getFirstName(dto.name),
+          firstName: getFirstName(name),
         }),
         routingKey:
           MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_WELCOME_CUSTOMER_MAIL_QUEUE,

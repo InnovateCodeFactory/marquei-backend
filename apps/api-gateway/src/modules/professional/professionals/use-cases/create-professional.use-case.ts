@@ -32,6 +32,10 @@ export class CreateProfessionalUseCase {
     if (!user.current_selected_business_id)
       throw new UnauthorizedException('Você não tem uma empresa selecionada');
 
+    const name = payload.name?.trim();
+    const email = payload.email?.trim().toLowerCase();
+    const phone = payload.phone?.trim();
+
     const iosStoreLink = systemGeneralSettings.marquei_pro_app_store_url ?? '';
     const androidStoreLink =
       systemGeneralSettings.marquei_pro_play_store_url ?? '';
@@ -75,7 +79,7 @@ export class CreateProfessionalUseCase {
       await this.prismaService.professionalProfile.findFirst({
         where: {
           business_id: user.current_selected_business_id,
-          phone: payload.phone,
+          phone,
         },
         select: {
           id: true,
@@ -91,7 +95,7 @@ export class CreateProfessionalUseCase {
     const existingUser = await this.prismaService.user.findUnique({
       where: {
         uq_user_email_type: {
-          email: payload.email,
+          email,
           user_type: 'PROFESSIONAL',
         },
       },
@@ -106,7 +110,7 @@ export class CreateProfessionalUseCase {
 
       const professional = await this.prismaService.professionalProfile.create({
         data: {
-          phone: payload.phone,
+          phone,
           status: 'PENDING_VERIFICATION',
           business: {
             connect: { id: user.current_selected_business_id },
@@ -115,13 +119,13 @@ export class CreateProfessionalUseCase {
             connectOrCreate: {
               where: {
                 uq_user_email_type: {
-                  email: payload.email,
+                  email,
                   user_type: 'PROFESSIONAL',
                 },
               },
               create: {
-                email: payload.email,
-                name: payload.name,
+                email,
+                name,
                 temporary_password,
                 password: await this.hashingService.hash(temporary_password),
                 user_type: 'PROFESSIONAL',
@@ -144,7 +148,7 @@ export class CreateProfessionalUseCase {
             MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
           payload: new SendInAppNotificationDto({
             title: 'Bem-vindo(a) ao Marquei!',
-            body: `Olá ${getFirstName(payload.name)}, seja bem-vindo(a) ao Marquei! Estamos felizes em tê-lo(a) conosco!`,
+            body: `Olá ${getFirstName(name)}, seja bem-vindo(a) ao Marquei! Estamos felizes em tê-lo(a) conosco!`,
             professionalProfileId: professional.id,
           }),
         }),
@@ -153,11 +157,11 @@ export class CreateProfessionalUseCase {
           routingKey:
             MESSAGING_QUEUES.WHATSAPP_NOTIFICATIONS.SEND_TEXT_MESSAGE_QUEUE,
           payload: new SendWhatsAppTextMessageDto({
-            phone_number: payload.phone,
+            phone_number: phone,
             message: BuildNewProfessionalMessage.forWhatsapp({
-              name: getFirstName(payload.name),
+              name: getFirstName(name),
               business_name: professional.business.name,
-              username: payload.email,
+              username: email,
               password: temporary_password,
               ios_link: iosStoreLink,
               android_link: androidStoreLink,
@@ -169,7 +173,7 @@ export class CreateProfessionalUseCase {
       // Usuário já existe (em outra empresa): cria apenas novo perfil profissional vinculado ao user existente
       const professional = await this.prismaService.professionalProfile.create({
         data: {
-          phone: payload.phone,
+          phone,
           status: 'ACTIVE',
           business: {
             connect: { id: user.current_selected_business_id },
@@ -192,7 +196,7 @@ export class CreateProfessionalUseCase {
             MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
           payload: new SendInAppNotificationDto({
             title: 'Bem-vindo(a) ao Marquei!',
-            body: `Olá ${getFirstName(payload.name)}, seja bem-vindo(a) ao Marquei! Estamos felizes em tê-lo(a) conosco!`,
+            body: `Olá ${getFirstName(name)}, seja bem-vindo(a) ao Marquei! Estamos felizes em tê-lo(a) conosco!`,
             professionalProfileId: professional.id,
           }),
         }),
@@ -201,9 +205,9 @@ export class CreateProfessionalUseCase {
           routingKey:
             MESSAGING_QUEUES.WHATSAPP_NOTIFICATIONS.SEND_TEXT_MESSAGE_QUEUE,
           payload: new SendWhatsAppTextMessageDto({
-            phone_number: payload.phone,
+            phone_number: phone,
             message: BuildNewProfessionalMessage.welcomeOnlyWhatsapp({
-              name: getFirstName(payload.name),
+              name: getFirstName(name),
               business_name: professional.business.name,
               ios_link: iosStoreLink,
               android_link: androidStoreLink,
