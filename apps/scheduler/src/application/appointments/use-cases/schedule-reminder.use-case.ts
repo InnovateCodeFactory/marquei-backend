@@ -1,7 +1,8 @@
 import { PrismaService } from '@app/shared';
-import { AppointmentStatusEnum } from '@app/shared/enum';
+import { systemGeneralSettings } from '@app/shared/config/system-general-settings';
 import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifications';
 import { SendWhatsAppTextMessageDto } from '@app/shared/dto/messaging/whatsapp-notifications';
+import { AppointmentStatusEnum } from '@app/shared/enum';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { NotificationMessageBuilder } from '@app/shared/utils/notification-message-builder';
@@ -113,6 +114,34 @@ export class ScheduleReminderUseCase implements OnModuleInit {
           reminderSettings.map((item) => [item.businessId, item]),
         );
 
+        const pairKeys = new Set<string>();
+        for (const job of jobs) {
+          if (job.businessId && job.personId) {
+            pairKeys.add(`${job.businessId}:${job.personId}`);
+          }
+        }
+        const businessCustomers = pairKeys.size
+          ? await this.prismaService.businessCustomer.findMany({
+              where: {
+                OR: Array.from(pairKeys).map((key) => {
+                  const [businessId, personId] = key.split(':');
+                  return { businessId, personId };
+                }),
+              },
+              select: {
+                businessId: true,
+                personId: true,
+                verified: true,
+              },
+            })
+          : [];
+        const businessCustomerMap = new Map(
+          businessCustomers.map((bc) => [
+            `${bc.businessId}:${bc.personId}`,
+            bc,
+          ]),
+        );
+
         // Agrupa por (appointmentId + due_at_utc) para aplicar stagger entre canais simultâneos
         const groups = new Map<string, typeof jobs>();
         for (const j of jobs) {
@@ -156,8 +185,10 @@ export class ScheduleReminderUseCase implements OnModuleInit {
           }
 
           if (
-            ![AppointmentStatusEnum.PENDING, AppointmentStatusEnum.CONFIRMED]
-              .includes(appt.status as AppointmentStatusEnum)
+            ![
+              AppointmentStatusEnum.PENDING,
+              AppointmentStatusEnum.CONFIRMED,
+            ].includes(appt.status as AppointmentStatusEnum)
           ) {
             await skipGroup('appointment_status_invalid');
             continue;
@@ -211,6 +242,24 @@ export class ScheduleReminderUseCase implements OnModuleInit {
                 service_name: serviceName,
               },
             );
+          const bcKey = base.personId
+            ? `${base.businessId}:${base.personId}`
+            : null;
+          const isVerified = bcKey
+            ? businessCustomerMap.get(bcKey)?.verified === true
+            : true;
+
+          const iosLink = systemGeneralSettings.marquei_app_store_url ?? '';
+          const androidLink =
+            systemGeneralSettings.marquei_play_store_url ?? '';
+          const footerLines = [
+            'Se ainda não possui nosso aplicativo instalado, utilize um dos links abaixo:',
+            iosLink ? `• iOS: ${iosLink}` : null,
+            androidLink ? `• Android: ${androidLink}` : null,
+          ].filter(Boolean);
+          const whatsappMessage = isVerified
+            ? msg.body
+            : `${msg.body}\n\n${footerLines.join('\n')}`;
 
           const STAGGER_MS = 2 * 60_000; // 2 minutos
 
@@ -315,7 +364,7 @@ export class ScheduleReminderUseCase implements OnModuleInit {
                     .SEND_TEXT_MESSAGE_QUEUE,
                 payload: new SendWhatsAppTextMessageDto({
                   phone_number: phone,
-                  message: msg.body,
+                  message: whatsappMessage,
                 }),
               });
               await markSent(job.id);
