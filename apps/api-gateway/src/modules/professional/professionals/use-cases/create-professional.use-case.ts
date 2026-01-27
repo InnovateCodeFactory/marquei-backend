@@ -7,7 +7,7 @@ import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { HashingService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { generateRandomString, getFirstName } from '@app/shared/utils';
+import { generateRandomString, getFirstName, hasProhibitedTerm } from '@app/shared/utils';
 import {
   BadRequestException,
   ForbiddenException,
@@ -35,6 +35,10 @@ export class CreateProfessionalUseCase {
     const name = payload.name?.trim();
     const email = payload.email?.trim().toLowerCase();
     const phone = payload.phone?.trim();
+
+    if (name && hasProhibitedTerm(name, 'user')) {
+      throw new BadRequestException('Nome contém termos não permitidos');
+    }
 
     const iosStoreLink = systemGeneralSettings.marquei_pro_app_store_url ?? '';
     const androidStoreLink =

@@ -10,6 +10,7 @@ import { lookup as dnsLookup } from 'node:dns/promises';
 import { request as httpsRequest } from 'node:https';
 import { isIP } from 'node:net';
 import { EditBusinessDto } from '../dto/requests/edit-business.dto';
+import { hasProhibitedTerm } from '@app/shared/utils';
 
 @Injectable()
 export class EditBusinessUseCase {
@@ -25,6 +26,11 @@ export class EditBusinessUseCase {
     const validations: Array<Promise<void>> = [];
 
     if ('name' in dto && typeof dto.name === 'string' && dto.name.trim().length) {
+      if (hasProhibitedTerm(dto.name, 'business')) {
+        throw new BadRequestException(
+          'Nome do estabelecimento contém termos não permitidos',
+        );
+      }
       data.name = dto.name.trim();
     }
     if ('description' in dto) data.description = dto.description ?? null;

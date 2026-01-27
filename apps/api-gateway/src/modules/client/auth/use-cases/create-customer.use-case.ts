@@ -3,8 +3,8 @@ import { SendWelcomeMailDto } from '@app/shared/dto/messaging/mail-notifications
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { HashingService, TokenService } from '@app/shared/services';
-import { getFirstName } from '@app/shared/utils';
-import { ConflictException, Injectable } from '@nestjs/common';
+import { getFirstName, hasProhibitedTerm } from '@app/shared/utils';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { CreateUserCustomerDto } from '../dto/requests/create-customer.dto';
 
 @Injectable()
@@ -21,6 +21,10 @@ export class CreateCustomerUseCase {
     const email = dto.email.trim().toLowerCase();
     const phone = dto.phone.trim();
     const deviceToken = dto.device_token?.trim();
+
+    if (hasProhibitedTerm(name, 'customer')) {
+      throw new BadRequestException('Nome contém termos não permitidos');
+    }
 
     // regra de negócio: um mesmo email não pode existir para user_type=CUSTOMER
     const existingUserByEmail = await this.prisma.user.findFirst({

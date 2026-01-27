@@ -1,12 +1,14 @@
 import { PrismaService } from '@app/shared';
 import { AppRequest } from '@app/shared/types/app-request';
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { EditProfileDto } from '../dto/requests/edit-profile.dto';
+import { hasProhibitedTerm } from '@app/shared/utils';
 
 type NormalizedPayload = {
   email?: string; // string normalizada ou undefined (não enviado)
@@ -26,6 +28,12 @@ export class EditProfileUseCase {
 
     // 1) Normaliza apenas o que veio no DTO
     const norm = this.normalize(dto);
+
+    if (norm.name && hasProhibitedTerm(norm.name, 'user')) {
+      throw new BadRequestException(
+        'Nome contém termos não permitidos',
+      );
+    }
 
     // Nada para atualizar? encerra cedo
     if (this.isEmpty(norm)) {

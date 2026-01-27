@@ -198,6 +198,8 @@ export function getTwoNames(name: string): string {
   return `${names[0]} ${names[1]}`;
 }
 
+export * from './prohibited-terms';
+
 export function codeGenerator({
   length,
   onlyNumbers = false,

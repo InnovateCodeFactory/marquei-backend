@@ -1,8 +1,9 @@
 import { PrismaService } from '@app/shared';
 import { AppRequest } from '@app/shared/types/app-request';
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { EditProfessionalProfileDto } from '../dto/requests/edit-profile.dto';
+import { hasProhibitedTerm } from '@app/shared/utils';
 
 type NormalizedPayload = {
   email?: string;
@@ -29,6 +30,10 @@ export class EditProfessionalProfileUseCase {
 
     const norm = this.normalize(dto);
     if (this.isEmpty(norm)) return null;
+
+    if (norm.name && hasProhibitedTerm(norm.name, 'user')) {
+      throw new BadRequestException('Nome contém termos não permitidos');
+    }
 
     // e-mail único por user_type=PROFESSIONAL
     if (norm.email) {
@@ -112,4 +117,3 @@ function getConflictMessage(field?: string) {
       return 'Conflito de dados únicos';
   }
 }
-

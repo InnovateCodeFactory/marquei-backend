@@ -5,6 +5,7 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+import { hasProhibitedTerm } from '@app/shared/utils';
 import { CreateServiceDto } from '../dto/requests/create-service.dto';
 
 @Injectable()
@@ -17,6 +18,12 @@ export class CreateServiceUseCase {
 
     const { current_selected_business_slug } = currentUser;
     const { duration, name, price_in_cents, color, professionalsId } = payload;
+
+    if (name && hasProhibitedTerm(name, 'service')) {
+      throw new BadRequestException(
+        'Nome do serviço contém termos não permitidos',
+      );
+    }
 
     const serviceExists = await this.prismaService.service.findFirst({
       where: {

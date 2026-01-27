@@ -5,7 +5,7 @@ import { DaysOfWeek, SendMailTypeEnum } from '@app/shared/enum';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { HashingService } from '@app/shared/services';
-import { getFirstName, slugifyBusinessName } from '@app/shared/utils';
+import { getFirstName, hasProhibitedTerm, slugifyBusinessName } from '@app/shared/utils';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateAccountDto } from '../dto/requests/create-account';
 
@@ -31,6 +31,16 @@ export class CreateAccountUseCase {
   async execute(registerDto: CreateAccountDto) {
     const { name, email, password, documentNumber, phone, business } =
       registerDto;
+
+    if (hasProhibitedTerm(name, 'user')) {
+      throw new BadRequestException('Nome contém termos não permitidos');
+    }
+
+    if (hasProhibitedTerm(business.name, 'business')) {
+      throw new BadRequestException(
+        'Nome do estabelecimento contém termos não permitidos',
+      );
+    }
 
     const slug = slugifyBusinessName(business.name);
 

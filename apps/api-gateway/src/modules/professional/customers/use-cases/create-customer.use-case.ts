@@ -5,6 +5,7 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+import { hasProhibitedTerm } from '@app/shared/utils';
 import { CreateCustomerDto } from '../dto/requests/create-customer.dto';
 
 export function normalizePhoneBR(phone?: string | null) {
@@ -39,6 +40,12 @@ export class CreateCustomerUseCase {
 
     const { current_selected_business_slug } = currentUser;
     const n = normalizeInput(payload);
+
+    if (n.name && hasProhibitedTerm(n.name, 'customer')) {
+      throw new BadRequestException(
+        'Nome do cliente contém termos não permitidos',
+      );
+    }
 
     // 1) Acha/Cria a Person (prioridade: documento > email > phone)
     const existingByEmail = n.email

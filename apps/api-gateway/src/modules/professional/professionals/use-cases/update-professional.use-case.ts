@@ -6,6 +6,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { hasProhibitedTerm } from '@app/shared/utils';
 import { UpdateProfessionalDto } from '../dto/requests/update-professional.dto';
 
 @Injectable()
@@ -65,6 +66,10 @@ export class UpdateProfessionalUseCase {
         throw new BadRequestException(
           'Já existe um profissional cadastrado com esse telefone para esta empresa',
         );
+    }
+
+    if (name && hasProhibitedTerm(name, 'user')) {
+      throw new BadRequestException('Nome contém termos não permitidos');
     }
 
     // Build update data object with only changed fields

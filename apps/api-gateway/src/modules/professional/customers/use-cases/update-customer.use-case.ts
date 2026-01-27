@@ -1,6 +1,7 @@
 import { PrismaService } from '@app/shared';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { hasProhibitedTerm } from '@app/shared/utils';
 import { UpdateCustomerDto } from '../dto/requests/update-customer.dto';
 
 function toE164(phone?: string | null) {
@@ -24,6 +25,12 @@ export class UpdateCustomerUseCase {
     });
 
     if (!bc) throw new NotFoundException('Cliente não encontrado');
+
+    if (payload.name && hasProhibitedTerm(payload.name, 'customer')) {
+      throw new BadRequestException(
+        'Nome do cliente contém termos não permitidos',
+      );
+    }
 
     const personData = this.cleanObject({
       ...(payload.name !== undefined && { name: payload.name.trim() }),

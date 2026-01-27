@@ -6,6 +6,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { hasProhibitedTerm } from '@app/shared/utils';
 import { UpdateServiceDto } from '../dto/requests/update-service.dto';
 
 @Injectable()
@@ -49,6 +50,12 @@ export class UpdateServiceUseCase {
 
     // Check if name is being changed and if it's already in use by another service
     if (name && name !== existingService.name) {
+      if (hasProhibitedTerm(name, 'service')) {
+        throw new BadRequestException(
+          'Nome do serviço contém termos não permitidos',
+        );
+      }
+
       const nameInUse = await this.prismaService.service.findFirst({
         where: {
           name: {
