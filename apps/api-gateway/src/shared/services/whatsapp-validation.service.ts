@@ -51,9 +51,9 @@ export class WhatsAppValidationService {
       throw new BadRequestException('Parâmetros obrigatórios ausentes');
     }
 
-    // normaliza telefone (só dígitos)
-    const phone = payload.phone_number.replace(/\D/g, '');
-    if (phone.length < 10) throw new BadRequestException('Telefone inválido');
+    // normaliza telefone e garante DDI 55
+    const phone = this.normalizePhoneNumber(payload.phone_number);
+    if (phone.length < 12) throw new BadRequestException('Telefone inválido');
 
     await this.rmqService.publishToQueue({
       routingKey:
@@ -277,5 +277,21 @@ export class WhatsAppValidationService {
   private maskCode(code: string) {
     // mantém 2 últimos dígitos visíveis
     return code.replace(/.(?=.{2}$)/g, '*');
+  }
+
+  private normalizePhoneNumber(raw: string): string {
+    const digits = raw.replace(/\D/g, '');
+    if (!digits) return '';
+    const normalized = digits.replace(/^0+/, '');
+    if (
+      (normalized.length === 12 || normalized.length === 13) &&
+      normalized.startsWith('55')
+    ) {
+      return normalized;
+    }
+    if (normalized.length === 10 || normalized.length === 11) {
+      return `55${normalized}`;
+    }
+    return normalized.startsWith('55') ? normalized : `55${normalized}`;
   }
 }

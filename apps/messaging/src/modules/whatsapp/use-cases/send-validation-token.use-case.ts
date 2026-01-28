@@ -53,7 +53,7 @@ export class SendValidationTokenUseCase {
       return;
     }
 
-    // (Opcional) normalizar número: remover espaços, parênteses e traços.
+    // normaliza número e garante DDI 55
     const phone = this.normalizePhoneNumber(phone_number);
 
     // Regra de negócio: 6 dígitos numéricos
@@ -145,7 +145,21 @@ export class SendValidationTokenUseCase {
   }
 
   private normalizePhoneNumber(raw: string): string {
-    // simples: remove tudo que não é dígito
-    return raw.replace(/\D/g, '');
+    const digits = raw.replace(/\D/g, '');
+    if (!digits) return '';
+    const normalized = digits.replace(/^0+/, '');
+    // Se já vier com DDI (12 ou 13 dígitos) e começar com 55, mantém
+    if (
+      (normalized.length === 12 || normalized.length === 13) &&
+      normalized.startsWith('55')
+    ) {
+      return normalized;
+    }
+    // Se vier apenas com DDD+telefone (10 ou 11 dígitos), prefixa DDI 55
+    if (normalized.length === 10 || normalized.length === 11) {
+      return `55${normalized}`;
+    }
+    // Fallback: evita duplicar 55, mas tenta padronizar
+    return normalized.startsWith('55') ? normalized : `55${normalized}`;
   }
 }

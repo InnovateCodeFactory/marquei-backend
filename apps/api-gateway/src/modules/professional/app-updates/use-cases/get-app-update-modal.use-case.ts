@@ -1,5 +1,6 @@
 import { PrismaService } from '@app/shared';
 import { systemGeneralSettings } from '@app/shared/config/system-general-settings';
+import { FileSystemService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { Injectable } from '@nestjs/common';
 
@@ -10,7 +11,10 @@ type AppMeta = {
 
 @Injectable()
 export class GetAppUpdateModalUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fileSystem: FileSystemService,
+  ) {}
 
   async execute(user: CurrentUser, meta: AppMeta) {
     if (!user?.id)
@@ -135,7 +139,12 @@ export class GetAppUpdateModalUseCase {
         await this.recordViewed(user.id, candidate.id, appVersion, appOs);
         return {
           should_open_app_update_modal: true,
-          app_update_modal: candidate,
+          app_update_modal: {
+            ...candidate,
+            banner_url: this.fileSystem.getPublicUrl({
+              key: candidate.banner_url,
+            }),
+          },
         };
       }
     }

@@ -1,10 +1,15 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { Controller, Get, Param, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
-import { GetAppUpdateByIdUseCase, GetAppUpdateModalUseCase } from './use-cases';
+import {
+  GetAppUpdateByIdUseCase,
+  GetAppUpdateModalUseCase,
+  RegisterAppUpdateInteractionUseCase,
+} from './use-cases';
+import { RegisterAppUpdateInteractionDto } from './dto/requests/register-app-update-interaction.dto';
 
 @Controller('professional/app-updates')
 @ApiTags('Professional - App Updates')
@@ -13,6 +18,7 @@ export class AppUpdatesController {
     private readonly responseHandler: ResponseHandlerService,
     private readonly getAppUpdateByIdUseCase: GetAppUpdateByIdUseCase,
     private readonly getAppUpdateModalUseCase: GetAppUpdateModalUseCase,
+    private readonly registerAppUpdateInteractionUseCase: RegisterAppUpdateInteractionUseCase,
   ) {}
 
   @Get('check')
@@ -45,6 +51,29 @@ export class AppUpdatesController {
   ) {
     return this.responseHandler.handle({
       method: () => this.getAppUpdateByIdUseCase.execute(id, user),
+      res,
+    });
+  }
+
+  @Post('interaction')
+  @ApiOperation({
+    summary: 'Register app update interaction',
+  })
+  async registerInteraction(
+    @Body() body: RegisterAppUpdateInteractionDto,
+    @Req() req: Request,
+    @Res() res: Response,
+    @CurrentUserDecorator() user: CurrentUser,
+  ) {
+    const appVersion = getHeaderValue(req.headers['x-app-version']);
+    const appOs = getHeaderValue(req.headers['x-app-os']);
+
+    return this.responseHandler.handle({
+      method: () =>
+        this.registerAppUpdateInteractionUseCase.execute(body, user, {
+          appVersion,
+          appOs,
+        }),
       res,
     });
   }
