@@ -91,7 +91,9 @@ export class LoggingInterceptor implements NestInterceptor {
     const safeRequestBody = redact((req as any).body ?? {});
     const query = redact((req as any).query ?? {});
     const user_id = req.user?.id;
-    const device_token = req.headers['device-token'] as string;
+    const device_token = getHeaderValue(req.headers['device-token']);
+    const app_version = getHeaderValue(req.headers['x-app-version']);
+    const app_os = getHeaderValue(req.headers['x-app-os']);
 
     let responsePayload: any = undefined;
 
@@ -157,6 +159,8 @@ export class LoggingInterceptor implements NestInterceptor {
           latencyMs: Date.now() - startedAt,
           device_token,
           user_id,
+          app_version,
+          app_os,
         };
 
         try {
@@ -171,4 +175,9 @@ export class LoggingInterceptor implements NestInterceptor {
       }),
     );
   }
+}
+
+function getHeaderValue(value: string | string[] | undefined) {
+  if (!value) return undefined;
+  return Array.isArray(value) ? value[0] : value;
 }

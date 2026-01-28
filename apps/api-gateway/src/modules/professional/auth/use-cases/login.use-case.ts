@@ -87,6 +87,8 @@ export class LoginUseCase {
         : Promise.resolve(0),
     ]);
 
+    const shouldOpenCreateServiceModal = isOwner && servicesCount === 0;
+
     const { accessToken, refreshToken } =
       await this.tokenService.issueTokenPair({
         id: user.id,
@@ -121,7 +123,7 @@ export class LoginUseCase {
         phone: formatPhoneNumber(professionalProfile?.phone || ''),
       },
       subscription_status: subscriptionStatus,
-      should_open_create_service_modal: isOwner && servicesCount === 0,
+      should_open_create_service_modal: shouldOpenCreateServiceModal,
     };
   }
 }

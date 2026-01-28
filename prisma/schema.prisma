@@ -51,6 +51,7 @@ model User {
   BugReports              BugReports[]
   integrations            UserIntegration[]
   businessRatingPrompts   BusinessRatingPrompt[]
+  appUpdateInteractions   AppUpdateInteraction[]
 
   @@unique([email, user_type], name: "uq_user_email_type")
   @@index([email, user_type], name: "idx_user_email_user_type")
@@ -723,12 +724,56 @@ model Logs {
   success      Boolean
   user_id      String?
   device_token String?
+  app_version  String?
+  app_os       String?
   datetime     String
   latencyMs    Int?
   created_at   DateTime @default(now())
 
   @@index([user_id], name: "idx_logs_taxnumber")
   @@index([device_token], name: "idx_logs_device_token")
+}
+
+model AppUpdateModal {
+  id                     String            @id @default(cuid())
+  mode                   AppUpdateMode
+  audience               AppUpdateAudience @default(PROFESSIONAL)
+  title                  String
+  description            String
+  banner_url             String?
+  whats_new_items        String[]
+  primary_button_label   String?
+  secondary_button_label String?
+  target_version_ios     String?
+  target_version_android String?
+  cta_path               String?
+  cta_scope              AppUpdateScope?
+  is_active              Boolean           @default(true)
+  created_at             DateTime          @default(now())
+  updated_at             DateTime          @updatedAt
+
+  interactions AppUpdateInteraction[]
+
+  @@index([mode], name: "idx_app_update_mode")
+  @@index([audience], name: "idx_app_update_audience")
+  @@index([is_active], name: "idx_app_update_active")
+}
+
+model AppUpdateInteraction {
+  id            String          @id @default(cuid())
+  app_update_id String
+  user_id       String
+  action        AppUpdateAction
+  app_version   String?
+  app_os        String?
+  created_at    DateTime        @default(now())
+
+  app_update AppUpdateModal @relation(fields: [app_update_id], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([app_update_id, user_id, action], name: "uq_app_update_interaction_action")
+  @@index([app_update_id], name: "idx_app_update_interaction_update")
+  @@index([user_id], name: "idx_app_update_interaction_user")
 }
 
 /// Registra acessos de dispositivos à landing/site
@@ -946,4 +991,28 @@ enum BusinessPublicType {
 
 enum IntegrationProvider {
   GOOGLE_CALENDAR
+}
+
+enum AppUpdateMode {
+  new_app_version
+  whats_new
+}
+
+enum AppUpdateAudience {
+  CUSTOMER
+  PROFESSIONAL
+}
+
+enum AppUpdateAction {
+  viewed
+  dismissed
+  primary_clicked
+}
+
+enum AppUpdateScope {
+  appointments
+  clients
+  new_appointment
+  profile
+  statement
 }
