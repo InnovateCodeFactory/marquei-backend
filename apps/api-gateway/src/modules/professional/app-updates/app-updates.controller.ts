@@ -30,10 +30,22 @@ export class AppUpdatesController {
   ) {
     const appVersion = getHeaderValue(req.headers['x-app-version']);
     const appOs = getHeaderValue(req.headers['x-app-os']);
+    const appBuildNumberRaw = getHeaderValue(
+      req.headers['x-app-build-number'],
+    );
+    const appBuildNumber = appBuildNumberRaw
+      ? Number(appBuildNumberRaw)
+      : undefined;
 
     return this.responseHandler.handle({
       method: () =>
-        this.getAppUpdateModalUseCase.execute(user, { appVersion, appOs }),
+        this.getAppUpdateModalUseCase.execute(user, {
+          appVersion,
+          appOs,
+          appBuildNumber: Number.isFinite(appBuildNumber)
+            ? appBuildNumber
+            : undefined,
+        }),
       res,
     });
   }

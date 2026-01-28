@@ -744,19 +744,30 @@ model AppUpdateModal {
   whats_new_items        String[]
   primary_button_label   String?
   secondary_button_label String?
+
+  // ✅ Mantém string apenas para visual/log/telemetria
   target_version_ios     String?
   target_version_android String?
-  cta_path               String?
-  cta_scope              AppUpdateScope?
-  is_active              Boolean           @default(true)
-  created_at             DateTime          @default(now())
-  updated_at             DateTime          @updatedAt
+
+  // ✅ Novo: iOS buildNumber / Android versionCode (comparação performática)
+  target_build_ios     Int?
+  target_build_android Int?
+
+  cta_path   String?
+  cta_scope  AppUpdateScope?
+  is_active  Boolean         @default(true)
+  created_at DateTime        @default(now())
+  updated_at DateTime        @updatedAt
 
   interactions AppUpdateInteraction[]
 
   @@index([mode], name: "idx_app_update_mode")
   @@index([audience], name: "idx_app_update_audience")
   @@index([is_active], name: "idx_app_update_active")
+  // ✅ Índices úteis pro hot path
+  @@index([is_active, audience, mode, created_at], name: "idx_app_update_hotpath")
+  @@index([target_build_ios], name: "idx_app_update_target_build_ios")
+  @@index([target_build_android], name: "idx_app_update_target_build_android")
 }
 
 model AppUpdateInteraction {
@@ -764,9 +775,15 @@ model AppUpdateInteraction {
   app_update_id String
   user_id       String
   action        AppUpdateAction
-  app_version   String?
-  app_os        String?
-  created_at    DateTime        @default(now())
+
+  // ✅ mantém string para telemetria
+  app_version String?
+  app_os      String?
+
+  // ✅ novo: buildNumber/versionCode visto no momento da interação
+  app_build_number Int?
+
+  created_at DateTime @default(now())
 
   app_update AppUpdateModal @relation(fields: [app_update_id], references: [id], onDelete: Cascade)
   user       User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -774,6 +791,8 @@ model AppUpdateInteraction {
   @@unique([app_update_id, user_id, action], name: "uq_app_update_interaction_action")
   @@index([app_update_id], name: "idx_app_update_interaction_update")
   @@index([user_id], name: "idx_app_update_interaction_user")
+  // ✅ Ajuda muito no filtro: user_id + action + created_at (cutoff 24h)
+  @@index([user_id, action, created_at], name: "idx_app_update_interaction_user_action_created")
 }
 
 /// Registra acessos de dispositivos à landing/site
