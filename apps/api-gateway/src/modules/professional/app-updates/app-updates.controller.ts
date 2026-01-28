@@ -1,22 +1,20 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { Body, Controller, Get, Param, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
+import { RegisterAppUpdateInteractionDto } from './dto/requests/register-app-update-interaction.dto';
 import {
-  GetAppUpdateByIdUseCase,
   GetAppUpdateModalUseCase,
   RegisterAppUpdateInteractionUseCase,
 } from './use-cases';
-import { RegisterAppUpdateInteractionDto } from './dto/requests/register-app-update-interaction.dto';
 
 @Controller('professional/app-updates')
 @ApiTags('Professional - App Updates')
 export class AppUpdatesController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,
-    private readonly getAppUpdateByIdUseCase: GetAppUpdateByIdUseCase,
     private readonly getAppUpdateModalUseCase: GetAppUpdateModalUseCase,
     private readonly registerAppUpdateInteractionUseCase: RegisterAppUpdateInteractionUseCase,
   ) {}
@@ -36,21 +34,6 @@ export class AppUpdatesController {
     return this.responseHandler.handle({
       method: () =>
         this.getAppUpdateModalUseCase.execute(user, { appVersion, appOs }),
-      res,
-    });
-  }
-
-  @Get(':id')
-  @ApiOperation({
-    summary: 'Get app update modal by id',
-  })
-  async getById(
-    @Param('id') id: string,
-    @Res() res: Response,
-    @CurrentUserDecorator() user: CurrentUser,
-  ) {
-    return this.responseHandler.handle({
-      method: () => this.getAppUpdateByIdUseCase.execute(id, user),
       res,
     });
   }
