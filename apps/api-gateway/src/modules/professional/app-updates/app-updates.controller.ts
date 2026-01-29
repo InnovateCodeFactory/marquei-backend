@@ -6,22 +6,22 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { RegisterAppUpdateInteractionDto } from './dto/requests/register-app-update-interaction.dto';
 import {
-  GetAppUpdateModalUseCase,
+  GetHomeModalUseCase,
   RegisterAppUpdateInteractionUseCase,
 } from './use-cases';
 
-@Controller('professional/app-updates')
-@ApiTags('Professional - App Updates')
-export class AppUpdatesController {
+@Controller('professional/home-modals')
+@ApiTags('Professional - Home Modals')
+export class HomeModalsController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,
-    private readonly getAppUpdateModalUseCase: GetAppUpdateModalUseCase,
+    private readonly getHomeModalUseCase: GetHomeModalUseCase,
     private readonly registerAppUpdateInteractionUseCase: RegisterAppUpdateInteractionUseCase,
   ) {}
 
   @Get('check')
   @ApiOperation({
-    summary: 'Check if app update modal should be opened',
+    summary: 'Check if any home modal should be opened',
   })
   async check(
     @Req() req: Request,
@@ -39,7 +39,7 @@ export class AppUpdatesController {
 
     return this.responseHandler.handle({
       method: () =>
-        this.getAppUpdateModalUseCase.execute(user, {
+        this.getHomeModalUseCase.execute(user, {
           appVersion,
           appOs,
           appBuildNumber: Number.isFinite(appBuildNumber)
@@ -52,7 +52,7 @@ export class AppUpdatesController {
 
   @Post('interaction')
   @ApiOperation({
-    summary: 'Register app update interaction',
+    summary: 'Register home modal interaction',
   })
   async registerInteraction(
     @Body() body: RegisterAppUpdateInteractionDto,

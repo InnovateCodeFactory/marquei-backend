@@ -1,15 +1,15 @@
 import { PrismaService } from '@app/shared';
 import { Module } from '@nestjs/common';
-import { AppUpdatesController } from './app-updates.controller';
+import { HomeModalsController } from './app-updates.controller';
 import {
-  GetAppUpdateModalUseCase,
+  GetHomeModalUseCase,
   RegisterAppUpdateInteractionUseCase,
 } from './use-cases';
 
 @Module({
-  controllers: [AppUpdatesController],
+  controllers: [HomeModalsController],
   providers: [
-    GetAppUpdateModalUseCase,
+    GetHomeModalUseCase,
     RegisterAppUpdateInteractionUseCase,
     PrismaService,
   ],

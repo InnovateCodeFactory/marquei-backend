@@ -11,5 +11,6 @@ export type CurrentUser = {
   current_business_subscription_status?: string;
   current_business_subscription_plan_name?: string;
   current_business_subscription_plan_billing_period?: string;
+  current_business_subscription_current_period_end?: string | null;
   professional_profile_id?: string | null;
 };
