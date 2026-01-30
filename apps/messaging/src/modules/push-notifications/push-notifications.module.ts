@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PushNotificationsBaseService } from './push-notifications-base.service';
 import {
+  SendBulkMockNotificationUseCase,
   SendNotificationUseCase,
   SendTestNotificationUseCase,
 } from './use-cases';
@@ -8,6 +9,7 @@ import {
 @Module({
   providers: [
     PushNotificationsBaseService,
+    SendBulkMockNotificationUseCase,
     SendTestNotificationUseCase,
     SendNotificationUseCase,
   ],
