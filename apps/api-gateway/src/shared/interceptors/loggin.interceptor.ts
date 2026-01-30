@@ -45,6 +45,8 @@ const EXCLUDED_ENDPOINTS = [
   '/api/client/business/section-items',
   '/api/webhooks/stripe',
   '/api/professional/auth/register-push-token',
+  '/api/client/auth/refresh',
+  '/api/professional/auth/refresh',
 ];
 
 function redact(obj: any, depth = 0): any {
