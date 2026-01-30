@@ -5,9 +5,12 @@ import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { RegisterAppUpdateInteractionDto } from './dto/requests/register-app-update-interaction.dto';
+import { RegisterAppReviewEventDto } from './dto/requests/register-app-review-event.dto';
 import {
   GetHomeModalUseCase,
+  GetAppReviewEligibilityUseCase,
   RegisterAppUpdateInteractionUseCase,
+  RegisterAppReviewEventUseCase,
 } from './use-cases';
 
 @Controller('professional/home-modals')
@@ -17,6 +20,8 @@ export class HomeModalsController {
     private readonly responseHandler: ResponseHandlerService,
     private readonly getHomeModalUseCase: GetHomeModalUseCase,
     private readonly registerAppUpdateInteractionUseCase: RegisterAppUpdateInteractionUseCase,
+    private readonly getAppReviewEligibilityUseCase: GetAppReviewEligibilityUseCase,
+    private readonly registerAppReviewEventUseCase: RegisterAppReviewEventUseCase,
   ) {}
 
   @Get('check')
@@ -68,6 +73,41 @@ export class HomeModalsController {
         this.registerAppUpdateInteractionUseCase.execute(body, user, {
           appVersion,
           appOs,
+        }),
+      res,
+    });
+  }
+
+  @Get('review-eligibility')
+  @ApiOperation({
+    summary: 'Check if review modal can be opened',
+  })
+  async reviewEligibility(
+    @Res() res: Response,
+    @CurrentUserDecorator() user: CurrentUser,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.getAppReviewEligibilityUseCase.execute(user),
+      res,
+    });
+  }
+
+  @Post('review-event')
+  @ApiOperation({
+    summary: 'Register app review event',
+  })
+  async registerReviewEvent(
+    @Body() body: RegisterAppReviewEventDto,
+    @Req() req: Request,
+    @Res() res: Response,
+    @CurrentUserDecorator() user: CurrentUser,
+  ) {
+    const appVersion = getHeaderValue(req.headers['x-app-version']);
+
+    return this.responseHandler.handle({
+      method: () =>
+        this.registerAppReviewEventUseCase.execute(body, user, {
+          appVersion,
         }),
       res,
     });
