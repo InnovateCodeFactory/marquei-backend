@@ -36,6 +36,7 @@ model User {
   document_number    String?
   push_token         String?
   user_type          UserType
+  app_review_eligible Boolean @default(false)
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
 
@@ -52,9 +53,23 @@ model User {
   integrations            UserIntegration[]
   businessRatingPrompts   BusinessRatingPrompt[]
   appUpdateInteractions   AppUpdateInteraction[]
+  appReviewEvents         AppReviewEvent[]
 
   @@unique([email, user_type], name: "uq_user_email_type")
   @@index([email, user_type], name: "idx_user_email_user_type")
+}
+
+model InnovateConnectAdmin {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  password_hash  String
+  is_active      Boolean  @default(true)
+  last_login_at  DateTime?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@index([email], name: "idx_innovate_connect_admin_email")
+  @@index([is_active], name: "idx_innovate_connect_admin_active")
 }
 
 model UserIntegration {
@@ -795,6 +810,25 @@ model AppUpdateInteraction {
   @@index([user_id, action, created_at], name: "idx_app_update_interaction_user_action_created")
 }
 
+model AppReviewEvent {
+  id         String             @id @default(cuid())
+  user_id    String?
+  device_id  String?
+  platform   AppPlatform
+  app_version String?
+  event      AppReviewEventType
+  context    String?
+  created_at DateTime           @default(now())
+
+  user User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id], name: "idx_app_review_user")
+  @@index([device_id], name: "idx_app_review_device")
+  @@index([event], name: "idx_app_review_event")
+  @@index([platform], name: "idx_app_review_platform")
+  @@index([created_at], name: "idx_app_review_created")
+}
+
 /// Registra acessos de dispositivos à landing/site
 model GuestVisit {
   id           String   @id @default(cuid())
@@ -924,6 +958,17 @@ enum UploadedMediaSource {
   PROFESSIONAL_AVATAR
   CUSTOMER_AVATAR
   SERVICE_IMAGE
+}
+
+enum AppReviewEventType {
+  PROMPT_SHOWN
+  PROMPT_DISMISSED
+  STORE_OPENED
+}
+
+enum AppPlatform {
+  IOS
+  ANDROID
 }
 
 enum UserType {

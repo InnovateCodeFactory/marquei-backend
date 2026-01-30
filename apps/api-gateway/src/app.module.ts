@@ -5,6 +5,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ClientModule } from './modules/client/client.module';
+import { InnovateConnectModule } from './modules/innovate-connect/innovate-connect.module';
 import { PlansModule } from './modules/professional/plans/plans.module';
 import { ProfessionalModule } from './modules/professional/professional.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
@@ -24,6 +25,7 @@ import { SafeThrottlerGuard } from './shared/guards/throttler.guard';
       },
     ]),
     SharedModule,
+    InnovateConnectModule,
     ProfessionalModule,
     ClientModule,
     WebhooksModule,
