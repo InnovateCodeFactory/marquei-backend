@@ -210,6 +210,15 @@ export class GetStatementUseCase implements OnModuleInit {
           value_in_cents: true,
           created_at: true,
           description: true,
+          appointment: {
+            select: {
+              customerPerson: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
         },
       }),
 
@@ -244,10 +253,14 @@ export class GetStatementUseCase implements OnModuleInit {
     ]);
 
     const obj: any = {
-      statements: statements.map((statement) => ({
-        ...statement,
-        value: new Price(statement.value_in_cents).toCurrency(),
-      })),
+      statements: statements.map((statement) => {
+        const { appointment, ...rest } = statement;
+        return {
+          ...rest,
+          value: new Price(statement.value_in_cents).toCurrency(),
+          customer_name: appointment?.customerPerson?.name ?? null,
+        };
+      }),
       total,
       page: pageNumber,
       limit: limitNumber,
