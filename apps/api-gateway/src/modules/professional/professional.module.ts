@@ -15,6 +15,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
 import { ProfessionalProfileModule } from './profile/profile.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AppUpdatesModule } from './app-updates/app-updates.module';
+import { PortfolioModule } from './portfolio/portfolio.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { AppUpdatesModule } from './app-updates/app-updates.module';
     ProfessionalProfileModule,
     AnalyticsModule,
     AppUpdatesModule,
+    PortfolioModule,
   ],
 })
 export class ProfessionalModule {}

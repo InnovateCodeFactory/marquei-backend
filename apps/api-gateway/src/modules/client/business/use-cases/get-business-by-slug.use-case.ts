@@ -50,6 +50,13 @@ export class GetBusinessBySlugUseCase {
             },
           },
         },
+        BusinessCategory: {
+          select: {
+            name: true,
+            icon_path: true,
+            icon_path_light: true,
+          },
+        },
       },
     });
 
@@ -85,6 +92,15 @@ export class GetBusinessBySlugUseCase {
           icon: normalizeAmenityIcon(amenity.icon),
         }))
         .sort((a, b) => a.title.localeCompare(b.title)),
+      category_name: business.BusinessCategory?.name ?? null,
+      category_icon: business.BusinessCategory?.icon_path
+        ? this.fs.getPublicUrl({ key: business.BusinessCategory.icon_path })
+        : null,
+      category_icon_light: business.BusinessCategory?.icon_path_light
+        ? this.fs.getPublicUrl({
+            key: business.BusinessCategory.icon_path_light,
+          })
+        : null,
     };
   }
 }

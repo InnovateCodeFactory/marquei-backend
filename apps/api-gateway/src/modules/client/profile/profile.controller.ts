@@ -21,6 +21,7 @@ import { EditPreferredContentDto } from './dto/requests/edit-preffered-content.d
 import { EditProfileDto } from './dto/requests/edit-profile.dto';
 import { GetGeneralLinkDto } from './dto/requests/get-general-link.dto';
 import { ReportBugDto } from './dto/requests/report-bug.dto';
+import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
 import {
   EditPreferredContentUseCase,
   EditProfileUseCase,
@@ -120,6 +121,7 @@ export class ProfileController {
   }
 
   @Get('general-links')
+  @IsPublic()
   @ApiOperation({ summary: 'Get system general links' })
   async getGeneralLinks(@Res() res: Response) {
     return await this.responseHandler.handle({
@@ -129,6 +131,7 @@ export class ProfileController {
   }
 
   @Get('general-link')
+  @IsPublic()
   @ApiOperation({ summary: 'Get a specific system link by key' })
   async getGeneralLink(
     @Res() res: Response,

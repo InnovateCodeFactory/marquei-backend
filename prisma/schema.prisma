@@ -27,46 +27,48 @@ model Guest {
 }
 
 model User {
-  id                 String   @id @default(cuid())
-  email              String
-  password           String
-  temporary_password String?
-  first_access       Boolean  @default(false)
-  name               String
-  document_number    String?
-  push_token         String?
-  user_type          UserType
-  app_review_eligible Boolean @default(false)
-  created_at         DateTime @default(now())
-  updated_at         DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  email               String
+  password            String
+  temporary_password  String?
+  first_access        Boolean  @default(false)
+  name                String
+  document_number     String?
+  push_token          String?
+  user_type           UserType
+  app_review_eligible Boolean  @default(false)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
 
   personId String? @unique
   person   Person? @relation("UserPerson", fields: [personId], references: [id])
 
-  businesses              Business[]                @relation("BusinessOwners")
-  professional_profile    ProfessionalProfile[]
-  CurrentSelectedBusiness CurrentSelectedBusiness[]
-  guest                   Guest?                    @relation(name: "UserGuest")
-  UploadedMedia           UploadedMedia[]
-  BusinessRating          BusinessRating[]
-  BugReports              BugReports[]
-  integrations            UserIntegration[]
-  businessRatingPrompts   BusinessRatingPrompt[]
-  appUpdateInteractions   AppUpdateInteraction[]
-  appReviewEvents         AppReviewEvent[]
+  businesses               Business[]                @relation("BusinessOwners")
+  professional_profile     ProfessionalProfile[]
+  CurrentSelectedBusiness  CurrentSelectedBusiness[]
+  guest                    Guest?                    @relation(name: "UserGuest")
+  UploadedMedia            UploadedMedia[]
+  BusinessRating           BusinessRating[]
+  BugReports               BugReports[]
+  integrations             UserIntegration[]
+  businessRatingPrompts    BusinessRatingPrompt[]
+  appUpdateInteractions    AppUpdateInteraction[]
+  appReviewEvents          AppReviewEvent[]
+  businessPortfolioFolders BusinessPortfolioFolder[]
+  businessPortfolioItems   BusinessPortfolioItem[]
 
   @@unique([email, user_type], name: "uq_user_email_type")
   @@index([email, user_type], name: "idx_user_email_user_type")
 }
 
 model InnovateConnectAdmin {
-  id             String   @id @default(cuid())
-  email          String   @unique
-  password_hash  String
-  is_active      Boolean  @default(true)
-  last_login_at  DateTime?
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password_hash String
+  is_active     Boolean   @default(true)
+  last_login_at DateTime?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
 
   @@index([email], name: "idx_innovate_connect_admin_email")
   @@index([is_active], name: "idx_innovate_connect_admin_active")
@@ -150,6 +152,8 @@ model Business {
   ProfessionalTimesBlock   ProfessionalTimesBlock[]
   amenities                BusinessAmenity[]
   businessRatingPrompts    BusinessRatingPrompt[]
+  portfolioFolders         BusinessPortfolioFolder[]
+  portfolioItems           BusinessPortfolioItem[]
 
   @@index([slug], name: "idx_business_slug")
   @@index([name], name: "idx_business_name")
@@ -496,6 +500,44 @@ model BusinessCategory {
   @@index([name], name: "idx_business_category_name")
 }
 
+model BusinessPortfolioFolder {
+  id          String   @id @default(cuid())
+  businessId  String
+  name        String
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  createdById String?
+
+  business   Business                @relation(fields: [businessId], references: [id])
+  created_by User?                   @relation(fields: [createdById], references: [id])
+  items      BusinessPortfolioItem[]
+
+  @@index([businessId], name: "idx_portfolio_folder_business")
+  @@index([createdById], name: "idx_portfolio_folder_created_by")
+  @@index([name], name: "idx_portfolio_folder_name")
+}
+
+model BusinessPortfolioItem {
+  id           String   @id @default(cuid())
+  businessId   String
+  folderId     String?
+  key          String
+  title        String?
+  description  String?
+  uploadedById String
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  business    Business                 @relation(fields: [businessId], references: [id])
+  folder      BusinessPortfolioFolder? @relation(fields: [folderId], references: [id])
+  uploaded_by User                     @relation(fields: [uploadedById], references: [id])
+
+  @@index([businessId], name: "idx_portfolio_item_business")
+  @@index([folderId], name: "idx_portfolio_item_folder")
+  @@index([uploadedById], name: "idx_portfolio_item_uploaded_by")
+}
+
 model BusinessServiceType {
   id          String     @id @default(cuid())
   name        String     @unique
@@ -811,14 +853,14 @@ model AppUpdateInteraction {
 }
 
 model AppReviewEvent {
-  id         String             @id @default(cuid())
-  user_id    String?
-  device_id  String?
-  platform   AppPlatform
+  id          String             @id @default(cuid())
+  user_id     String?
+  device_id   String?
+  platform    AppPlatform
   app_version String?
-  event      AppReviewEventType
-  context    String?
-  created_at DateTime           @default(now())
+  event       AppReviewEventType
+  context     String?
+  created_at  DateTime           @default(now())
 
   user User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
 
