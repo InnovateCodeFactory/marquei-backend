@@ -32,9 +32,11 @@ export class CreateProfessionalUseCase {
     if (!user.current_selected_business_id)
       throw new UnauthorizedException('Você não tem uma empresa selecionada');
 
-    const name = payload.name?.trim();
-    const email = payload.email?.trim().toLowerCase();
-    const phone = payload.phone?.trim();
+    const trimValue = (value?: string | null) =>
+      typeof value === 'string' ? value.trim() : value;
+    const name = trimValue(payload.name);
+    const email = trimValue(payload.email)?.toLowerCase();
+    const phone = trimValue(payload.phone);
 
     if (name && hasProhibitedTerm(name, 'user')) {
       throw new BadRequestException('Nome contém termos não permitidos');

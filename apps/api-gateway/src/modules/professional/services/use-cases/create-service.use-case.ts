@@ -17,7 +17,13 @@ export class CreateServiceUseCase {
       throw new BadRequestException('Nenhum negócio selecionado');
 
     const { current_selected_business_slug } = currentUser;
-    const { duration, name, price_in_cents, color, professionalsId } = payload;
+    const trimValue = (value?: string | null) =>
+      typeof value === 'string' ? value.trim() : value;
+    const duration = payload.duration;
+    const name = trimValue(payload.name);
+    const price_in_cents = payload.price_in_cents;
+    const color = trimValue(payload.color);
+    const professionalsId = payload.professionalsId;
 
     if (name && hasProhibitedTerm(name, 'service')) {
       throw new BadRequestException(

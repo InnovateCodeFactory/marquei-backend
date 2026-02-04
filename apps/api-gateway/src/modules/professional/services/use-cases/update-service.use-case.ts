@@ -18,14 +18,14 @@ export class UpdateServiceUseCase {
       throw new BadRequestException('Nenhum negócio selecionado');
 
     const { current_selected_business_slug } = currentUser;
-    const {
-      serviceId,
-      name,
-      duration,
-      price_in_cents,
-      color,
-      professionalsId,
-    } = payload;
+    const trimValue = (value?: string | null) =>
+      typeof value === 'string' ? value.trim() : value;
+    const serviceId = payload.serviceId;
+    const name = trimValue(payload.name);
+    const duration = payload.duration;
+    const price_in_cents = payload.price_in_cents;
+    const color = trimValue(payload.color);
+    const professionalsId = payload.professionalsId;
 
     // Verify the service exists and belongs to the current business
     const existingService = await this.prismaService.service.findFirst({

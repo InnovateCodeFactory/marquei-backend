@@ -17,7 +17,13 @@ export class UpdateProfessionalUseCase {
     if (!user.current_selected_business_id)
       throw new UnauthorizedException('Você não tem uma empresa selecionada');
 
-    const { professionalProfileId, email, phone, name, servicesId } = payload;
+    const trimValue = (value?: string | null) =>
+      typeof value === 'string' ? value.trim() : value;
+    const professionalProfileId = payload.professionalProfileId;
+    const email = trimValue(payload.email)?.toLowerCase();
+    const phone = trimValue(payload.phone);
+    const name = trimValue(payload.name);
+    const servicesId = payload.servicesId;
 
     // Verify the professional exists and belongs to the current business
     const existingProfessional =

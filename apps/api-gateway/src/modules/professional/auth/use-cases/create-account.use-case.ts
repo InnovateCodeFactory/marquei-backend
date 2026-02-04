@@ -29,8 +29,28 @@ export class CreateAccountUseCase {
   ) {}
 
   async execute(registerDto: CreateAccountDto) {
-    const { name, email, password, documentNumber, phone, business } =
-      registerDto;
+    const trimValue = (value?: string | null) =>
+      typeof value === 'string' ? value.trim() : value;
+
+    const name = trimValue(registerDto.name);
+    const email = trimValue(registerDto.email)?.toLowerCase();
+    const password = registerDto.password;
+    const documentNumber = trimValue(registerDto.documentNumber);
+    const phone = trimValue(registerDto.phone);
+    const business = {
+      ...registerDto.business,
+      name: trimValue(registerDto.business?.name),
+      zipCode: trimValue(registerDto.business?.zipCode),
+      city: trimValue(registerDto.business?.city),
+      street: trimValue(registerDto.business?.street),
+      number: trimValue(registerDto.business?.number),
+      complement: trimValue(registerDto.business?.complement),
+      neighbourhood: trimValue(registerDto.business?.neighbourhood),
+      uf: trimValue(registerDto.business?.uf),
+      business_category_custom: trimValue(
+        registerDto.business?.business_category_custom,
+      ),
+    };
 
     if (hasProhibitedTerm(name, 'user')) {
       throw new BadRequestException('Nome contém termos não permitidos');
