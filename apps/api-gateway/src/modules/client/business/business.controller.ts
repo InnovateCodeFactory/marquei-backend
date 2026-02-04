@@ -30,6 +30,7 @@ import {
   GetHomeSectionsUseCase,
   GetAvailableTimesForServiceAndProfessionalUseCase,
   GetBusinessBySlugUseCase,
+  GetBusinessPortfolioUseCase,
   GetBusinessProfessionalsUseCase,
   GetBusinessCategoriesUseCase,
   GetSectionItemsUseCase,
@@ -48,6 +49,7 @@ export class BusinessController {
     private readonly getHomeSectionsUseCase: GetHomeSectionsUseCase,
     private readonly getSectionItemsUseCase: GetSectionItemsUseCase,
     private readonly getBusinessBySlugUseCase: GetBusinessBySlugUseCase,
+    private readonly getBusinessPortfolioUseCase: GetBusinessPortfolioUseCase,
     private readonly getServicesUseCase: GetServicesUseCase,
     private readonly getProfessionalsForAppointmentUseCase: GetProfessionalsForAppointmentUseCase,
     private readonly getAvailableTimesForServiceAndProfessionalUseCase: GetAvailableTimesForServiceAndProfessionalUseCase,
@@ -131,6 +133,19 @@ export class BusinessController {
   async getServices(@Res() res: Response, @Query() query: GetServicesDto) {
     return this.responseHandler.handle({
       method: () => this.getServicesUseCase.execute(query),
+      res,
+    });
+  }
+
+  @Get('portfolio')
+  @IsPublic()
+  @ApiOperation({ summary: 'Get business portfolio by slug' })
+  async getBusinessPortfolio(
+    @Res() res: Response,
+    @Query() query: GetBusinessBySlugDto,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.getBusinessPortfolioUseCase.execute(query),
       res,
     });
   }
