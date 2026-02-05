@@ -1,7 +1,13 @@
 import { removeSpecialCharacters } from '@app/shared/utils';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class CreateCustomerDto {
   @IsString()
@@ -15,6 +21,9 @@ export class CreateCustomerDto {
   @IsString()
   @IsNotEmpty()
   @Transform(({ value }) => removeSpecialCharacters(value))
+  @MinLength(10, {
+    message: 'O telefone deve conter no mínimo 10 dígitos',
+  })
   @ApiProperty({
     description: 'The phone number of the customer',
     example: '+1234567890',

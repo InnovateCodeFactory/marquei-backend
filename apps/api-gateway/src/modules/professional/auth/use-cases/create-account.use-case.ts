@@ -5,7 +5,11 @@ import { DaysOfWeek, SendMailTypeEnum } from '@app/shared/enum';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { HashingService } from '@app/shared/services';
-import { getFirstName, hasProhibitedTerm, slugifyBusinessName } from '@app/shared/utils';
+import {
+  getFirstName,
+  hasProhibitedTerm,
+  slugifyBusinessName,
+} from '@app/shared/utils';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateAccountDto } from '../dto/requests/create-account';
 
@@ -234,5 +238,4 @@ export class CreateAccountUseCase {
 
     return null;
   }
-
 }

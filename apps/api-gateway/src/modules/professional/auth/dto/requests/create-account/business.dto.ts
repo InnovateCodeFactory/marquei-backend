@@ -47,7 +47,8 @@ export class BusinessDto {
   number: string;
 
   @IsString()
-  complement: string;
+  @IsOptional()
+  complement?: string;
 
   @IsString()
   @IsNotEmpty()
