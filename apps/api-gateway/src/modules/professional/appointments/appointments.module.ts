@@ -5,6 +5,7 @@ import {
   CreateAppointmentUseCase,
   GetAppointmentsUseCase,
   GetAvailableTimesUseCase,
+  RequestAppointmentConfirmationUseCase,
 } from './use-cases';
 import { BlockTimesUseCase } from './use-cases/block-times.use-case';
 import { CancelAppointmentUseCase } from './use-cases/cancel-appointment.use-case';
@@ -19,6 +20,7 @@ import { RescheduleAppointmentUseCase } from './use-cases/reschedule-appointment
     GetAvailableTimesUseCase,
     CreateAppointmentUseCase,
     GetAppointmentsUseCase,
+    RequestAppointmentConfirmationUseCase,
     CancelAppointmentUseCase,
     RescheduleAppointmentUseCase,
     BlockTimesUseCase,

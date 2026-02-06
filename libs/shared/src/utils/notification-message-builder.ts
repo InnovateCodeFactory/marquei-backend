@@ -1,3 +1,5 @@
+import { getTwoNames } from '.';
+
 export const NotificationMessageBuilder = {
   buildAppointmentCreatedMessage: ({
     customer_name,
@@ -47,10 +49,11 @@ export const NotificationMessageBuilder = {
     const lower = dayAndMonth?.toLowerCase?.() ?? '';
     const needsPreposition = lower !== 'hoje' && lower !== 'amanhã';
     const preposition = needsPreposition ? ' em ' : ' ';
+    const professionalName = getTwoNames(professional_name);
 
     return {
       title: '⏰ Lembrete de agendamento',
-      body: `Lembrete: você tem um agendamento de ${service_name?.trim()} com ${professional_name?.trim()}${preposition}${dayAndMonth} às ${time}.`,
+      body: `Lembrete: você tem um agendamento de ${service_name?.trim()} com ${professionalName?.trim()}${preposition}${dayAndMonth} às ${time}.`,
     };
   },
 
@@ -82,9 +85,11 @@ export const NotificationMessageBuilder = {
     time: string;
     service_name: string;
   }) => {
+    const professionalName = getTwoNames(professional_name);
+
     return {
       title: '❌ Agendamento cancelado',
-      body: `Seu agendamento de ${service_name?.trim()} com ${professional_name?.trim()} em ${dayAndMonth} às ${time} foi cancelado.`,
+      body: `Seu agendamento de ${service_name?.trim()} com ${professionalName?.trim()} em ${dayAndMonth} às ${time} foi cancelado.`,
     };
   },
 

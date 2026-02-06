@@ -19,11 +19,13 @@ import { CancelAppointmentDto } from './dto/requests/cancel-appointment.dto';
 import { CreateAppointmentDto } from './dto/requests/create-appointment.dto';
 import { GetAvailableTimesDto } from './dto/requests/get-available-times.dto';
 import { GetAppointmentsDto } from './dto/requests/get-appointments.dto';
+import { RequestAppointmentConfirmationDto } from './dto/requests/request-appointment-confirmation.dto';
 import { RescheduleAppointmentDto } from './dto/requests/reschedule-appointment.dto';
 import {
   CreateAppointmentUseCase,
   GetAppointmentsUseCase,
   GetAvailableTimesUseCase,
+  RequestAppointmentConfirmationUseCase,
 } from './use-cases';
 import { BlockTimesUseCase } from './use-cases/block-times.use-case';
 import { CancelAppointmentUseCase } from './use-cases/cancel-appointment.use-case';
@@ -39,6 +41,7 @@ export class AppointmentsController {
     private readonly getAvailableTimesUseCase: GetAvailableTimesUseCase,
     private readonly createAppointmentUseCase: CreateAppointmentUseCase,
     private readonly getAppointmentsUseCase: GetAppointmentsUseCase,
+    private readonly requestAppointmentConfirmationUseCase: RequestAppointmentConfirmationUseCase,
     private readonly cancelAppointmentUseCase: CancelAppointmentUseCase,
     private readonly rescheduleAppointmentUseCase: RescheduleAppointmentUseCase,
     private readonly blockTimesUseCase: BlockTimesUseCase,
@@ -125,6 +128,24 @@ export class AppointmentsController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.rescheduleAppointmentUseCase.execute(body, req),
+      res,
+    });
+  }
+
+  @Post('request-confirmation')
+  @ApiOperation({
+    summary: 'Request appointment confirmation',
+    description:
+      'Requests confirmation for a pending appointment and sends a WhatsApp message to the customer.',
+  })
+  async requestConfirmation(
+    @Res() res: Response,
+    @Req() req: AppRequest,
+    @Body() body: RequestAppointmentConfirmationDto,
+  ) {
+    return await this.responseHandler.handle({
+      method: () =>
+        this.requestAppointmentConfirmationUseCase.execute(body, req),
       res,
     });
   }

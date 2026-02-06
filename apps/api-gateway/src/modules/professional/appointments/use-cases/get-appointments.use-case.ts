@@ -95,6 +95,21 @@ export class GetAppointmentsUseCase {
       orderBy: { start_at_utc: 'asc' },
     });
 
+    const appointmentIds = appointments.map((appointment) => appointment.id);
+    const reminders = appointmentIds.length
+      ? await this.prisma.appointmentEvent.findMany({
+          where: {
+            appointmentId: { in: appointmentIds },
+            event_type: 'REMINDER_SENT',
+            by_professional: true,
+          },
+          select: { appointmentId: true },
+        })
+      : [];
+    const reminderByAppointment = new Set(
+      reminders.map((reminder) => reminder.appointmentId),
+    );
+
     // Busca bloqueios do profissional (incluindo o ID)
     const blocksRaw = await this.prisma.professionalTimesBlock.findMany({
       where: {
@@ -171,6 +186,7 @@ export class GetAppointmentsUseCase {
           color: a.service.color,
         },
         status: formatAppointmentStatus(a.status),
+        reminder_sent_by_professional: reminderByAppointment.has(a.id),
       };
     });
 
