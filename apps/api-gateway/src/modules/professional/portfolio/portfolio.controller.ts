@@ -6,6 +6,7 @@ import {
   Controller,
   Delete,
   Get,
+  Patch,
   Param,
   Post,
   Res,
@@ -15,12 +16,18 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
-import { CreatePortfolioFolderDto, UploadPortfolioItemsDto } from './dto/requests';
+import {
+  CreatePortfolioFolderDto,
+  UpdatePortfolioFolderDto,
+  UploadPortfolioItemsDto,
+} from './dto/requests';
 import {
   CreatePortfolioFolderUseCase,
+  DeletePortfolioFolderUseCase,
   DeletePortfolioItemUseCase,
   GetPortfolioFoldersUseCase,
   GetPortfolioUseCase,
+  UpdatePortfolioFolderUseCase,
   UploadPortfolioItemsUseCase,
 } from './use-cases';
 
@@ -34,6 +41,8 @@ export class PortfolioController {
     private readonly uploadItemsUseCase: UploadPortfolioItemsUseCase,
     private readonly getPortfolioUseCase: GetPortfolioUseCase,
     private readonly deleteItemUseCase: DeletePortfolioItemUseCase,
+    private readonly updateFolderUseCase: UpdatePortfolioFolderUseCase,
+    private readonly deleteFolderUseCase: DeletePortfolioFolderUseCase,
   ) {}
 
   @Post('folders')
@@ -58,6 +67,33 @@ export class PortfolioController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.getFoldersUseCase.execute(user),
+      res,
+    });
+  }
+
+  @Patch('folders/:id')
+  @ApiOperation({ summary: 'Update portfolio folder' })
+  async updateFolder(
+    @CurrentUserDecorator() user: CurrentUser,
+    @Param('id') id: string,
+    @Body() dto: UpdatePortfolioFolderDto,
+    @Res() res: Response,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.updateFolderUseCase.execute(user, id, dto),
+      res,
+    });
+  }
+
+  @Delete('folders/:id')
+  @ApiOperation({ summary: 'Delete portfolio folder' })
+  async deleteFolder(
+    @CurrentUserDecorator() user: CurrentUser,
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.deleteFolderUseCase.execute(user, id),
       res,
     });
   }
