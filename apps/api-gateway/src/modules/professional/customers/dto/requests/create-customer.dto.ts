@@ -12,6 +12,9 @@ import {
 export class CreateCustomerDto {
   @IsString()
   @IsNotEmpty()
+  @MinLength(2, {
+    message: 'O nome deve conter no mínimo 2 caracteres',
+  })
   @ApiProperty({
     description: 'The name of the customer',
     example: 'John Doe',

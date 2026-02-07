@@ -49,6 +49,7 @@ export class ListBlockedTimesUseCase {
       while (
         j < items.length &&
         items[j].is_all_day &&
+        items[j].professionalProfileId === cur.professionalProfileId &&
         items[j].start_at_utc.getTime() === end.getTime()
       ) {
         end = items[j].end_at_utc;
