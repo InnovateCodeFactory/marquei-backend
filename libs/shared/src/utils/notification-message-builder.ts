@@ -110,6 +110,23 @@ export const NotificationMessageBuilder = {
     };
   },
 
+  buildAppointmentConfirmedMessageForProfessional: ({
+    customer_name,
+    dayAndMonth,
+    time,
+    service_name,
+  }: {
+    customer_name: string;
+    dayAndMonth: string;
+    time: string;
+    service_name: string;
+  }) => {
+    return {
+      title: '✅ Agendamento confirmado',
+      body: `${customer_name?.trim()} confirmou ${service_name?.trim()} para ${dayAndMonth} às ${time}.`,
+    };
+  },
+
   buildAppointmentRescheduledMessageForCustomer: ({
     professional_name,
     dayAndMonth,

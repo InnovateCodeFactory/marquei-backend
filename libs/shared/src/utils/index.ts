@@ -199,6 +199,7 @@ export function getTwoNames(name: string): string {
 }
 
 export * from './prohibited-terms';
+export * from './validate-opening-hours';
 
 export function codeGenerator({
   length,

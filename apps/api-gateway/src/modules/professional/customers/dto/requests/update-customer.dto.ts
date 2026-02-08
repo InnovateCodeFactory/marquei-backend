@@ -1,7 +1,14 @@
 import { removeSpecialCharacters } from '@app/shared/utils';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class UpdateCustomerDto {
   @IsString()
@@ -11,6 +18,9 @@ export class UpdateCustomerDto {
 
   @IsString()
   @IsOptional()
+  @MinLength(2, {
+    message: 'O nome deve conter no mínimo 2 caracteres',
+  })
   @ApiPropertyOptional({ description: 'Customer name' })
   name?: string;
 
@@ -37,6 +47,8 @@ export class UpdateCustomerDto {
 
   @IsBoolean()
   @IsOptional()
-  @ApiPropertyOptional({ description: 'Block/unblock customer for this business' })
+  @ApiPropertyOptional({
+    description: 'Block/unblock customer for this business',
+  })
   isBlocked?: boolean;
 }

@@ -10,7 +10,7 @@ import { lookup as dnsLookup } from 'node:dns/promises';
 import { request as httpsRequest } from 'node:https';
 import { isIP } from 'node:net';
 import { EditBusinessDto } from '../dto/requests/edit-business.dto';
-import { hasProhibitedTerm } from '@app/shared/utils';
+import { hasProhibitedTerm, validateBusinessOpeningHours } from '@app/shared/utils';
 
 @Injectable()
 export class EditBusinessUseCase {
@@ -56,7 +56,15 @@ export class EditBusinessUseCase {
     if ('complement' in dto) data.complement = dto.complement ?? null;
     if ('city' in dto) data.city = dto.city ?? null;
     if ('uf' in dto) data.uf = dto.uf ?? null;
-    if ('opening_hours' in dto) data.opening_hours = (dto as any).opening_hours ?? null;
+    if (typeof dto.latitude === 'number') data.latitude = dto.latitude;
+    if (typeof dto.longitude === 'number') data.longitude = dto.longitude;
+    if ('opening_hours' in dto) {
+      const openingHoursPayload = (dto as any).opening_hours;
+      if (openingHoursPayload !== null && openingHoursPayload !== undefined) {
+        validateBusinessOpeningHours(openingHoursPayload);
+      }
+      data.opening_hours = openingHoursPayload ?? null;
+    }
 
     if (Object.keys(data).length === 0) return null;
 

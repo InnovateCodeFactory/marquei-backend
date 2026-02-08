@@ -9,6 +9,7 @@ import {
   getFirstName,
   hasProhibitedTerm,
   slugifyBusinessName,
+  validateBusinessOpeningHours,
 } from '@app/shared/utils';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateAccountDto } from '../dto/requests/create-account';
@@ -66,6 +67,15 @@ export class CreateAccountUseCase {
       );
     }
 
+    validateBusinessOpeningHours(
+      this.daysOfWeek.map((day, index) => ({
+        day,
+        closed: business.openingHours?.[index]?.closed,
+        times: business.openingHours?.[index]?.times ?? [],
+      })),
+      { requireSevenDays: true },
+    );
+
     const slug = slugifyBusinessName(business.name);
 
     const [existingUser, existingBusiness, mailValidation, freeTrialPlan] =
@@ -107,8 +117,8 @@ export class CreateAccountUseCase {
       const dayData = business.openingHours[index];
       return {
         day,
-        times: dayData.times,
-        closed: dayData.closed,
+        times: dayData?.times ?? [],
+        closed: dayData?.closed === true,
       };
     });
 
