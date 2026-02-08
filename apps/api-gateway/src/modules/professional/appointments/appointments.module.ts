@@ -2,6 +2,7 @@ import { ResponseHandlerService } from '@app/shared/services';
 import { Module } from '@nestjs/common';
 import { AppointmentsController } from './appointments.controller';
 import {
+  ConfirmAppointmentUseCase,
   CreateAppointmentUseCase,
   GetAppointmentsUseCase,
   GetAvailableTimesUseCase,
@@ -17,6 +18,7 @@ import { RescheduleAppointmentUseCase } from './use-cases/reschedule-appointment
   controllers: [AppointmentsController],
   providers: [
     ResponseHandlerService,
+    ConfirmAppointmentUseCase,
     GetAvailableTimesUseCase,
     CreateAppointmentUseCase,
     GetAppointmentsUseCase,

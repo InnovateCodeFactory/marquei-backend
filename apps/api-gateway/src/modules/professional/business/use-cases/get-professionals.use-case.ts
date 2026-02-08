@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/shared';
+import { systemGeneralSettings } from '@app/shared/config/system-general-settings';
 import { FileSystemService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
@@ -37,7 +38,9 @@ export class GetProfessionalsUseCase {
     return professionals.map((professional) => ({
       id: professional.id,
       avatar: this.fs.getPublicUrl({
-        key: professional.profile_image,
+        key:
+          professional.profile_image ||
+          systemGeneralSettings.default_image_avatar,
       }),
       name: professional.User.name?.split(' ')[0],
     }));

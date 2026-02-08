@@ -16,12 +16,14 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { BlockTimesDto } from './dto/requests/block-times.dto';
 import { CancelAppointmentDto } from './dto/requests/cancel-appointment.dto';
+import { ConfirmAppointmentDto } from './dto/requests/confirm-appointment.dto';
 import { CreateAppointmentDto } from './dto/requests/create-appointment.dto';
 import { GetAvailableTimesDto } from './dto/requests/get-available-times.dto';
 import { GetAppointmentsDto } from './dto/requests/get-appointments.dto';
 import { RequestAppointmentConfirmationDto } from './dto/requests/request-appointment-confirmation.dto';
 import { RescheduleAppointmentDto } from './dto/requests/reschedule-appointment.dto';
 import {
+  ConfirmAppointmentUseCase,
   CreateAppointmentUseCase,
   GetAppointmentsUseCase,
   GetAvailableTimesUseCase,
@@ -38,6 +40,7 @@ import { RescheduleAppointmentUseCase } from './use-cases/reschedule-appointment
 export class AppointmentsController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,
+    private readonly confirmAppointmentUseCase: ConfirmAppointmentUseCase,
     private readonly getAvailableTimesUseCase: GetAvailableTimesUseCase,
     private readonly createAppointmentUseCase: CreateAppointmentUseCase,
     private readonly getAppointmentsUseCase: GetAppointmentsUseCase,
@@ -146,6 +149,23 @@ export class AppointmentsController {
     return await this.responseHandler.handle({
       method: () =>
         this.requestAppointmentConfirmationUseCase.execute(body, req),
+      res,
+    });
+  }
+
+  @Post('confirm-appointment')
+  @ApiOperation({
+    summary: 'Confirm appointment manually',
+    description:
+      'Confirms a pending appointment directly by the professional.',
+  })
+  async confirmAppointment(
+    @Res() res: Response,
+    @Req() req: AppRequest,
+    @Body() body: ConfirmAppointmentDto,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.confirmAppointmentUseCase.execute(body, req),
       res,
     });
   }
