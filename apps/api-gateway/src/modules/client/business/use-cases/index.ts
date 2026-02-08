@@ -8,6 +8,5 @@ export * from './get-business-by-slug.use-case';
 export * from './get-business-portfolio.use-case';
 export * from './get-business-professionals.use-case';
 export * from './get-business-categories.use-case';
-export * from './get-section-items.use-case';
 export * from './get-professionals-for-appointment.use-case';
 export * from './get-services.use-case';

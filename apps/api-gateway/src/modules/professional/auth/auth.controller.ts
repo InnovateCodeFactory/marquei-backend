@@ -75,7 +75,9 @@ export class AuthController {
     @Req() req: Request,
     @Body() body: LoginDto,
   ) {
-    if (!this.isWebClient(req)) {
+    const isWebClient = this.isWebClient(req);
+
+    if (!isWebClient) {
       return this.responseHandler.handle({
         method: () => this.loginUseCase.execute(body),
         res,

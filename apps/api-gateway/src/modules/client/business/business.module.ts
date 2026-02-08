@@ -13,7 +13,6 @@ import {
   GetBusinessPortfolioUseCase,
   GetBusinessProfessionalsUseCase,
   GetBusinessCategoriesUseCase,
-  GetSectionItemsUseCase,
   GetProfessionalsForAppointmentUseCase,
   GetServicesUseCase,
 } from './use-cases';
@@ -27,7 +26,6 @@ import {
     FindRecommendedBusinessesUseCase,
     FindBusinessesByStateUseCase,
     GetHomeSectionsUseCase,
-    GetSectionItemsUseCase,
     GetBusinessBySlugUseCase,
     GetBusinessPortfolioUseCase,
     GetBusinessProfessionalsUseCase,

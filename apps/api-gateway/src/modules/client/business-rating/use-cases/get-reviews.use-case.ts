@@ -28,35 +28,55 @@ export class GetReviewsUseCase {
 
     const where = {
       business_slug: query.business_slug,
-      review: { not: null },
     };
 
-    const [reviews, total] = await Promise.all([
-      this.prisma.businessRating.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { created_at: 'desc' },
-        select: {
-          id: true,
-          rating: true,
-          review: true,
-          created_at: true,
-          user: {
-            select: {
-              id: true,
-              name: true,
-              person: { select: { profile_image: true } },
-            },
-          },
-        },
-      }),
+    const [orderedIds, total] = await Promise.all([
+      this.prisma.$queryRaw<Array<{ id: string }>>`
+        SELECT id
+        FROM "BusinessRating"
+        WHERE business_slug = ${query.business_slug}
+        ORDER BY
+          CASE
+            WHEN review IS NULL OR btrim(review) = '' THEN 1
+            ELSE 0
+          END ASC,
+          created_at DESC
+        OFFSET ${skip}
+        LIMIT ${limit}
+      `,
       this.prisma.businessRating.count({
         where,
       }),
     ]);
 
-    const items = reviews.map((r) => ({
+    const ids = orderedIds.map((item) => item.id);
+
+    const reviews =
+      ids.length > 0
+        ? await this.prisma.businessRating.findMany({
+            where: { id: { in: ids } },
+            select: {
+              id: true,
+              rating: true,
+              review: true,
+              created_at: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  person: { select: { profile_image: true } },
+                },
+              },
+            },
+          })
+        : [];
+
+    const reviewsById = new Map(reviews.map((item) => [item.id, item]));
+    const orderedReviews = ids
+      .map((id) => reviewsById.get(id))
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+    const items = orderedReviews.map((r) => ({
       id: r.id,
       user: {
         id: r.user?.id ?? '',

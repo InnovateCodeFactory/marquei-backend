@@ -17,7 +17,6 @@ import { FilterBusinessesDto } from './dto/requests/filter-businesses.dto';
 import { FindNearbyBusinessesDto } from './dto/requests/find-nearby-businesses.dto';
 import { FindRecommendedBusinessesDto } from './dto/requests/find-recommended-businesses.dto';
 import { GetHomeSectionsDto } from './dto/requests/get-home-sections.dto';
-import { GetSectionItemsDto } from './dto/requests/get-section-items.dto';
 import { GetAvailableTimesForServiceAndProfessionalDto } from './dto/requests/get-available-times-for-service-and-professional.dto';
 import { GetBusinessBySlugDto } from './dto/requests/get-business-by-slug.dto';
 import { GetBusinessProfessionalsDto } from './dto/requests/get-business-professionals.dto';
@@ -33,7 +32,6 @@ import {
   GetBusinessPortfolioUseCase,
   GetBusinessProfessionalsUseCase,
   GetBusinessCategoriesUseCase,
-  GetSectionItemsUseCase,
   GetProfessionalsForAppointmentUseCase,
   GetServicesUseCase,
 } from './use-cases';
@@ -47,7 +45,6 @@ export class BusinessController {
     private readonly findNearbyBusinessesUseCase: FindNearbyBusinessesUseCase,
     private readonly findRecommendedBusinessesUseCase: FindRecommendedBusinessesUseCase,
     private readonly getHomeSectionsUseCase: GetHomeSectionsUseCase,
-    private readonly getSectionItemsUseCase: GetSectionItemsUseCase,
     private readonly getBusinessBySlugUseCase: GetBusinessBySlugUseCase,
     private readonly getBusinessPortfolioUseCase: GetBusinessPortfolioUseCase,
     private readonly getServicesUseCase: GetServicesUseCase,
@@ -95,21 +92,6 @@ export class BusinessController {
   ) {
     return this.responseHandler.handle({
       method: () => this.getHomeSectionsUseCase.execute(body, req),
-      res,
-    });
-  }
-
-  @Post('section-items')
-  @IsPublic()
-  @UseGuards(OptionalAuthGuard)
-  @ApiOperation({ summary: 'Get items for a specific section' })
-  async getSectionItems(
-    @Body() body: GetSectionItemsDto,
-    @Req() req: AppRequest,
-    @Res() res: Response,
-  ) {
-    return this.responseHandler.handle({
-      method: () => this.getSectionItemsUseCase.execute(body, req),
       res,
     });
   }

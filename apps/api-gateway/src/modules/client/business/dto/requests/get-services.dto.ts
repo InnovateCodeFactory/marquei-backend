@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumberString, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumberString,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class GetServicesDto {
   @IsString()
@@ -25,4 +30,14 @@ export class GetServicesDto {
     example: '10',
   })
   limit: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description:
+      'Search term for service name, duration (minutes) or value (price)',
+    required: false,
+    example: 'corte',
+  })
+  search?: string;
 }
