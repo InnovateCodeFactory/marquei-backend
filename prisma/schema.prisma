@@ -56,6 +56,8 @@ model User {
   appReviewEvents          AppReviewEvent[]
   businessPortfolioFolders BusinessPortfolioFolder[]
   businessPortfolioItems   BusinessPortfolioItem[]
+  serviceCombosCreated     ServiceCombo[]            @relation("ServiceComboCreatedBy")
+  serviceCombosUpdated     ServiceCombo[]            @relation("ServiceComboUpdatedBy")
 
   @@unique([email, user_type], name: "uq_user_email_type")
   @@index([email, user_type], name: "idx_user_email_user_type")
@@ -154,6 +156,7 @@ model Business {
   businessRatingPrompts    BusinessRatingPrompt[]
   portfolioFolders         BusinessPortfolioFolder[]
   portfolioItems           BusinessPortfolioItem[]
+  serviceCombos            ServiceCombo[]
 
   @@index([slug], name: "idx_business_slug")
   @@index([name], name: "idx_business_name")
@@ -266,6 +269,7 @@ model Service {
   color          String                @default("#4647fa")
   appointments   Appointment[]
   professionals  ProfessionalService[] // relação com a pivot
+  combo_items    ServiceComboItem[]
   created_at     DateTime              @default(now())
   updated_at     DateTime              @updatedAt
 
@@ -323,24 +327,29 @@ model ProfessionalService {
 }
 
 model ProfessionalStatement {
-  id             String        @id @default(cuid())
-  type           StatementType
-  description    String
-  value_in_cents Int
-  created_at     DateTime      @default(now())
+  id                      String        @id @default(cuid())
+  type                    StatementType
+  description             String
+  value_in_cents          Int
+  is_combo                Boolean       @default(false)
+  combo_services_snapshot Json?
+  created_at              DateTime      @default(now())
 
   business Business @relation(fields: [businessId], references: [id])
 
   professional_profile  ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
   professionalProfileId String
 
-  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
-  appointmentId String?
-  businessId    String
+  appointment    Appointment?  @relation(fields: [appointmentId], references: [id])
+  appointmentId  String?
+  businessId     String
+  serviceComboId String?
+  serviceCombo   ServiceCombo? @relation(fields: [serviceComboId], references: [id])
 
   @@index([professionalProfileId], name: "idx_professional_statement_profile")
   @@index([businessId], name: "idx_professional_statement_business")
   @@index([businessId, type, created_at], name: "idx_ps_business_type_created_at")
+  @@index([serviceComboId], name: "idx_professional_statement_service_combo")
 }
 
 model Appointment {
@@ -359,9 +368,12 @@ model Appointment {
   duration_minutes     Int
 
   google_calendar_event_id String?
+  serviceComboId           String?
+  combo_snapshot           Json?
 
   professional   ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
   service        Service             @relation(fields: [service_id], references: [id])
+  serviceCombo   ServiceCombo?       @relation(fields: [serviceComboId], references: [id])
   customerPerson Person              @relation(fields: [personId], references: [id])
 
   created_at            DateTime                @default(now())
@@ -373,9 +385,63 @@ model Appointment {
   ReminderJob           ReminderJob[]
 
   @@index([service_id], name: "idx_appointment_service")
+  @@index([serviceComboId], name: "idx_appointment_service_combo")
   @@index([personId], name: "idx_appointment_person")
   @@index([professionalProfileId, start_at_utc], name: "idx_professional_start")
   @@index([professionalProfileId, end_at_utc], name: "idx_professional_end")
+}
+
+model ServiceCombo {
+  id                      String                   @id @default(cuid())
+  businessId              String
+  business                Business                 @relation(fields: [businessId], references: [id])
+  name                    String
+  description             String?
+  color                   String                   @default("#4647fa")
+  is_active               Boolean                  @default(true)
+  pricing_mode            ServiceComboPricingMode
+  duration_mode           ServiceComboDurationMode
+  discount_percent        Float?
+  fixed_price_in_cents    Int?
+  custom_duration_minutes Int?
+  base_price_in_cents     Int
+  base_duration_minutes   Int
+  final_price_in_cents    Int
+  final_duration_minutes  Int
+  created_by_user_id      String
+  updated_by_user_id      String?
+  deleted_at              DateTime?
+  created_at              DateTime                 @default(now())
+  updated_at              DateTime                 @updatedAt
+
+  created_by   User                    @relation("ServiceComboCreatedBy", fields: [created_by_user_id], references: [id])
+  updated_by   User?                   @relation("ServiceComboUpdatedBy", fields: [updated_by_user_id], references: [id])
+  items        ServiceComboItem[]
+  appointments Appointment[]
+  statements   ProfessionalStatement[]
+
+  @@index([businessId], name: "idx_service_combo_business")
+  @@index([businessId, is_active], name: "idx_service_combo_business_active")
+  @@index([businessId, name], name: "idx_service_combo_business_name")
+  @@index([deleted_at], name: "idx_service_combo_deleted_at")
+  @@index([created_by_user_id], name: "idx_service_combo_created_by")
+}
+
+model ServiceComboItem {
+  id                        String   @id @default(cuid())
+  comboId                   String
+  serviceId                 String
+  sort_order                Int      @default(0)
+  price_in_cents_snapshot   Int
+  duration_minutes_snapshot Int
+  created_at                DateTime @default(now())
+
+  combo   ServiceCombo @relation(fields: [comboId], references: [id])
+  service Service      @relation(fields: [serviceId], references: [id])
+
+  @@unique([comboId, serviceId], name: "uq_service_combo_item_combo_service")
+  @@index([comboId, sort_order], name: "idx_service_combo_item_combo_order")
+  @@index([serviceId], name: "idx_service_combo_item_service")
 }
 
 model AppointmentEvent {
@@ -1121,4 +1187,14 @@ enum AppUpdateScope {
   new_appointment
   profile
   statement
+}
+
+enum ServiceComboPricingMode {
+  FIXED_PRICE
+  PERCENT_DISCOUNT
+}
+
+enum ServiceComboDurationMode {
+  SUM_SERVICES
+  CUSTOM
 }

@@ -16,6 +16,7 @@ import { ProfessionalProfileModule } from './profile/profile.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AppUpdatesModule } from './app-updates/app-updates.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
+import { ServiceCombosModule } from './service-combos/service-combos.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { PortfolioModule } from './portfolio/portfolio.module';
     AnalyticsModule,
     AppUpdatesModule,
     PortfolioModule,
+    ServiceCombosModule,
   ],
 })
 export class ProfessionalModule {}

@@ -78,10 +78,30 @@ export class CloseDueAppointmentsUseCase implements OnApplicationBootstrap {
                 business_id: true,
               },
             },
+            serviceComboId: true,
             service: {
               select: {
                 price_in_cents: true,
                 name: true,
+              },
+            },
+            serviceCombo: {
+              select: {
+                id: true,
+                name: true,
+                final_price_in_cents: true,
+                items: {
+                  orderBy: { sort_order: 'asc' },
+                  select: {
+                    serviceId: true,
+                    sort_order: true,
+                    duration_minutes_snapshot: true,
+                    price_in_cents_snapshot: true,
+                    service: {
+                      select: { name: true },
+                    },
+                  },
+                },
               },
             },
           },
@@ -121,8 +141,26 @@ export class CloseDueAppointmentsUseCase implements OnApplicationBootstrap {
               businessId: r.professional.business_id,
               professionalProfileId: r.professional.id,
               type: 'INCOME',
-              value_in_cents: r.service.price_in_cents,
-              description: r.service.name,
+              value_in_cents:
+                r.serviceCombo?.final_price_in_cents ?? r.service.price_in_cents,
+              description: r.serviceCombo
+                ? `Combo: ${r.serviceCombo.name}`
+                : r.service.name,
+              is_combo: !!r.serviceCombo,
+              serviceComboId: r.serviceCombo?.id ?? null,
+              combo_services_snapshot: r.serviceCombo
+                ? {
+                    combo_id: r.serviceCombo.id,
+                    combo_name: r.serviceCombo.name,
+                    services: r.serviceCombo.items.map((item) => ({
+                      service_id: item.serviceId,
+                      name: item.service.name,
+                      sort_order: item.sort_order,
+                      duration_minutes_snapshot: item.duration_minutes_snapshot,
+                      price_in_cents_snapshot: item.price_in_cents_snapshot,
+                    })),
+                  }
+                : null,
             })),
           });
         });
