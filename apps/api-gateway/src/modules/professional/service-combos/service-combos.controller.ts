@@ -17,6 +17,7 @@ import { Response } from 'express';
 import {
   CreateServiceComboDto,
   GetServiceCombosDto,
+  ToggleServiceComboVisibilityDto,
   UpdateServiceComboDto,
 } from './dto/requests';
 import {
@@ -24,6 +25,7 @@ import {
   DeleteServiceComboUseCase,
   GetServiceComboByIdUseCase,
   GetServiceCombosUseCase,
+  ToggleServiceComboVisibilityUseCase,
   UpdateServiceComboUseCase,
 } from './use-cases';
 
@@ -36,6 +38,7 @@ export class ServiceCombosController {
     private readonly getServiceCombosUseCase: GetServiceCombosUseCase,
     private readonly getServiceComboByIdUseCase: GetServiceComboByIdUseCase,
     private readonly updateServiceComboUseCase: UpdateServiceComboUseCase,
+    private readonly toggleServiceComboVisibilityUseCase: ToggleServiceComboVisibilityUseCase,
     private readonly deleteServiceComboUseCase: DeleteServiceComboUseCase,
   ) {}
 
@@ -90,6 +93,21 @@ export class ServiceCombosController {
     return await this.responseHandler.handle({
       method: () =>
         this.updateServiceComboUseCase.execute(currentUser, id, dto),
+      res,
+    });
+  }
+
+  @Patch(':id/visibility')
+  @ApiOperation({ summary: 'Ativar/desativar visibilidade do combo' })
+  async toggleVisibility(
+    @CurrentUserDecorator() currentUser: CurrentUser,
+    @Param('id') id: string,
+    @Body() dto: ToggleServiceComboVisibilityDto,
+    @Res() res: Response,
+  ) {
+    return await this.responseHandler.handle({
+      method: () =>
+        this.toggleServiceComboVisibilityUseCase.execute(currentUser, id, dto),
       res,
     });
   }

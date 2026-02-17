@@ -46,6 +46,16 @@ export class CreateServiceComboDto {
   })
   service_ids: string[];
 
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  @ApiProperty({
+    description: 'Lista de profissionais que executam este combo',
+    type: String,
+    isArray: true,
+  })
+  professionalsId: string[];
+
   @IsEnum(ServiceComboPricingModeDto)
   @ApiProperty({
     description: 'Estratégia de preço do combo',

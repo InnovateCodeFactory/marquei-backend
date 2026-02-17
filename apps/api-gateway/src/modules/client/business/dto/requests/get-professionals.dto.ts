@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class GetProfessionalsForAppointmentDto {
   @IsString()
@@ -11,10 +11,18 @@ export class GetProfessionalsForAppointmentDto {
   slug: string;
 
   @IsString()
-  @IsNotEmpty()
-  @ApiProperty({
+  @IsOptional()
+  @ApiPropertyOptional({
     description: 'The ID of the service to book an appointment for',
     example: 'service-12345',
   })
-  service_id: string;
+  service_id?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'The ID of the combo to book an appointment for',
+    example: 'combo-12345',
+  })
+  combo_id?: string;
 }

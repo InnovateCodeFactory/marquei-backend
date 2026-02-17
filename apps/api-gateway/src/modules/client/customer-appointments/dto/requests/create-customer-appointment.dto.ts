@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateCustomerAppointmentDto {
@@ -19,12 +19,20 @@ export class CreateCustomerAppointmentDto {
   professional_id: string;
 
   @IsString()
-  @IsNotEmpty()
-  @ApiProperty({
+  @IsOptional()
+  @ApiPropertyOptional({
     description: 'The ID of the service for the appointment',
     example: 'service-id-456',
   })
-  service_id: string;
+  service_id?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'The ID of the combo for the appointment',
+    example: 'combo-id-456',
+  })
+  combo_id?: string;
 
   @IsString()
   @IsOptional()

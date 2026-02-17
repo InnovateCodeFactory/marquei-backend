@@ -19,10 +19,12 @@ import { FindRecommendedBusinessesDto } from './dto/requests/find-recommended-bu
 import { GetHomeSectionsDto } from './dto/requests/get-home-sections.dto';
 import { GetAvailableTimesForServiceAndProfessionalDto } from './dto/requests/get-available-times-for-service-and-professional.dto';
 import { GetBusinessBySlugDto } from './dto/requests/get-business-by-slug.dto';
+import { GetBusinessOfferingsDto } from './dto/requests/get-business-offerings.dto';
 import { GetBusinessProfessionalsDto } from './dto/requests/get-business-professionals.dto';
 import { GetProfessionalsForAppointmentDto } from './dto/requests/get-professionals.dto';
 import { GetServicesDto } from './dto/requests/get-services.dto';
 import {
+  GetBusinessOfferingsUseCase,
   FilterBusinessesUseCase,
   FindNearbyBusinessesUseCase,
   FindRecommendedBusinessesUseCase,
@@ -47,6 +49,7 @@ export class BusinessController {
     private readonly getHomeSectionsUseCase: GetHomeSectionsUseCase,
     private readonly getBusinessBySlugUseCase: GetBusinessBySlugUseCase,
     private readonly getBusinessPortfolioUseCase: GetBusinessPortfolioUseCase,
+    private readonly getBusinessOfferingsUseCase: GetBusinessOfferingsUseCase,
     private readonly getServicesUseCase: GetServicesUseCase,
     private readonly getProfessionalsForAppointmentUseCase: GetProfessionalsForAppointmentUseCase,
     private readonly getAvailableTimesForServiceAndProfessionalUseCase: GetAvailableTimesForServiceAndProfessionalUseCase,
@@ -115,6 +118,22 @@ export class BusinessController {
   async getServices(@Res() res: Response, @Query() query: GetServicesDto) {
     return this.responseHandler.handle({
       method: () => this.getServicesUseCase.execute(query),
+      res,
+    });
+  }
+
+  @Get('offerings')
+  @IsPublic()
+  @ApiOperation({
+    summary:
+      'Get offerings for a business (services, combos and future packages)',
+  })
+  async getOfferings(
+    @Res() res: Response,
+    @Query() query: GetBusinessOfferingsDto,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.getBusinessOfferingsUseCase.execute(query),
       res,
     });
   }

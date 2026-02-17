@@ -60,6 +60,31 @@ export class UpdateServiceComboUseCase {
 
     if (!combo) throw new NotFoundException('Combo não encontrado');
 
+    let nextProfessionalsIds: string[] | null = null;
+    if (dto.professionalsId) {
+      nextProfessionalsIds = Array.from(new Set(dto.professionalsId.filter(Boolean)));
+
+      if (!nextProfessionalsIds.length) {
+        throw new BadRequestException(
+          'Selecione ao menos um profissional para executar este combo',
+        );
+      }
+
+      const validProfessionalsCount = await this.prisma.professionalProfile.count({
+        where: {
+          id: { in: nextProfessionalsIds },
+          business_id: businessId,
+          status: 'ACTIVE',
+        },
+      });
+
+      if (validProfessionalsCount !== nextProfessionalsIds.length) {
+        throw new BadRequestException(
+          'Um ou mais profissionais são inválidos para este negócio',
+        );
+      }
+    }
+
     const normalizedName = normalizeOptionalString(dto.name);
     if (normalizedName && hasProhibitedTerm(normalizedName, 'service')) {
       throw new BadRequestException(
@@ -214,6 +239,41 @@ export class UpdateServiceComboUseCase {
         });
       }
 
+      if (nextProfessionalsIds) {
+        const currentProfessionals = await tx.professionalServiceCombo.findMany({
+          where: { service_combo_id: combo.id },
+          select: { professional_profile_id: true },
+        });
+
+        const currentIds = new Set(
+          currentProfessionals.map((item) => item.professional_profile_id),
+        );
+        const toAdd = nextProfessionalsIds.filter((id) => !currentIds.has(id));
+        const toRemove = Array.from(currentIds).filter(
+          (id) => !nextProfessionalsIds!.includes(id),
+        );
+
+        if (toRemove.length) {
+          await tx.professionalServiceCombo.deleteMany({
+            where: {
+              service_combo_id: combo.id,
+              professional_profile_id: { in: toRemove },
+            },
+          });
+        }
+
+        if (toAdd.length) {
+          await tx.professionalServiceCombo.createMany({
+            data: toAdd.map((id) => ({
+              service_combo_id: combo.id,
+              professional_profile_id: id,
+              active: true,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
+
       return tx.serviceCombo.findUnique({
         where: { id: combo.id },
         select: {
@@ -241,6 +301,16 @@ export class UpdateServiceComboUseCase {
               duration_minutes_snapshot: true,
               service: {
                 select: { id: true, name: true, is_active: true },
+              },
+            },
+          },
+          professionals: {
+            select: {
+              professional_profile_id: true,
+              professional_profile: {
+                select: {
+                  User: { select: { name: true } },
+                },
               },
             },
           },

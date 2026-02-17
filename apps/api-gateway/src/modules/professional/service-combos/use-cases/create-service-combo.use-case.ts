@@ -34,8 +34,17 @@ export class CreateServiceComboUseCase {
 
     const serviceIds = normalizeComboServiceIds(dto.service_ids);
     assertMinComboServices(serviceIds);
+    const selectedProfessionals = Array.isArray(dto.professionalsId)
+      ? Array.from(new Set(dto.professionalsId.filter(Boolean)))
+      : [];
 
-    const [conflict, services] = await Promise.all([
+    if (!selectedProfessionals.length) {
+      throw new BadRequestException(
+        'Selecione ao menos um profissional para executar este combo',
+      );
+    }
+
+    const [conflict, services, professionalsCount] = await Promise.all([
       this.prisma.serviceCombo.findFirst({
         where: {
           businessId,
@@ -58,6 +67,13 @@ export class CreateServiceComboUseCase {
           is_active: true,
         },
       }),
+      this.prisma.professionalProfile.count({
+        where: {
+          id: { in: selectedProfessionals },
+          business_id: businessId,
+          status: 'ACTIVE',
+        },
+      }),
     ]);
 
     if (conflict) {
@@ -67,6 +83,12 @@ export class CreateServiceComboUseCase {
     if (services.length !== serviceIds.length) {
       throw new BadRequestException(
         'Um ou mais serviços são inválidos para este negócio',
+      );
+    }
+
+    if (professionalsCount !== selectedProfessionals.length) {
+      throw new BadRequestException(
+        'Um ou mais profissionais são inválidos para este negócio',
       );
     }
 
@@ -124,6 +146,15 @@ export class CreateServiceComboUseCase {
         })),
       });
 
+      await tx.professionalServiceCombo.createMany({
+        data: selectedProfessionals.map((professionalId) => ({
+          professional_profile_id: professionalId,
+          service_combo_id: created.id,
+          active: true,
+        })),
+        skipDuplicates: true,
+      });
+
       return tx.serviceCombo.findUnique({
         where: { id: created.id },
         select: {
@@ -150,6 +181,16 @@ export class CreateServiceComboUseCase {
               duration_minutes_snapshot: true,
               service: {
                 select: { id: true, name: true, is_active: true },
+              },
+            },
+          },
+          professionals: {
+            select: {
+              professional_profile_id: true,
+              professional_profile: {
+                select: {
+                  User: { select: { name: true } },
+                },
               },
             },
           },

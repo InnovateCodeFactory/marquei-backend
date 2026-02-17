@@ -91,6 +91,14 @@ export class GetAppointmentsUseCase {
             color: true,
           },
         },
+        serviceCombo: {
+          select: {
+            id: true,
+            name: true,
+            final_price_in_cents: true,
+            color: true,
+          },
+        },
       },
       orderBy: { start_at_utc: 'asc' },
     });
@@ -179,11 +187,13 @@ export class GetAppointmentsUseCase {
           hour_end: hourEnd,
         },
         service: {
-          id: a.service.id,
-          name: a.service.name,
+          id: a.serviceCombo?.id ?? a.service.id,
+          name: a.serviceCombo?.name ?? a.service.name,
           duration: formatDuration(Number(durationMin), 'short'),
-          price_in_formatted: new Price(a.service.price_in_cents).toCurrency(),
-          color: a.service.color,
+          price_in_formatted: new Price(
+            a.serviceCombo?.final_price_in_cents ?? a.service.price_in_cents,
+          ).toCurrency(),
+          color: a.serviceCombo?.color ?? a.service.color,
         },
         status: formatAppointmentStatus(a.status),
         reminder_sent_by_professional: reminderByAppointment.has(a.id),

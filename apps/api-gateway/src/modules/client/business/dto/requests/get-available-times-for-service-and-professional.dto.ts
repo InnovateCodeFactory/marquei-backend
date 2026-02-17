@@ -1,14 +1,22 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class GetAvailableTimesForServiceAndProfessionalDto {
   @IsString()
-  @IsNotEmpty()
-  @ApiProperty({
+  @IsOptional()
+  @ApiPropertyOptional({
     description: 'ID of the service to check availability for',
     example: 'service_123',
   })
-  service_id: string;
+  service_id?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'ID of the combo to check availability for',
+    example: 'combo_123',
+  })
+  combo_id?: string;
 
   @IsString()
   @IsNotEmpty()

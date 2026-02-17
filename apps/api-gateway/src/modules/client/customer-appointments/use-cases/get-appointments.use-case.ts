@@ -22,7 +22,7 @@ type Row = {
 
   professional_name: string;
   service_name: string;
-  service_duration: number; // s.duration (fallback)
+  effective_duration: number;
   price_in_cents: number;
   business_name: string;
 };
@@ -48,7 +48,7 @@ export class GetCustomerAppointmentsUseCase {
     const searchFilter =
       searchTrimmed.length > 0
         ? Prisma.sql`AND (
-            unaccent(s.name) ILIKE unaccent(${`%${searchTrimmed}%`})
+            unaccent(COALESCE(sc.name, s.name)) ILIKE unaccent(${`%${searchTrimmed}%`})
             OR unaccent(COALESCE(a.notes, '')) ILIKE unaccent(${`%${searchTrimmed}%`})
           )`
         : Prisma.sql``;
@@ -64,12 +64,13 @@ export class GetCustomerAppointmentsUseCase {
         a.duration_minutes,
         a.timezone,
         u.name AS professional_name,
-        s.name AS service_name,
-        s.duration AS service_duration,
-        s.price_in_cents,
+        COALESCE(sc.name, s.name) AS service_name,
+        COALESCE(a.duration_minutes, s.duration) AS effective_duration,
+        COALESCE(sc."final_price_in_cents", s.price_in_cents) AS price_in_cents,
         b.name AS business_name
       FROM "Appointment" a
       JOIN "Service" s ON a."service_id" = s.id
+      LEFT JOIN "ServiceCombo" sc ON a."serviceComboId" = sc.id
       JOIN "ProfessionalProfile" p ON a."professionalProfileId" = p.id
       JOIN "User" u ON p."userId" = u.id
       JOIN "Business" b ON s."businessId" = b.id
@@ -86,6 +87,7 @@ export class GetCustomerAppointmentsUseCase {
         SELECT COUNT(*)::bigint AS count
         FROM "Appointment" a
         JOIN "Service" s ON a."service_id" = s.id
+        LEFT JOIN "ServiceCombo" sc ON a."serviceComboId" = sc.id
         JOIN "ProfessionalProfile" p ON a."professionalProfileId" = p.id
         JOIN "User" u ON p."userId" = u.id
         JOIN "Business" b ON s."businessId" = b.id
@@ -102,7 +104,7 @@ export class GetCustomerAppointmentsUseCase {
       const IN_TZ = tz(zoneId);
 
       // duração “fotografada” no appointment (fallback para service.duration)
-      const durationMin = a.duration_minutes ?? a.service_duration;
+      const durationMin = a.effective_duration;
 
       return {
         id: a.id,

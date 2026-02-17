@@ -27,6 +27,14 @@ type ComboRow = {
   created_at: Date;
   updated_at: Date;
   items: ComboItemRow[];
+  professionals?: {
+    professional_profile_id: string;
+    professional_profile: {
+      User: {
+        name: string | null;
+      } | null;
+    };
+  }[];
 };
 
 export function presentServiceCombo(combo: ComboRow) {
@@ -62,6 +70,13 @@ export function presentServiceCombo(combo: ComboRow) {
     ),
     services_count: services.length,
     services,
+    professionals:
+      combo.professionals?.map((professional) => ({
+        professional_profile_id: professional.professional_profile_id,
+        name:
+          professional.professional_profile?.User?.name?.trim() ||
+          'Profissional',
+      })) ?? [],
     created_at: combo.created_at,
     updated_at: combo.updated_at,
   };

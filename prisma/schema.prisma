@@ -284,6 +284,7 @@ model ProfessionalProfile {
   business_id   String
   business      Business              @relation(fields: [business_id], references: [id])
   services      ProfessionalService[] // relação com a pivot
+  serviceCombos ProfessionalServiceCombo[]
   bio           String?
   phone         String?
   profile_image String?
@@ -324,6 +325,21 @@ model ProfessionalService {
   @@unique([professional_profile_id, service_id]) // evita duplicidade
   @@index([professional_profile_id], name: "idx_professional_service_profile")
   @@index([service_id], name: "idx_professional_service_service")
+}
+
+model ProfessionalServiceCombo {
+  id                      String  @id @default(cuid())
+  professional_profile_id String
+  service_combo_id        String
+  active                  Boolean @default(true)
+  order                   Int?
+
+  professional_profile ProfessionalProfile @relation(fields: [professional_profile_id], references: [id])
+  service_combo        ServiceCombo        @relation(fields: [service_combo_id], references: [id])
+
+  @@unique([professional_profile_id, service_combo_id], name: "uq_professional_service_combo_profile_combo")
+  @@index([professional_profile_id], name: "idx_prof_service_combo_profile")
+  @@index([service_combo_id], name: "idx_prof_service_combo_combo")
 }
 
 model ProfessionalStatement {
@@ -417,6 +433,7 @@ model ServiceCombo {
   created_by   User                    @relation("ServiceComboCreatedBy", fields: [created_by_user_id], references: [id])
   updated_by   User?                   @relation("ServiceComboUpdatedBy", fields: [updated_by_user_id], references: [id])
   items        ServiceComboItem[]
+  professionals ProfessionalServiceCombo[]
   appointments Appointment[]
   statements   ProfessionalStatement[]
 

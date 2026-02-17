@@ -79,6 +79,7 @@ export class CloseDueAppointmentsUseCase implements OnApplicationBootstrap {
               },
             },
             serviceComboId: true,
+            combo_snapshot: true,
             service: {
               select: {
                 price_in_cents: true,
@@ -112,6 +113,62 @@ export class CloseDueAppointmentsUseCase implements OnApplicationBootstrap {
 
         if (!rows.length) break;
 
+        const statementRows = rows.map((r) => {
+          const comboSnapshot = (r.combo_snapshot || null) as
+            | {
+                combo_name?: string;
+                final_price_in_cents?: number;
+                services?: Array<{
+                  service_id?: string;
+                  name?: string;
+                  sort_order?: number;
+                  duration_minutes_snapshot?: number;
+                  price_in_cents_snapshot?: number;
+                }>;
+              }
+            | null;
+
+          const comboServices =
+            r.serviceCombo?.items?.map((item) => ({
+              service_id: item.serviceId,
+              name: item.service.name,
+              sort_order: item.sort_order,
+              duration_minutes_snapshot: item.duration_minutes_snapshot,
+              price_in_cents_snapshot: item.price_in_cents_snapshot,
+            })) ??
+            comboSnapshot?.services ??
+            [];
+
+          const hasComboData =
+            Boolean(r.serviceComboId) ||
+            Boolean(r.serviceCombo) ||
+            Boolean(comboSnapshot);
+          const comboName =
+            r.serviceCombo?.name || comboSnapshot?.combo_name || 'Combo';
+          const comboValueInCents =
+            r.serviceCombo?.final_price_in_cents ??
+            comboSnapshot?.final_price_in_cents ??
+            r.service.price_in_cents;
+
+          return {
+            appointmentId: r.id,
+            businessId: r.professional.business_id,
+            professionalProfileId: r.professional.id,
+            type: 'INCOME' as const,
+            value_in_cents: comboValueInCents,
+            description: hasComboData ? `Combo: ${comboName}` : r.service.name,
+            is_combo: hasComboData,
+            serviceComboId: r.serviceCombo?.id ?? null,
+            combo_services_snapshot: hasComboData
+              ? {
+                  combo_id: r.serviceCombo?.id ?? null,
+                  combo_name: comboName,
+                  services: comboServices,
+                }
+              : null,
+          };
+        });
+
         await this.prismaService.$transaction(async (tx) => {
           await tx.appointment.updateMany({
             where: {
@@ -136,32 +193,7 @@ export class CloseDueAppointmentsUseCase implements OnApplicationBootstrap {
           });
 
           await tx.professionalStatement.createMany({
-            data: rows.map((r) => ({
-              appointmentId: r.id,
-              businessId: r.professional.business_id,
-              professionalProfileId: r.professional.id,
-              type: 'INCOME',
-              value_in_cents:
-                r.serviceCombo?.final_price_in_cents ?? r.service.price_in_cents,
-              description: r.serviceCombo
-                ? `Combo: ${r.serviceCombo.name}`
-                : r.service.name,
-              is_combo: !!r.serviceCombo,
-              serviceComboId: r.serviceCombo?.id ?? null,
-              combo_services_snapshot: r.serviceCombo
-                ? {
-                    combo_id: r.serviceCombo.id,
-                    combo_name: r.serviceCombo.name,
-                    services: r.serviceCombo.items.map((item) => ({
-                      service_id: item.serviceId,
-                      name: item.service.name,
-                      sort_order: item.sort_order,
-                      duration_minutes_snapshot: item.duration_minutes_snapshot,
-                      price_in_cents_snapshot: item.price_in_cents_snapshot,
-                    })),
-                  }
-                : null,
-            })),
+            data: statementRows,
           });
         });
 

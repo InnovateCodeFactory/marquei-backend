@@ -1,6 +1,10 @@
 import { PrismaService } from '@app/shared';
 import { FileSystemService } from '@app/shared/services';
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { GetProfessionalsForAppointmentDto } from '../dto/requests/get-professionals.dto';
 
 @Injectable()
@@ -11,30 +15,87 @@ export class GetProfessionalsForAppointmentUseCase {
   ) {}
 
   async execute(query: GetProfessionalsForAppointmentDto) {
-    const professionals = await this.prismaService.professionalProfile.findMany(
-      {
+    const hasServiceId = Boolean(query.service_id?.trim());
+    const hasComboId = Boolean(query.combo_id?.trim());
+
+    if (!hasServiceId && !hasComboId) {
+      throw new BadRequestException(
+        'Informe service_id ou combo_id para buscar profissionais',
+      );
+    }
+
+    if (hasServiceId && hasComboId) {
+      throw new BadRequestException(
+        'Informe apenas um entre service_id ou combo_id',
+      );
+    }
+
+    if (hasComboId) {
+      const combo = await this.prismaService.serviceCombo.findFirst({
         where: {
-          business: {
-            slug: query.slug,
-          },
-          status: 'ACTIVE',
-          services: {
-            some: {
-              service_id: query.service_id,
-            },
-          },
+          id: query.combo_id!,
+          is_active: true,
+          deleted_at: null,
+          business: { slug: query.slug },
         },
         select: {
           id: true,
-          User: {
-            select: {
-              name: true,
+          items: {
+            where: {
+              service: {
+                is_active: true,
+              },
+            },
+            select: { id: true },
+          },
+        },
+      });
+
+      if (!combo) {
+        throw new NotFoundException('Combo não encontrado para este negócio');
+      }
+
+      if ((combo.items?.length ?? 0) < 2) {
+        throw new BadRequestException('Combo indisponível para agendamento');
+      }
+    }
+
+    const offeringFilter = hasServiceId
+      ? {
+          services: {
+            some: {
+              service_id: query.service_id!,
+              active: true,
             },
           },
-          profile_image: true,
+        }
+      : {
+          serviceCombos: {
+            some: {
+              service_combo_id: query.combo_id!,
+              active: true,
+            },
+          },
+        };
+
+    const professionals = await this.prismaService.professionalProfile.findMany({
+      where: {
+        business: {
+          slug: query.slug,
         },
+        status: 'ACTIVE',
+        ...offeringFilter,
       },
-    );
+      select: {
+        id: true,
+        User: {
+          select: {
+            name: true,
+          },
+        },
+        profile_image: true,
+      },
+    });
 
     return professionals?.map((professional) => ({
       id: professional.id,

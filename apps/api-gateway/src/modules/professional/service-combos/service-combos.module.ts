@@ -6,6 +6,7 @@ import {
   DeleteServiceComboUseCase,
   GetServiceComboByIdUseCase,
   GetServiceCombosUseCase,
+  ToggleServiceComboVisibilityUseCase,
   UpdateServiceComboUseCase,
 } from './use-cases';
 
@@ -17,6 +18,7 @@ import {
     GetServiceCombosUseCase,
     GetServiceComboByIdUseCase,
     UpdateServiceComboUseCase,
+    ToggleServiceComboVisibilityUseCase,
     DeleteServiceComboUseCase,
   ],
 })

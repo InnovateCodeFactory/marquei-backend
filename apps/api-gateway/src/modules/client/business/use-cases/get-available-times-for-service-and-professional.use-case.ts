@@ -32,10 +32,26 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
 
   async execute({
     service_id,
+    combo_id,
     professional_id,
     day,
     business_slug,
   }: GetAvailableTimesForServiceAndProfessionalDto) {
+    const hasServiceId = Boolean(service_id?.trim());
+    const hasComboId = Boolean(combo_id?.trim());
+
+    if (!hasServiceId && !hasComboId) {
+      throw new BadRequestException(
+        'Parâmetros inválidos: informe service_id ou combo_id.',
+      );
+    }
+
+    if (hasServiceId && hasComboId) {
+      throw new BadRequestException(
+        'Parâmetros inválidos: informe apenas um entre service_id ou combo_id.',
+      );
+    }
+
     // --- valida 'day' (yyyy-MM-dd) e cria um TZDate no fuso do negócio ---
     // Não usamos parse() aqui pra evitar ambiguidade de fuso; fazemos split manual.
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
@@ -57,18 +73,106 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
     );
 
     // --- carrega dados em paralelo ---
-    const [service, business] = await Promise.all([
-      this.prisma.service.findUnique({
-        where: { id: service_id },
-        select: { duration: true },
-      }),
-      this.prisma.business.findUnique({
-        where: { slug: business_slug },
-        select: { opening_hours: true, id: true },
-      }),
-    ]);
-    if (!service) throw new NotFoundException('Serviço não encontrado');
+    const [business, professional, service, combo, professionalHasService, professionalHasCombo] =
+      await Promise.all([
+        this.prisma.business.findUnique({
+          where: { slug: business_slug },
+          select: { opening_hours: true, id: true },
+        }),
+        this.prisma.professionalProfile.findFirst({
+          where: {
+            id: professional_id,
+            business: { slug: business_slug },
+            status: 'ACTIVE',
+          },
+          select: { id: true },
+        }),
+        hasServiceId
+          ? this.prisma.service.findFirst({
+              where: {
+                id: service_id!,
+                business: { slug: business_slug },
+                is_active: true,
+              },
+              select: { id: true, duration: true },
+            })
+          : Promise.resolve(null),
+        hasComboId
+          ? this.prisma.serviceCombo.findFirst({
+              where: {
+                id: combo_id!,
+                business: { slug: business_slug },
+                is_active: true,
+                deleted_at: null,
+              },
+              select: {
+                id: true,
+                final_duration_minutes: true,
+                items: {
+                  where: {
+                    service: {
+                      is_active: true,
+                    },
+                  },
+                  select: { id: true },
+                },
+              },
+            })
+          : Promise.resolve(null),
+        hasServiceId
+          ? this.prisma.professionalService.count({
+              where: {
+                professional_profile_id: professional_id,
+                service_id: service_id!,
+                active: true,
+              },
+            })
+          : Promise.resolve(0),
+        hasComboId
+          ? this.prisma.professionalServiceCombo.count({
+              where: {
+                professional_profile_id: professional_id,
+                service_combo_id: combo_id!,
+                active: true,
+              },
+            })
+          : Promise.resolve(0),
+      ]);
+
     if (!business) throw new NotFoundException('Negócio não encontrado');
+    if (!professional) {
+      throw new NotFoundException('Profissional não encontrado para este negócio');
+    }
+
+    if (hasServiceId && !service) {
+      throw new NotFoundException('Serviço não encontrado');
+    }
+
+    if (hasComboId && !combo) {
+      throw new NotFoundException('Combo não encontrado');
+    }
+
+    if (hasComboId && (combo?.items?.length ?? 0) < 2) {
+      throw new BadRequestException('Combo indisponível para agendamento');
+    }
+
+    if (hasServiceId && professionalHasService < 1) {
+      throw new BadRequestException(
+        'Este profissional não executa o serviço selecionado',
+      );
+    }
+
+    if (hasComboId && professionalHasCombo < 1) {
+      throw new BadRequestException(
+        'Este profissional não executa o combo selecionado',
+      );
+    }
+
+    const appointmentDuration =
+      service?.duration ?? combo?.final_duration_minutes ?? 0;
+    if (appointmentDuration <= 0) {
+      throw new BadRequestException('Duração inválida para cálculo de horários');
+    }
 
     // --- normaliza opening_hours ---
     let openingHours: OpeningHours = [];
@@ -122,15 +226,15 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
 
       while (
         isBefore(
-          addMinutes(startLocal, service.duration, { in: Z }),
+          addMinutes(startLocal, appointmentDuration, { in: Z }),
           endLocal,
         ) ||
-        isEqual(addMinutes(startLocal, service.duration, { in: Z }), endLocal)
+        isEqual(addMinutes(startLocal, appointmentDuration, { in: Z }), endLocal)
       ) {
         if (!isTodayInTZ || isBefore(nowLocal, startLocal)) {
           candidates.push(startLocal);
         }
-        startLocal = addMinutes(startLocal, service.duration, {
+        startLocal = addMinutes(startLocal, appointmentDuration, {
           in: Z,
         }) as TZDate;
       }
@@ -211,7 +315,7 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
     // --- filtra candidatos removendo conflitos (comparação local) ---
     const availableSlots = candidates
       .filter((startLocal) => {
-        const endLocal = addMinutes(startLocal, service.duration, {
+        const endLocal = addMinutes(startLocal, appointmentDuration, {
           in: Z,
         }) as TZDate;
 

@@ -35,30 +35,180 @@ export class CreateAppointmentUseCase {
   ) {}
 
   async execute(payload: CreateCustomerAppointmentDto, request: AppRequest) {
-    const { appointment_date, professional_id, service_id, notes } = payload;
+    const { appointment_date, professional_id, service_id, combo_id, notes } =
+      payload;
 
-    // 1) Carrega duração do serviço (minutos) e profissional
-    const [service, professional] = await Promise.all([
-      this.prismaService.service.findUnique({
-        where: { id: service_id },
-        select: { duration: true, name: true, price_in_cents: true },
-      }),
-      this.prismaService.professionalProfile.findUnique({
-        where: { id: professional_id },
-        select: { id: true, business_id: true, userId: true },
-      }),
-    ]);
-    if (!service) {
-      throw new BadRequestException('Serviço inválido.');
+    const hasServiceId = Boolean(service_id?.trim());
+    const hasComboId = Boolean(combo_id?.trim());
+
+    if (!hasServiceId && !hasComboId) {
+      throw new BadRequestException(
+        'Informe service_id ou combo_id para criar o agendamento.',
+      );
     }
+
+    if (hasServiceId && hasComboId) {
+      throw new BadRequestException(
+        'Informe apenas um entre service_id ou combo_id.',
+      );
+    }
+
+    const professional = await this.prismaService.professionalProfile.findUnique({
+      where: { id: professional_id },
+      select: {
+        id: true,
+        business_id: true,
+        userId: true,
+        User: {
+          select: {
+            push_token: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
     if (!professional) {
       throw new BadRequestException('Profissional inválido.');
+    }
+
+    const customerPerson = await this.prismaService.person.findUnique({
+      where: { id: request.user.personId },
+      select: { name: true },
+    });
+    const customerName = getTwoNames(customerPerson?.name || 'Cliente');
+
+    let targetServiceId = service_id!;
+    let targetDuration = 0;
+    let targetName = '';
+    let targetPriceInCents = 0;
+    let targetComboId: string | null = null;
+    let comboSnapshot: Record<string, unknown> | null = null;
+
+    if (hasServiceId) {
+      const [service, executesService] = await Promise.all([
+        this.prismaService.service.findFirst({
+          where: {
+            id: service_id,
+            businessId: professional.business_id,
+            is_active: true,
+          },
+          select: { id: true, duration: true, name: true, price_in_cents: true },
+        }),
+        this.prismaService.professionalService.count({
+          where: {
+            professional_profile_id: professional_id,
+            service_id: service_id,
+            active: true,
+          },
+        }),
+      ]);
+
+      if (!service) {
+        throw new BadRequestException('Serviço inválido.');
+      }
+
+      if (executesService < 1) {
+        throw new BadRequestException(
+          'Este profissional não executa o serviço selecionado.',
+        );
+      }
+
+      targetServiceId = service.id;
+      targetDuration = service.duration;
+      targetName = service.name;
+      targetPriceInCents = service.price_in_cents;
+    } else {
+      const [combo, executesCombo] = await Promise.all([
+        this.prismaService.serviceCombo.findFirst({
+          where: {
+            id: combo_id,
+            businessId: professional.business_id,
+            is_active: true,
+            deleted_at: null,
+          },
+          select: {
+            id: true,
+            name: true,
+            final_duration_minutes: true,
+            final_price_in_cents: true,
+            items: {
+              orderBy: { sort_order: 'asc' },
+              select: {
+                serviceId: true,
+                price_in_cents_snapshot: true,
+                duration_minutes_snapshot: true,
+                sort_order: true,
+                service: {
+                  select: {
+                    id: true,
+                    name: true,
+                    is_active: true,
+                  },
+                },
+              },
+            },
+          },
+        }),
+        this.prismaService.professionalServiceCombo.count({
+          where: {
+            professional_profile_id: professional_id,
+            service_combo_id: combo_id,
+            active: true,
+          },
+        }),
+      ]);
+
+      if (!combo) {
+        throw new BadRequestException('Combo inválido.');
+      }
+
+      const activeServicesCount = combo.items.filter(
+        (item) => item.service?.is_active,
+      ).length;
+      if (activeServicesCount < 2) {
+        throw new BadRequestException(
+          'Combo indisponível para agendamento no momento.',
+        );
+      }
+
+      if (executesCombo < 1) {
+        throw new BadRequestException(
+          'Este profissional não executa o combo selecionado.',
+        );
+      }
+
+      const anchorService = combo.items.find((item) => item.service?.is_active);
+      if (!anchorService) {
+        throw new BadRequestException(
+          'Combo sem serviços ativos para criar agendamento.',
+        );
+      }
+
+      targetServiceId = anchorService.serviceId;
+      targetDuration = combo.final_duration_minutes;
+      targetName = combo.name;
+      targetPriceInCents = combo.final_price_in_cents;
+      targetComboId = combo.id;
+      comboSnapshot = {
+        combo_id: combo.id,
+        combo_name: combo.name,
+        final_price_in_cents: combo.final_price_in_cents,
+        final_duration_minutes: combo.final_duration_minutes,
+        services: combo.items.map((item) => ({
+          service_id: item.serviceId,
+          service_name: item.service?.name ?? 'Serviço',
+          sort_order: item.sort_order,
+          price_in_cents_snapshot: item.price_in_cents_snapshot,
+          duration_minutes_snapshot: item.duration_minutes_snapshot,
+        })),
+      };
     }
 
     // 2) Interpreta a data de entrada como HORÁRIO LOCAL do negócio (SP)
     // Aceita Date ou string ISO (sem Z) vindo do app.
     const startLocal = this.toTZDateLocal(appointment_date);
-    const endLocal = addMinutes(startLocal, service.duration) as TZDate;
+    const endLocal = addMinutes(startLocal, targetDuration) as TZDate;
 
     // Para persistir/consultar em UTC, basta tratar TZDate como Date (mesmo instante):
     const startUtc: Date = new Date(startLocal);
@@ -124,12 +274,18 @@ export class CreateAppointmentUseCase {
       data: {
         start_at_utc: startUtc,
         end_at_utc: endUtc,
-        duration_minutes: service.duration,
+        duration_minutes: targetDuration,
         timezone: BUSINESS_TZ_ID,
 
         professional: { connect: { id: professional_id } },
         status: 'PENDING',
-        service: { connect: { id: service_id } },
+        service: { connect: { id: targetServiceId } },
+        ...(targetComboId
+          ? {
+              serviceCombo: { connect: { id: targetComboId } },
+              combo_snapshot: comboSnapshot,
+            }
+          : {}),
         notes: notes || null,
         customerPerson: { connect: { id: request.user.personId } },
         start_offset_minutes: startLocal.getTimezoneOffset(),
@@ -144,34 +300,24 @@ export class CreateAppointmentUseCase {
       },
       select: {
         id: true,
-        customerPerson: { select: { name: true } },
-        professional: {
-          select: {
-            User: { select: { push_token: true, email: true, name: true } },
-            business_id: true,
-          },
-        },
-        service: {
-          select: { name: true, price_in_cents: true, duration: true },
-        },
       },
     });
 
-    const pushTokens = appointment.professional.User.push_token
-      ? [appointment.professional.User.push_token]
+    const pushTokens = professional.User?.push_token
+      ? [professional.User.push_token]
       : [];
 
     // 5) Mensagens (formatar no fuso local de SP)
     const titleAndBody =
       NotificationMessageBuilder.buildAppointmentCreatedMessage({
-        customer_name: getTwoNames(appointment.customerPerson.name),
+        customer_name: customerName,
         dayAndMonth: format(startLocal, 'dd/MM', { in: IN_TZ }),
         time: format(startLocal, 'HH:mm', { in: IN_TZ }),
-        service_name: appointment.service.name,
+        service_name: targetName,
       });
 
-    const durationHours = Math.floor(service.duration / 60);
-    const durationMinutes = service.duration % 60;
+    const durationHours = Math.floor(targetDuration / 60);
+    const durationMinutes = targetDuration % 60;
     const durationFormatted =
       durationHours > 0
         ? `${durationHours}h ${durationMinutes}min`
@@ -198,26 +344,28 @@ export class CreateAppointmentUseCase {
       }),
       this.rmqService.publishToQueue({
         payload: {
-          business_id: appointment.professional.business_id,
+          business_id: professional.business_id,
           person_id: request.user.personId,
         },
         routingKey: 'check-customer-appointment-created',
       }),
-      this.rmqService.publishToQueue({
-        payload: new SendNewAppointmentProfessionalDto({
-          toName: getTwoNames(appointment.professional.User.name),
-          byName: getTwoNames(appointment.customerPerson.name),
-          serviceName: service.name,
-          apptDate: format(startLocal, 'dd/MM/yyyy', { in: IN_TZ }),
-          apptTime: format(startLocal, 'HH:mm', { in: IN_TZ }),
-          price: new Price(service.price_in_cents).toCurrency(),
-          clientNotes: notes || '-',
-          to: appointment?.professional.User.email,
-          duration: durationFormatted,
-        }),
-        routingKey:
-          MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_NEW_APPOINTMENT_MAIL_QUEUE,
-      }),
+      professional.User?.email
+        ? this.rmqService.publishToQueue({
+            payload: new SendNewAppointmentProfessionalDto({
+              toName: getTwoNames(professional.User?.name || 'Profissional'),
+              byName: customerName,
+              serviceName: targetName,
+              apptDate: format(startLocal, 'dd/MM/yyyy', { in: IN_TZ }),
+              apptTime: format(startLocal, 'HH:mm', { in: IN_TZ }),
+              price: new Price(targetPriceInCents).toCurrency(),
+              clientNotes: notes || '-',
+              to: professional.User.email,
+              duration: durationFormatted,
+            }),
+            routingKey:
+              MESSAGING_QUEUES.MAIL_NOTIFICATIONS.SEND_NEW_APPOINTMENT_MAIL_QUEUE,
+          })
+        : Promise.resolve(),
       this.rmqService.publishToQueue({
         routingKey: GOOGLE_CALENDAR_QUEUE,
         payload: {
@@ -272,6 +420,11 @@ export class CreateAppointmentUseCase {
               name: true,
             },
           },
+          serviceCombo: {
+            select: {
+              name: true,
+            },
+          },
           professional: {
             select: {
               business: {
@@ -314,9 +467,11 @@ export class CreateAppointmentUseCase {
             ? `Agendamento ${appointment.professional.business.name}`
             : 'Agendamento Marquei',
           description:
-            appointment.service?.name && appointment.customerPerson?.name
-              ? `${appointment.service.name} para o cliente ${appointment.customerPerson.name}`
-              : (appointment.service?.name ??
+            (appointment.serviceCombo?.name || appointment.service?.name) &&
+            appointment.customerPerson?.name
+              ? `${appointment.serviceCombo?.name || appointment.service?.name} para o cliente ${appointment.customerPerson.name}`
+              : (appointment.serviceCombo?.name ??
+                appointment.service?.name ??
                 appointment.customerPerson?.name ??
                 undefined),
           start: {

@@ -46,6 +46,18 @@ export class UpdateServiceComboDto {
   })
   service_ids?: string[];
 
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  @IsOptional()
+  @ApiPropertyOptional({
+    description:
+      'Lista completa de profissionais que executam este combo para substituição',
+    type: String,
+    isArray: true,
+  })
+  professionalsId?: string[];
+
   @IsEnum(ServiceComboPricingModeDto)
   @IsOptional()
   @ApiPropertyOptional({

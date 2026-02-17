@@ -71,6 +71,16 @@ export class GetServiceCombosUseCase {
               },
             },
           },
+          professionals: {
+            select: {
+              professional_profile_id: true,
+              professional_profile: {
+                select: {
+                  User: { select: { name: true } },
+                },
+              },
+            },
+          },
         },
       }),
     ]);

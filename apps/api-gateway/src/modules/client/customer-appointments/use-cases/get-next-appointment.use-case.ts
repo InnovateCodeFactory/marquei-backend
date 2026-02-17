@@ -43,6 +43,14 @@ export class GetNextAppointmentUseCase {
             price_in_cents: true,
           },
         },
+        serviceCombo: {
+          select: {
+            id: true,
+            name: true,
+            final_duration_minutes: true,
+            final_price_in_cents: true,
+          },
+        },
       },
     });
 
@@ -53,7 +61,9 @@ export class GetNextAppointmentUseCase {
       const IN_TZ = tz(zoneId);
 
       const durationMin =
-        nextAppointment.duration_minutes ?? nextAppointment.service.duration;
+        nextAppointment.duration_minutes ??
+        nextAppointment.serviceCombo?.final_duration_minutes ??
+        nextAppointment.service.duration;
 
       return {
         id: nextAppointment.id,
@@ -64,10 +74,13 @@ export class GetNextAppointmentUseCase {
           name: getTwoNames(nextAppointment.professional.User.name),
         },
         service: {
-          id: nextAppointment.service.id,
-          name: nextAppointment.service.name,
+          id: nextAppointment.serviceCombo?.id ?? nextAppointment.service.id,
+          name: nextAppointment.serviceCombo?.name ?? nextAppointment.service.name,
           duration: formatDuration(durationMin),
-          price: new Price(nextAppointment.service.price_in_cents).toCurrency(),
+          price: new Price(
+            nextAppointment.serviceCombo?.final_price_in_cents ??
+              nextAppointment.service.price_in_cents,
+          ).toCurrency(),
         },
         date: {
           day: format(nextAppointment.start_at_utc, 'dd', {
