@@ -45,23 +45,26 @@ export class CreateAppointmentUseCase {
       customer_id, // BusinessCustomer.id
       professional_id,
       service_id,
+      combo_id,
       notes,
     } = payload;
 
-    // 1) Validar pertencimento ao negócio (em paralelo)
-    const [service, professional, bc] = await Promise.all([
-      this.prisma.service.findFirst({
-        where: {
-          id: service_id,
-          businessId: user.current_selected_business_id,
-        },
-        select: {
-          id: true,
-          duration: true,
-          name: true,
-          price_in_cents: true,
-        },
-      }),
+    const hasServiceId = Boolean(service_id?.trim());
+    const hasComboId = Boolean(combo_id?.trim());
+
+    if (!hasServiceId && !hasComboId) {
+      throw new BadRequestException(
+        'Informe service_id ou combo_id para criar o agendamento.',
+      );
+    }
+
+    if (hasServiceId && hasComboId) {
+      throw new BadRequestException(
+        'Informe apenas um entre service_id ou combo_id.',
+      );
+    }
+
+    const [professional, bc] = await Promise.all([
       this.prisma.professionalProfile.findFirst({
         where: {
           id: professional_id,
@@ -90,11 +93,6 @@ export class CreateAppointmentUseCase {
       }),
     ]);
 
-    if (!service) {
-      throw new UnauthorizedException(
-        'O serviço não pertence ao negócio selecionado',
-      );
-    }
     if (!professional) {
       throw new UnauthorizedException(
         'O profissional não pertence ao negócio selecionado',
@@ -106,13 +104,145 @@ export class CreateAppointmentUseCase {
       );
     }
 
-    if (!service.duration || service.duration <= 0) {
-      throw new BadRequestException('Duração do serviço inválida.');
+    let targetServiceId = service_id!;
+    let targetDuration = 0;
+    let targetName = '';
+    let targetComboId: string | null = null;
+    let comboSnapshot: Record<string, unknown> | null = null;
+
+    if (hasServiceId) {
+      const [service, executesService] = await Promise.all([
+        this.prisma.service.findFirst({
+          where: {
+            id: service_id,
+            businessId: user.current_selected_business_id,
+            is_active: true,
+          },
+          select: {
+            id: true,
+            duration: true,
+            name: true,
+          },
+        }),
+        this.prisma.professionalService.count({
+          where: {
+            professional_profile_id: professional_id,
+            service_id: service_id,
+            active: true,
+          },
+        }),
+      ]);
+
+      if (!service) {
+        throw new UnauthorizedException(
+          'O serviço não pertence ao negócio selecionado',
+        );
+      }
+
+      if (executesService < 1) {
+        throw new BadRequestException(
+          'Este profissional não executa o serviço selecionado.',
+        );
+      }
+
+      if (!service.duration || service.duration <= 0) {
+        throw new BadRequestException('Duração do serviço inválida.');
+      }
+
+      targetServiceId = service.id;
+      targetDuration = service.duration;
+      targetName = service.name;
+    } else {
+      const [combo, executesCombo] = await Promise.all([
+        this.prisma.serviceCombo.findFirst({
+          where: {
+            id: combo_id,
+            businessId: user.current_selected_business_id,
+            is_active: true,
+            deleted_at: null,
+          },
+          select: {
+            id: true,
+            name: true,
+            final_duration_minutes: true,
+            items: {
+              orderBy: { sort_order: 'asc' },
+              select: {
+                serviceId: true,
+                price_in_cents_snapshot: true,
+                duration_minutes_snapshot: true,
+                sort_order: true,
+                service: {
+                  select: {
+                    id: true,
+                    name: true,
+                    is_active: true,
+                  },
+                },
+              },
+            },
+          },
+        }),
+        this.prisma.professionalServiceCombo.count({
+          where: {
+            professional_profile_id: professional_id,
+            service_combo_id: combo_id,
+            active: true,
+          },
+        }),
+      ]);
+
+      if (!combo) {
+        throw new BadRequestException('Combo inválido.');
+      }
+
+      const activeServicesCount = combo.items.filter(
+        (item) => item.service?.is_active,
+      ).length;
+      if (activeServicesCount < 2) {
+        throw new BadRequestException(
+          'Combo indisponível para agendamento no momento.',
+        );
+      }
+
+      if (executesCombo < 1) {
+        throw new BadRequestException(
+          'Este profissional não executa o combo selecionado.',
+        );
+      }
+
+      const anchorService = combo.items.find((item) => item.service?.is_active);
+      if (!anchorService) {
+        throw new BadRequestException(
+          'Combo sem serviços ativos para criar agendamento.',
+        );
+      }
+
+      targetServiceId = anchorService.serviceId;
+      targetDuration = combo.final_duration_minutes;
+      targetName = combo.name;
+      targetComboId = combo.id;
+      comboSnapshot = {
+        combo_id: combo.id,
+        combo_name: combo.name,
+        final_duration_minutes: combo.final_duration_minutes,
+        services: combo.items.map((item) => ({
+          service_id: item.serviceId,
+          service_name: item.service?.name ?? 'Serviço',
+          sort_order: item.sort_order,
+          price_in_cents_snapshot: item.price_in_cents_snapshot,
+          duration_minutes_snapshot: item.duration_minutes_snapshot,
+        })),
+      };
+    }
+
+    if (!targetDuration || targetDuration <= 0) {
+      throw new BadRequestException('Duração inválida para criar agendamento.');
     }
 
     // 2) Interpretar a entrada como horário LOCAL (America/Sao_Paulo)
     const startLocal = this.toTZDateLocal(appointment_date);
-    const endLocal = addMinutes(startLocal, service.duration) as TZDate;
+    const endLocal = addMinutes(startLocal, targetDuration) as TZDate;
 
     // Para persistir/consultar em UTC, use como Date normal (mesmo instante):
     const startUtc: Date = new Date(startLocal);
@@ -180,11 +310,17 @@ export class CreateAppointmentUseCase {
         status: 'PENDING',
         start_at_utc: startUtc,
         end_at_utc: endUtc,
-        duration_minutes: service.duration,
+        duration_minutes: targetDuration,
         timezone: BUSINESS_TZ_ID,
         start_offset_minutes: startLocal.getTimezoneOffset(),
         professional: { connect: { id: professional_id } },
-        service: { connect: { id: service_id } },
+        service: { connect: { id: targetServiceId } },
+        ...(targetComboId
+          ? {
+              serviceCombo: { connect: { id: targetComboId } },
+              combo_snapshot: comboSnapshot,
+            }
+          : {}),
         customerPerson: { connect: { id: bc.personId } },
         notes: notes || null,
         ...(reminderJobs.length > 0 && {
@@ -237,7 +373,7 @@ export class CreateAppointmentUseCase {
           professional_name: professionalName || 'Profissional',
           dayAndMonth,
           time,
-          service_name: service.name,
+          service_name: targetName,
         });
 
       await this.rmqService.publishToQueue({
@@ -316,6 +452,11 @@ export class CreateAppointmentUseCase {
           start_at_utc: true,
           end_at_utc: true,
           timezone: true,
+          serviceCombo: {
+            select: {
+              name: true,
+            },
+          },
           service: {
             select: {
               name: true,
@@ -366,9 +507,11 @@ export class CreateAppointmentUseCase {
             ? `Agendamento ${appointment.professional.business.name}`
             : 'Agendamento Marquei',
           description:
-            appointment.service?.name && appointment.customerPerson?.name
-              ? `${appointment.service.name} para o cliente ${appointment.customerPerson.name}`
-              : (appointment.service?.name ??
+            (appointment.serviceCombo?.name || appointment.service?.name) &&
+            appointment.customerPerson?.name
+              ? `${appointment.serviceCombo?.name || appointment.service?.name} para o cliente ${appointment.customerPerson.name}`
+              : (appointment.serviceCombo?.name ??
+                appointment.service?.name ??
                 appointment.customerPerson?.name ??
                 undefined),
           start: {

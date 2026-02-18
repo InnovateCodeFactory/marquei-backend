@@ -2,7 +2,7 @@ import { PrismaService } from '@app/shared';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { parseYmdToTZDate } from '@app/shared/utils';
 import { TZDate, tz } from '@date-fns/tz';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   addDays,
   addMinutes,
@@ -29,22 +29,106 @@ export class GetAvailableTimesUseCase {
   constructor(private readonly prismaService: PrismaService) {}
 
   async execute(payload: GetAvailableTimesDto, user: CurrentUser) {
-    const { service_id, start_date, professional_id } = payload;
+    const { service_id, combo_id, start_date, professional_id } = payload;
     const { current_selected_business_slug } = user;
 
+    const hasServiceId = Boolean(service_id?.trim());
+    const hasComboId = Boolean(combo_id?.trim());
+    if (!hasServiceId && !hasComboId) {
+      throw new BadRequestException(
+        'Parâmetros inválidos: informe service_id ou combo_id.',
+      );
+    }
+    if (hasServiceId && hasComboId) {
+      throw new BadRequestException(
+        'Parâmetros inválidos: informe apenas um entre service_id ou combo_id.',
+      );
+    }
+
     // Dados básicos
-    const [service, business] = await Promise.all([
-      this.prismaService.service.findUnique({
-        where: { id: service_id },
-        select: { duration: true },
-      }),
-      this.prismaService.business.findUnique({
-        where: { slug: current_selected_business_slug },
-        select: { opening_hours: true, id: true },
-      }),
-    ]);
-    if (!service) throw new Error('Serviço não encontrado');
+    const business = await this.prismaService.business.findUnique({
+      where: { slug: current_selected_business_slug },
+      select: { opening_hours: true, id: true },
+    });
     if (!business) throw new Error('Negócio não encontrado');
+
+    const [serviceDuration, professionalExecutes] = hasServiceId
+      ? await Promise.all([
+          this.prismaService.service.findFirst({
+            where: {
+              id: service_id,
+              businessId: business.id,
+              is_active: true,
+            },
+            select: { duration: true },
+          }),
+          this.prismaService.professionalService.count({
+            where: {
+              professional_profile_id: professional_id,
+              service_id: service_id,
+              active: true,
+            },
+          }),
+        ])
+      : await Promise.all([
+          this.prismaService.serviceCombo.findFirst({
+            where: {
+              id: combo_id,
+              businessId: business.id,
+              is_active: true,
+              deleted_at: null,
+            },
+            select: {
+              final_duration_minutes: true,
+              items: {
+                select: { service: { select: { is_active: true } } },
+              },
+            },
+          }),
+          this.prismaService.professionalServiceCombo.count({
+            where: {
+              professional_profile_id: professional_id,
+              service_combo_id: combo_id,
+              active: true,
+            },
+          }),
+        ]);
+
+    if (!serviceDuration) {
+      throw new BadRequestException(
+        hasServiceId ? 'Serviço não encontrado' : 'Combo não encontrado',
+      );
+    }
+
+    if (!professionalExecutes) {
+      throw new BadRequestException(
+        hasServiceId
+          ? 'Este profissional não executa o serviço selecionado.'
+          : 'Este profissional não executa o combo selecionado.',
+      );
+    }
+
+    const selectedDuration = hasServiceId
+      ? (serviceDuration as { duration: number }).duration
+      : (serviceDuration as { final_duration_minutes: number })
+          .final_duration_minutes;
+
+    if (!selectedDuration || selectedDuration <= 0) {
+      throw new BadRequestException('Duração inválida para buscar horários.');
+    }
+
+    if (!hasServiceId) {
+      const activeServicesCount = (
+        serviceDuration as { items: { service: { is_active: boolean } }[] }
+      ).items.filter(
+        (item) => item.service?.is_active,
+      ).length;
+      if (activeServicesCount < 2) {
+        throw new BadRequestException(
+          'Combo indisponível para agendamento no momento.',
+        );
+      }
+    }
 
     // Opening hours
     let openingHours: OpeningHours =
@@ -107,13 +191,13 @@ export class GetAvailableTimesUseCase {
         );
 
         while (
-          isBefore(addMinutes(startLocal, service.duration), endLocal) ||
-          isEqual(addMinutes(startLocal, service.duration), endLocal)
+          isBefore(addMinutes(startLocal, selectedDuration), endLocal) ||
+          isEqual(addMinutes(startLocal, selectedDuration), endLocal)
         ) {
           if (!isTodayLocal || isBefore(nowLocal, startLocal)) {
             slotStartsLocal.push(startLocal);
           }
-          startLocal = addMinutes(startLocal, service.duration) as TZDate;
+          startLocal = addMinutes(startLocal, selectedDuration) as TZDate;
         }
       }
 
@@ -192,7 +276,7 @@ export class GetAvailableTimesUseCase {
         .filter((slotStartLocal) => {
           const slotEndLocal = addMinutes(
             slotStartLocal,
-            service.duration,
+            selectedDuration,
           ) as TZDate;
           return !busyRangesLocal.some((b) =>
             areIntervalsOverlapping(

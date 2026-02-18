@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsISO8601,
   IsNotEmpty,
@@ -34,12 +34,22 @@ export class CreateAppointmentDto {
   appointment_date: Date;
 
   @IsString()
-  @IsNotEmpty()
-  @ApiProperty({
-    description: 'The ID of the service associated with the appointment',
+  @IsOptional()
+  @ApiPropertyOptional({
+    description:
+      'The ID of the service associated with the appointment (inform service_id ou combo_id)',
     example: '123e4567-e89b-12d3-a456-426614174002',
   })
-  service_id: string;
+  service_id?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiPropertyOptional({
+    description:
+      'The ID of the combo associated with the appointment (inform service_id ou combo_id)',
+    example: 'cmb_123e4567e89b12d3',
+  })
+  combo_id?: string;
 
   @IsString()
   @MaxLength(255)

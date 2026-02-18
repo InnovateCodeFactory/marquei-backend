@@ -13,6 +13,7 @@ type OfferingItem = {
   name: string;
   duration: string;
   price: string;
+  base_price?: string | null;
   kind: BusinessOfferingType;
   is_bookable: boolean;
   discount_percent?: number | null;
@@ -140,8 +141,10 @@ export class GetBusinessOfferingsUseCase {
       const totalPages = Math.max(1, Math.ceil(total / limit));
 
       const items: OfferingItem[] = (rows ?? []).map((combo) => {
+        const hasRealDiscount =
+          combo.base_price_in_cents > combo.final_price_in_cents;
         const computedDiscountPercent =
-          combo.base_price_in_cents > 0
+          combo.base_price_in_cents > 0 && hasRealDiscount
             ? Math.round(
                 ((combo.base_price_in_cents - combo.final_price_in_cents) /
                   combo.base_price_in_cents) *
@@ -154,12 +157,14 @@ export class GetBusinessOfferingsUseCase {
           name: combo.name,
           duration: formatDuration(combo.final_duration_minutes),
           price: new Price(combo.final_price_in_cents).toCurrency(),
+          base_price: hasRealDiscount
+            ? new Price(combo.base_price_in_cents).toCurrency()
+            : null,
           kind: 'COMBO',
           is_bookable: combo.is_bookable,
-          discount_percent: Math.max(
-            0,
-            combo.discount_percent ?? computedDiscountPercent,
-          ),
+          discount_percent: hasRealDiscount
+            ? Math.max(0, combo.discount_percent ?? computedDiscountPercent)
+            : null,
         };
       });
 
