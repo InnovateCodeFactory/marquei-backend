@@ -112,6 +112,8 @@ export class RequestAppointmentConfirmationUseCase {
     const professionalName = getTwoNames(appointment.professional.User.name);
     const serviceName = appointment.service.name;
     const clientUrl = getSystemSetting('website_client_url');
+    const iosLink = getSystemSetting('marquei_app_store_url') || '';
+    const androidLink = getSystemSetting('marquei_play_store_url') || '';
 
     const businessName = appointment.professional?.business?.name || '';
     const header = businessName ? `*${businessName}*` : '*Marquei*';
@@ -152,8 +154,14 @@ export class RequestAppointmentConfirmationUseCase {
       );
     }
     const shouldSuggestSignup = !customerLink?.verified;
+    const signupFooter = shouldSuggestSignup
+      ? this.buildSignupFooter({ iosLink, androidLink })
+      : '';
     const signupLine = shouldSuggestSignup
-      ? '\n\nCaso ainda não tenha uma conta, você pode criar uma rapidamente pelo link ou, se preferir, pelo aplicativo *Marquei Clientes*.'
+      ? '\n\nCaso ainda não tenha conta no Marquei Clientes, crie a sua para confirmar e acompanhar seus agendamentos.'
+      : '';
+    const appDownloadLinks = shouldSuggestSignup
+      ? this.buildAppDownloadLinks({ iosLink, androidLink })
       : '';
 
     const defaultMessage = `${header}\n\n${messageBase}\n\n${confirmationLine}${signupLine}`;
@@ -166,7 +174,7 @@ export class RequestAppointmentConfirmationUseCase {
       BUSINESS_REMINDER_TYPE_DEFAULTS[
         BusinessReminderType.APPOINTMENT_CONFIRMATION_REQUEST
       ].message_template;
-    const message =
+    const renderedMessage =
       renderBusinessNotificationTemplate({
         template,
         variables: {
@@ -178,10 +186,20 @@ export class RequestAppointmentConfirmationUseCase {
           day_with_preposition: dayWithPreposition,
           time,
           client_app_url: clientUrl || '',
+          ios_app_url: iosLink,
+          android_app_url: androidLink,
           confirmation_action: confirmationLine,
           signup_hint: signupLine,
+          app_download_links: appDownloadLinks,
         },
       }) || defaultMessage;
+    const message = this.ensureSignupFooter({
+      message: renderedMessage,
+      shouldSuggestSignup,
+      signupFooter,
+      iosLink,
+      androidLink,
+    });
 
     await this.rmqService.publishToQueue({
       routingKey:
@@ -206,5 +224,68 @@ export class RequestAppointmentConfirmationUseCase {
     });
 
     return null;
+  }
+
+  private buildAppDownloadLinks({
+    iosLink,
+    androidLink,
+  }: {
+    iosLink: string;
+    androidLink: string;
+  }) {
+    const links = [
+      iosLink ? `• iOS: ${iosLink}` : null,
+      androidLink ? `• Android: ${androidLink}` : null,
+    ].filter(Boolean);
+
+    if (!links.length) return '';
+    return `\n\nBaixe o app:\n${links.join('\n')}`;
+  }
+
+  private buildSignupFooter({
+    iosLink,
+    androidLink,
+  }: {
+    iosLink: string;
+    androidLink: string;
+  }) {
+    const links = [
+      iosLink ? `• iOS: ${iosLink}` : null,
+      androidLink ? `• Android: ${androidLink}` : null,
+    ].filter(Boolean);
+
+    const lines = [
+      'Caso ainda não tenha conta no Marquei Clientes, crie a sua para confirmar e acompanhar seus agendamentos.',
+      links.length ? 'Baixe o app:' : null,
+      ...links,
+    ].filter(Boolean);
+
+    return lines.join('\n');
+  }
+
+  private ensureSignupFooter({
+    message,
+    shouldSuggestSignup,
+    signupFooter,
+    iosLink,
+    androidLink,
+  }: {
+    message: string;
+    shouldSuggestSignup: boolean;
+    signupFooter: string;
+    iosLink: string;
+    androidLink: string;
+  }) {
+    if (!shouldSuggestSignup || !signupFooter) return message;
+
+    const normalized = message?.trim() || '';
+    if (!normalized) return signupFooter;
+
+    const hasCta = /ainda não tenha conta no marquei clientes/i.test(normalized);
+    const hasIos = iosLink ? normalized.includes(iosLink) : true;
+    const hasAndroid = androidLink ? normalized.includes(androidLink) : true;
+
+    if (hasCta && hasIos && hasAndroid) return normalized;
+    return `${normalized}\n\n${signupFooter}`.trim();
   }
 }

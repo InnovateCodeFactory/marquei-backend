@@ -265,11 +265,9 @@ export class ScheduleReminderUseCase implements OnModuleInit {
           const iosLink = systemGeneralSettings.marquei_app_store_url ?? '';
           const androidLink =
             systemGeneralSettings.marquei_play_store_url ?? '';
-          const footerLines = [
-            'Se ainda não possui nosso aplicativo instalado, utilize um dos links abaixo:',
-            iosLink ? `• iOS: ${iosLink}` : null,
-            androidLink ? `• Android: ${androidLink}` : null,
-          ].filter(Boolean);
+          const signupFooter = !isVerified
+            ? this.buildSignupFooter({ iosLink, androidLink })
+            : '';
           const dayWithPreposition =
             dayAndMonth === 'hoje' || dayAndMonth === 'amanhã'
               ? dayAndMonth
@@ -277,11 +275,11 @@ export class ScheduleReminderUseCase implements OnModuleInit {
 
           const signupHint = isVerified
             ? ''
-            : '\n\nCaso ainda não tenha uma conta, você pode criar uma rapidamente pelo aplicativo Marquei Clientes.';
+            : '\n\nCaso ainda não tenha conta no Marquei Clientes, crie a sua para confirmar e acompanhar seus agendamentos.';
 
           const appDownloadLinks =
-            !isVerified && footerLines.length > 0
-              ? `\n\n${footerLines.join('\n')}`
+            !isVerified
+              ? this.buildAppDownloadLinks({ iosLink, androidLink })
               : '';
 
           const template =
@@ -313,7 +311,13 @@ export class ScheduleReminderUseCase implements OnModuleInit {
             title: defaultReminderMessage.title,
             body: reminderBody,
           };
-          const whatsappMessage = msg.body;
+          const whatsappMessage = this.ensureSignupFooter({
+            message: msg.body,
+            shouldSuggestSignup: !isVerified,
+            signupFooter,
+            iosLink,
+            androidLink,
+          });
 
           const STAGGER_MS = 2 * 60_000; // 2 minutos
 
@@ -454,5 +458,68 @@ export class ScheduleReminderUseCase implements OnModuleInit {
     } finally {
       await lock.release();
     }
+  }
+
+  private buildAppDownloadLinks({
+    iosLink,
+    androidLink,
+  }: {
+    iosLink: string;
+    androidLink: string;
+  }) {
+    const links = [
+      iosLink ? `• iOS: ${iosLink}` : null,
+      androidLink ? `• Android: ${androidLink}` : null,
+    ].filter(Boolean);
+
+    if (!links.length) return '';
+    return `\n\nBaixe o app:\n${links.join('\n')}`;
+  }
+
+  private buildSignupFooter({
+    iosLink,
+    androidLink,
+  }: {
+    iosLink: string;
+    androidLink: string;
+  }) {
+    const links = [
+      iosLink ? `• iOS: ${iosLink}` : null,
+      androidLink ? `• Android: ${androidLink}` : null,
+    ].filter(Boolean);
+
+    const lines = [
+      'Caso ainda não tenha conta no Marquei Clientes, crie a sua para confirmar e acompanhar seus agendamentos.',
+      links.length ? 'Baixe o app:' : null,
+      ...links,
+    ].filter(Boolean);
+
+    return lines.join('\n');
+  }
+
+  private ensureSignupFooter({
+    message,
+    shouldSuggestSignup,
+    signupFooter,
+    iosLink,
+    androidLink,
+  }: {
+    message: string;
+    shouldSuggestSignup: boolean;
+    signupFooter: string;
+    iosLink: string;
+    androidLink: string;
+  }) {
+    if (!shouldSuggestSignup || !signupFooter) return message;
+
+    const normalized = message?.trim() || '';
+    if (!normalized) return signupFooter;
+
+    const hasCta = /ainda não tenha conta no marquei clientes/i.test(normalized);
+    const hasIos = iosLink ? normalized.includes(iosLink) : true;
+    const hasAndroid = androidLink ? normalized.includes(androidLink) : true;
+
+    if (hasCta && hasIos && hasAndroid) return normalized;
+    return `${normalized}\n\n${signupFooter}`.trim();
   }
 }

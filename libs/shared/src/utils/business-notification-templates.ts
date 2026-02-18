@@ -1,13 +1,10 @@
-import {
-  BusinessReminderType,
-  ReminderChannel,
-} from '@prisma/client';
+import { BusinessReminderType, ReminderChannel } from '@prisma/client';
 
 export const DEFAULT_REMINDER_MESSAGE_TEMPLATE =
-  'Lembrete: você tem um agendamento de {{service_name}} com {{professional_name}} {{day_with_preposition}} às {{time}}.{{signup_hint}}{{app_download_links}}';
+  'Lembrete: você tem um agendamento de {{service_name}} com {{professional_name}} {{day_with_preposition}} às {{time}}.';
 
 export const DEFAULT_CONFIRMATION_REQUEST_MESSAGE_TEMPLATE =
-  '*{{business_name}}*\n\nOlá! Tudo bem? 😊\n\nO profissional {{professional_name}} solicita a confirmação do seu agendamento de *{{service_name}}* para {{day_with_preposition}}, às {{time}}.\n\n{{confirmation_action}}{{signup_hint}}';
+  '{{business_name}}\n\nOlá! Tudo bem? 😊\n\nO profissional {{professional_name}} solicita a confirmação do seu agendamento de *{{service_name}}* para {{day_with_preposition}}, às {{time}}.';
 
 export const BUSINESS_REMINDER_TYPES = [
   BusinessReminderType.APPOINTMENT_REMINDER,
