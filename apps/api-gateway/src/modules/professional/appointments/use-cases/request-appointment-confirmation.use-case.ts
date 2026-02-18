@@ -4,13 +4,19 @@ import { SendWhatsAppTextMessageDto } from '@app/shared/dto/messaging/whatsapp-n
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { AppRequest } from '@app/shared/types/app-request';
-import { getClientIp, getTwoNames } from '@app/shared/utils';
+import {
+  BUSINESS_REMINDER_TYPE_DEFAULTS,
+  getClientIp,
+  getTwoNames,
+  renderBusinessNotificationTemplate,
+} from '@app/shared/utils';
 import { tz } from '@date-fns/tz';
 import {
   BadRequestException,
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
+import { BusinessReminderType } from '@prisma/client';
 import { addDays, format } from 'date-fns';
 import { RequestAppointmentConfirmationDto } from '../dto/requests/request-appointment-confirmation.dto';
 
@@ -126,12 +132,56 @@ export class RequestAppointmentConfirmationUseCase {
       },
       select: { verified: true },
     });
+    const reminderSettings =
+      await this.prisma.businessReminderSettings.findUnique({
+        where: {
+          uq_business_reminder_settings_business_type: {
+            businessId: appointment.professional.business_id,
+            type: BusinessReminderType.APPOINTMENT_CONFIRMATION_REQUEST,
+          },
+        },
+        select: { message_template: true, channels: true, is_active: true },
+      });
+    if (
+      reminderSettings &&
+      (!reminderSettings.is_active ||
+        !reminderSettings.channels.includes('WHATSAPP'))
+    ) {
+      throw new BadRequestException(
+        'O canal de confirmação por WhatsApp está desativado.',
+      );
+    }
     const shouldSuggestSignup = !customerLink?.verified;
     const signupLine = shouldSuggestSignup
       ? '\n\nCaso ainda não tenha uma conta, você pode criar uma rapidamente pelo link ou, se preferir, pelo aplicativo *Marquei Clientes*.'
       : '';
 
-    const message = `${header}\n\n${messageBase}\n\n${confirmationLine}${signupLine}`;
+    const defaultMessage = `${header}\n\n${messageBase}\n\n${confirmationLine}${signupLine}`;
+    const dayWithPreposition =
+      dayAndMonth === 'hoje' || dayAndMonth === 'amanhã'
+        ? dayAndMonth
+        : `em ${dayAndMonth}`;
+    const template =
+      reminderSettings?.message_template?.trim() ||
+      BUSINESS_REMINDER_TYPE_DEFAULTS[
+        BusinessReminderType.APPOINTMENT_CONFIRMATION_REQUEST
+      ].message_template;
+    const message =
+      renderBusinessNotificationTemplate({
+        template,
+        variables: {
+          business_name: businessName || 'Marquei',
+          customer_name: appointment.customerPerson.name || '',
+          professional_name: professionalName,
+          service_name: serviceName,
+          day: dayAndMonth,
+          day_with_preposition: dayWithPreposition,
+          time,
+          client_app_url: clientUrl || '',
+          confirmation_action: confirmationLine,
+          signup_hint: signupLine,
+        },
+      }) || defaultMessage;
 
     await this.rmqService.publishToQueue({
       routingKey:

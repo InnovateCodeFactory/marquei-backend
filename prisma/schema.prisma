@@ -97,33 +97,33 @@ model UserIntegration {
 }
 
 model Business {
-  id                       String                    @id @default(cuid())
+  id                       String                     @id @default(cuid())
   name                     String
-  slug                     String                    @unique
+  slug                     String                     @unique
   description              String?
   logo                     String?
   coverImage               String?
   latitude                 Float // Latitude para localização
   longitude                Float // Longitude para localização
-  location                 Unsupported("geography")? @map("location")
+  location                 Unsupported("geography")?  @map("location")
   opening_hours            Json
   website                  String?
   instagram                String?
   email                    String?
-  public_type              BusinessPublicType        @default(BOTH)
+  public_type              BusinessPublicType         @default(BOTH)
   business_category_custom String? // categoria customizada, se aplicável
-  is_active                Boolean                   @default(true)
-  is_test                  Boolean                   @default(false)
-  is_verified              Boolean                   @default(false)
-  is_featured              Boolean                   @default(false)
-  rating                   Float                     @default(0.0)
-  reviews_count            Int                       @default(0)
-  total_one_star           Int                       @default(0)
-  total_two_star           Int                       @default(0)
-  total_three_star         Int                       @default(0)
-  total_four_star          Int                       @default(0)
-  total_five_star          Int                       @default(0)
-  average_price            Float                     @default(0.0) // preço médio dos serviços
+  is_active                Boolean                    @default(true)
+  is_test                  Boolean                    @default(false)
+  is_verified              Boolean                    @default(false)
+  is_featured              Boolean                    @default(false)
+  rating                   Float                      @default(0.0)
+  reviews_count            Int                        @default(0)
+  total_one_star           Int                        @default(0)
+  total_two_star           Int                        @default(0)
+  total_three_star         Int                        @default(0)
+  total_four_star          Int                        @default(0)
+  total_five_star          Int                        @default(0)
+  average_price            Float                      @default(0.0) // preço médio dos serviços
   stripe_customer_id       String? // ID do cliente no Stripe, se aplicável
   phone                    String?
   zipCode                  String?
@@ -134,14 +134,14 @@ model Business {
   city                     String?
   uf                       String?
   ownerId                  String
-  owner                    User                      @relation("BusinessOwners", fields: [ownerId], references: [id])
+  owner                    User                       @relation("BusinessOwners", fields: [ownerId], references: [id])
   professionals            ProfessionalProfile[]
   services                 Service[]
-  created_at               DateTime                  @default(now())
-  updated_at               DateTime                  @updatedAt
-  BusinessCategory         BusinessCategory?         @relation(fields: [businessCategoryId], references: [id])
+  created_at               DateTime                   @default(now())
+  updated_at               DateTime                   @updatedAt
+  BusinessCategory         BusinessCategory?          @relation(fields: [businessCategoryId], references: [id])
   businessCategoryId       String?
-  BusinessServiceType      BusinessServiceType?      @relation(fields: [businessServiceTypeId], references: [id])
+  BusinessServiceType      BusinessServiceType?       @relation(fields: [businessServiceTypeId], references: [id])
   businessServiceTypeId    String?
   BusinessSubscription     BusinessSubscription[]
   CurrentSelectedBusiness  CurrentSelectedBusiness[]
@@ -149,7 +149,7 @@ model Business {
   BusinessCustomer         BusinessCustomer[]
   BusinessRating           BusinessRating[]
   Favorites                Favorite[]
-  BusinessReminderSettings BusinessReminderSettings?
+  BusinessReminderSettings BusinessReminderSettings[]
   ReminderJob              ReminderJob[]
   ProfessionalTimesBlock   ProfessionalTimesBlock[]
   amenities                BusinessAmenity[]
@@ -168,9 +168,10 @@ model Business {
 }
 
 model BusinessReminderSettings {
-  id         String   @id @default(cuid())
-  businessId String   @unique
-  business   Business @relation(fields: [businessId], references: [id])
+  id         String               @id @default(cuid())
+  businessId String
+  type       BusinessReminderType
+  business   Business             @relation(fields: [businessId], references: [id])
 
   // Ex.: [1440, 180, 60] => 24h, 3h e 1h antes
   offsets_min_before Int[] @default([1440, 60])
@@ -180,10 +181,12 @@ model BusinessReminderSettings {
 
   timezone String @default("America/Sao_Paulo")
 
-  is_active  Boolean  @default(true)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  is_active        Boolean  @default(true)
+  message_template String   @db.Text
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
 
+  @@unique([businessId, type], name: "uq_business_reminder_settings_business_type")
   @@index([businessId], name: "idx_business_reminder_settings_business")
 }
 
@@ -282,7 +285,7 @@ model ProfessionalProfile {
   id String @id @default(cuid())
 
   business_id   String
-  business      Business              @relation(fields: [business_id], references: [id])
+  business      Business                   @relation(fields: [business_id], references: [id])
   services      ProfessionalService[] // relação com a pivot
   serviceCombos ProfessionalServiceCombo[]
   bio           String?
@@ -430,12 +433,12 @@ model ServiceCombo {
   created_at              DateTime                 @default(now())
   updated_at              DateTime                 @updatedAt
 
-  created_by   User                    @relation("ServiceComboCreatedBy", fields: [created_by_user_id], references: [id])
-  updated_by   User?                   @relation("ServiceComboUpdatedBy", fields: [updated_by_user_id], references: [id])
-  items        ServiceComboItem[]
+  created_by    User                       @relation("ServiceComboCreatedBy", fields: [created_by_user_id], references: [id])
+  updated_by    User?                      @relation("ServiceComboUpdatedBy", fields: [updated_by_user_id], references: [id])
+  items         ServiceComboItem[]
   professionals ProfessionalServiceCombo[]
-  appointments Appointment[]
-  statements   ProfessionalStatement[]
+  appointments  Appointment[]
+  statements    ProfessionalStatement[]
 
   @@index([businessId], name: "idx_service_combo_business")
   @@index([businessId, is_active], name: "idx_service_combo_business_active")
@@ -1028,6 +1031,11 @@ enum GuestOrigin {
 enum ReminderChannel {
   PUSH
   WHATSAPP
+}
+
+enum BusinessReminderType {
+  APPOINTMENT_REMINDER
+  APPOINTMENT_CONFIRMATION_REQUEST
 }
 
 enum ReminderJobStatus {

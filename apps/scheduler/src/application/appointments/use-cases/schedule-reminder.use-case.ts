@@ -5,10 +5,16 @@ import { SendWhatsAppTextMessageDto } from '@app/shared/dto/messaging/whatsapp-n
 import { AppointmentStatusEnum } from '@app/shared/enum';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
+import {
+  BUSINESS_REMINDER_TYPE_DEFAULTS,
+  getTwoNames,
+  renderBusinessNotificationTemplate,
+} from '@app/shared/utils';
 import { NotificationMessageBuilder } from '@app/shared/utils/notification-message-builder';
 import { tz } from '@date-fns/tz';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { BusinessReminderType } from '@prisma/client';
 import { RedisLockService } from 'apps/scheduler/src/infrastructure/locks/redis-lock.service';
 import { addDays, format } from 'date-fns';
 
@@ -79,7 +85,12 @@ export class ScheduleReminderUseCase implements OnModuleInit {
                 timezone: true,
                 status: true,
                 service: { select: { name: true } },
-                professional: { select: { User: { select: { name: true } } } },
+                professional: {
+                  select: {
+                    User: { select: { name: true } },
+                    business: { select: { name: true } },
+                  },
+                },
               },
             },
             person: {
@@ -104,10 +115,12 @@ export class ScheduleReminderUseCase implements OnModuleInit {
             where: {
               businessId: { in: businessIds },
               is_active: true,
+              type: BusinessReminderType.APPOINTMENT_REMINDER,
             },
             select: {
               businessId: true,
               offsets_min_before: true,
+              message_template: true,
             },
           });
         const settingsByBusiness = new Map(
@@ -233,7 +246,7 @@ export class ScheduleReminderUseCase implements OnModuleInit {
           const time = format(appt.start_at_utc, 'HH:mm', { in: inTZ });
           const professionalName = appt.professional?.User?.name || '';
           const serviceName = appt.service?.name || '';
-          const msg =
+          const defaultReminderMessage =
             NotificationMessageBuilder.buildAppointmentReminderMessageForCustomer(
               {
                 professional_name: professionalName,
@@ -257,9 +270,50 @@ export class ScheduleReminderUseCase implements OnModuleInit {
             iosLink ? `• iOS: ${iosLink}` : null,
             androidLink ? `• Android: ${androidLink}` : null,
           ].filter(Boolean);
-          const whatsappMessage = isVerified
-            ? msg.body
-            : `${msg.body}\n\n${footerLines.join('\n')}`;
+          const dayWithPreposition =
+            dayAndMonth === 'hoje' || dayAndMonth === 'amanhã'
+              ? dayAndMonth
+              : `em ${dayAndMonth}`;
+
+          const signupHint = isVerified
+            ? ''
+            : '\n\nCaso ainda não tenha uma conta, você pode criar uma rapidamente pelo aplicativo Marquei Clientes.';
+
+          const appDownloadLinks =
+            !isVerified && footerLines.length > 0
+              ? `\n\n${footerLines.join('\n')}`
+              : '';
+
+          const template =
+            settings?.message_template?.trim() ||
+            BUSINESS_REMINDER_TYPE_DEFAULTS[
+              BusinessReminderType.APPOINTMENT_REMINDER
+            ].message_template;
+          const renderedReminderBody = renderBusinessNotificationTemplate({
+            template,
+            variables: {
+              business_name: appt.professional?.business?.name || '',
+              customer_name: person.user?.name || '',
+              professional_name: getTwoNames(professionalName),
+              service_name: serviceName,
+              day: dayAndMonth,
+              day_with_preposition: dayWithPreposition,
+              time,
+              client_app_url: systemGeneralSettings.website_client_url || '',
+              ios_app_url: iosLink,
+              android_app_url: androidLink,
+              signup_hint: signupHint,
+              app_download_links: appDownloadLinks,
+            },
+          });
+
+          const reminderBody =
+            renderedReminderBody || defaultReminderMessage.body;
+          const msg = {
+            title: defaultReminderMessage.title,
+            body: reminderBody,
+          };
+          const whatsappMessage = msg.body;
 
           const STAGGER_MS = 2 * 60_000; // 2 minutos
 

@@ -17,6 +17,7 @@ import { TZDate, tz } from '@date-fns/tz';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { addMinutes, format } from 'date-fns';
+import { BusinessReminderType } from '@prisma/client';
 import { CreateCustomerAppointmentDto } from '../dto/requests/create-customer-appointment.dto';
 
 const BUSINESS_TZ_ID = 'America/Sao_Paulo';
@@ -237,6 +238,8 @@ export class CreateAppointmentUseCase {
     const reminderJobSettings =
       await this.prismaService.businessReminderSettings.findFirst({
         where: {
+          type: BusinessReminderType.APPOINTMENT_REMINDER,
+          is_active: true,
           business: {
             professionals: {
               some: { id: professional_id },

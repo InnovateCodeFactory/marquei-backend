@@ -6,6 +6,8 @@ import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { HashingService } from '@app/shared/services';
 import {
+  BUSINESS_REMINDER_TYPE_DEFAULTS,
+  BUSINESS_REMINDER_TYPES,
   getFirstName,
   hasProhibitedTerm,
   slugifyBusinessName,
@@ -161,9 +163,16 @@ export class CreateAccountUseCase {
           connect: { id: business.placeType },
         },
         BusinessReminderSettings: {
-          create: {
-            is_active: true,
-          },
+          create: BUSINESS_REMINDER_TYPES.map((type) => ({
+            type,
+            is_active: BUSINESS_REMINDER_TYPE_DEFAULTS[type].is_active,
+            channels: BUSINESS_REMINDER_TYPE_DEFAULTS[type].channels,
+            offsets_min_before:
+              BUSINESS_REMINDER_TYPE_DEFAULTS[type].offsets_min_before,
+            timezone: BUSINESS_REMINDER_TYPE_DEFAULTS[type].timezone,
+            message_template:
+              BUSINESS_REMINDER_TYPE_DEFAULTS[type].message_template,
+          })),
         },
         BusinessSubscription: {
           create: {

@@ -20,12 +20,15 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { EditProfessionalProfileDto } from './dto/requests/edit-profile.dto';
 import { GetGeneralLinkDto } from './dto/requests/get-general-link.dto';
+import { ManageBusinessNotificationsDto } from './dto/requests/manage-business-notifications.dto';
 import { ManageSelfNotificationsDto } from './dto/requests/manage-self-notifications.dto';
 import { ReportBugDto } from './dto/requests/report-bug.dto';
 import {
   EditProfessionalProfileUseCase,
+  GetBusinessNotificationsUseCase,
   GetProfessionalProfileDetailsUseCase,
   GetSelfNotificationsUseCase,
+  ManageBusinessNotificationsUseCase,
   ManageSelfNotificationsUseCase,
   ReportBugUseCase,
   UploadProfessionalProfilePictureUseCase,
@@ -46,6 +49,8 @@ export class ProfessionalProfileController {
     private readonly reportBugUseCase: ReportBugUseCase,
     private readonly manageSelfNotificationsUseCase: ManageSelfNotificationsUseCase,
     private readonly getSelfNotificationsUseCase: GetSelfNotificationsUseCase,
+    private readonly manageBusinessNotificationsUseCase: ManageBusinessNotificationsUseCase,
+    private readonly getBusinessNotificationsUseCase: GetBusinessNotificationsUseCase,
   ) {}
 
   @Post('profile-image')
@@ -150,6 +155,28 @@ export class ProfessionalProfileController {
   async getSelfNotifications(@Req() req: AppRequest, @Res() res: Response) {
     return await this.responseHandler.handle({
       method: () => this.getSelfNotificationsUseCase.execute(req),
+      res,
+    });
+  }
+
+  @Patch('manage-business-notifications')
+  @ApiOperation({ summary: 'Manage business reminder notifications' })
+  async manageBusinessNotifications(
+    @Req() req: AppRequest,
+    @Body() dto: ManageBusinessNotificationsDto,
+    @Res() res: Response,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.manageBusinessNotificationsUseCase.execute(dto, req),
+      res,
+    });
+  }
+
+  @Get('business-notifications')
+  @ApiOperation({ summary: 'Get business reminder notifications settings' })
+  async getBusinessNotifications(@Req() req: AppRequest, @Res() res: Response) {
+    return await this.responseHandler.handle({
+      method: () => this.getBusinessNotificationsUseCase.execute(req),
       res,
     });
   }

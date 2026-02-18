@@ -19,7 +19,7 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
-import { ReminderChannel } from '@prisma/client';
+import { BusinessReminderType, ReminderChannel } from '@prisma/client';
 import { addMinutes, format } from 'date-fns';
 import { RescheduleAppointmentDto } from '../dto/requests/reschedule-appointment.dto';
 
@@ -138,6 +138,7 @@ export class RescheduleAppointmentUseCase {
         where: {
           businessId: appointment.professional.business_id,
           is_active: true,
+          type: BusinessReminderType.APPOINTMENT_REMINDER,
         },
         select: {
           channels: true,

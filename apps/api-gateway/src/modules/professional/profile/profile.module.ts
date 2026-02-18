@@ -3,8 +3,10 @@ import { Module } from '@nestjs/common';
 import { ProfessionalProfileController } from './profile.controller';
 import {
   EditProfessionalProfileUseCase,
+  GetBusinessNotificationsUseCase,
   GetProfessionalProfileDetailsUseCase,
   GetSelfNotificationsUseCase,
+  ManageBusinessNotificationsUseCase,
   ManageSelfNotificationsUseCase,
   ReportBugUseCase,
   UploadProfessionalProfilePictureUseCase,
@@ -24,6 +26,8 @@ import { GetGeneralLinksUseCase } from './use-cases/get-general-links.use-case';
     ReportBugUseCase,
     ManageSelfNotificationsUseCase,
     GetSelfNotificationsUseCase,
+    ManageBusinessNotificationsUseCase,
+    GetBusinessNotificationsUseCase,
   ],
 })
 export class ProfessionalProfileModule {}

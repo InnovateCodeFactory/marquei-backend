@@ -17,6 +17,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { addMinutes, format } from 'date-fns';
+import { BusinessReminderType } from '@prisma/client';
 import { CreateAppointmentDto } from '../dto/requests/create-appointment.dto';
 
 const BUSINESS_TZ_ID = 'America/Sao_Paulo';
@@ -138,7 +139,11 @@ export class CreateAppointmentUseCase {
     // 4) Buscar configurações de lembretes do negócio e preparar jobs
     const reminderJobSettings =
       await this.prisma.businessReminderSettings.findFirst({
-        where: { businessId: professional.business_id },
+        where: {
+          businessId: professional.business_id,
+          type: BusinessReminderType.APPOINTMENT_REMINDER,
+          is_active: true,
+        },
         select: {
           channels: true,
           offsets_min_before: true,
