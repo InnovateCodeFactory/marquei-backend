@@ -60,6 +60,7 @@ export class GetBusinessNotificationsUseCase {
 
     const byType = new Map(settings.map((item) => [item.type, item]));
     const hiddenVariableKeys = new Set([
+      'day',
       'ios_app_url',
       'android_app_url',
       'signup_hint',

@@ -23,6 +23,7 @@ import { GetGeneralLinkDto } from './dto/requests/get-general-link.dto';
 import { ManageBusinessNotificationsDto } from './dto/requests/manage-business-notifications.dto';
 import { ManageSelfNotificationsDto } from './dto/requests/manage-self-notifications.dto';
 import { ReportBugDto } from './dto/requests/report-bug.dto';
+import { TestBusinessNotificationMessageDto } from './dto/requests/test-business-notification-message.dto';
 import {
   EditProfessionalProfileUseCase,
   GetBusinessNotificationsUseCase,
@@ -31,6 +32,7 @@ import {
   ManageBusinessNotificationsUseCase,
   ManageSelfNotificationsUseCase,
   ReportBugUseCase,
+  TestBusinessNotificationMessageUseCase,
   UploadProfessionalProfilePictureUseCase,
 } from './use-cases';
 import { GetGeneralLinkByKeyUseCase } from './use-cases/get-general-link-by-key.use-case';
@@ -51,6 +53,7 @@ export class ProfessionalProfileController {
     private readonly getSelfNotificationsUseCase: GetSelfNotificationsUseCase,
     private readonly manageBusinessNotificationsUseCase: ManageBusinessNotificationsUseCase,
     private readonly getBusinessNotificationsUseCase: GetBusinessNotificationsUseCase,
+    private readonly testBusinessNotificationMessageUseCase: TestBusinessNotificationMessageUseCase,
   ) {}
 
   @Post('profile-image')
@@ -177,6 +180,22 @@ export class ProfessionalProfileController {
   async getBusinessNotifications(@Req() req: AppRequest, @Res() res: Response) {
     return await this.responseHandler.handle({
       method: () => this.getBusinessNotificationsUseCase.execute(req),
+      res,
+    });
+  }
+
+  @Post('business-notifications/test-message')
+  @ApiOperation({
+    summary:
+      'Send a test message using the template currently typed by professional',
+  })
+  async testBusinessNotificationMessage(
+    @Req() req: AppRequest,
+    @Body() dto: TestBusinessNotificationMessageDto,
+    @Res() res: Response,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.testBusinessNotificationMessageUseCase.execute(dto, req),
       res,
     });
   }

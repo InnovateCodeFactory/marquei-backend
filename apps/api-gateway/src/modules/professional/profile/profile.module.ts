@@ -9,6 +9,7 @@ import {
   ManageBusinessNotificationsUseCase,
   ManageSelfNotificationsUseCase,
   ReportBugUseCase,
+  TestBusinessNotificationMessageUseCase,
   UploadProfessionalProfilePictureUseCase,
 } from './use-cases';
 import { GetGeneralLinkByKeyUseCase } from './use-cases/get-general-link-by-key.use-case';
@@ -28,6 +29,7 @@ import { GetGeneralLinksUseCase } from './use-cases/get-general-links.use-case';
     GetSelfNotificationsUseCase,
     ManageBusinessNotificationsUseCase,
     GetBusinessNotificationsUseCase,
+    TestBusinessNotificationMessageUseCase,
   ],
 })
 export class ProfessionalProfileModule {}
