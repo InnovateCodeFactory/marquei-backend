@@ -23,16 +23,25 @@ export class SendWhatsAppTextMessageUseCase {
     this.sessionId = this.configService.getOrThrow('WHATSAPP_API_SESSION_ID');
   }
 
+  private normalizeMessage(message: string) {
+    return message
+      .replace(/\\r\\n/g, '\n')
+      .replace(/\\n/g, '\n')
+      .replace(/\/n(?=\/|$|\s)/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
   @RabbitSubscribe({
     exchange: RABBIT_EXCHANGE,
     routingKey: MESSAGING_QUEUES.WHATSAPP_NOTIFICATIONS.SEND_TEXT_MESSAGE_QUEUE,
     queue: MESSAGING_QUEUES.WHATSAPP_NOTIFICATIONS.SEND_TEXT_MESSAGE_QUEUE,
   })
   async execute(payload: SendWhatsAppTextMessageDto): Promise<void> {
+    const { phone_number, message } = payload;
     try {
-      const { phone_number, message } = payload;
-
-      if (!phone_number || !message) {
+      const normalizedMessage = message ? this.normalizeMessage(message) : '';
+      if (!phone_number || !normalizedMessage) {
         this.logger.error(
           'Telefone ou mensagem não informados para envio da mensagem de texto: ',
           payload,
@@ -46,7 +55,7 @@ export class SendWhatsAppTextMessageUseCase {
           endpoint: '/integrators/send-text-message',
           data: {
             phoneNumber: phone_number,
-            message,
+            message: normalizedMessage,
             sessionId: this.sessionId,
           },
         });
@@ -64,7 +73,7 @@ export class SendWhatsAppTextMessageUseCase {
       );
     } catch (error) {
       this.logger.error(
-        'Erro ao enviar mensagem de texto via WhatsApp: ',
+        `Erro ao enviar mensagem de texto via WhatsApp: ${phone_number} - ${message} `,
         error?.response?.data || error.message || error,
       );
     }
