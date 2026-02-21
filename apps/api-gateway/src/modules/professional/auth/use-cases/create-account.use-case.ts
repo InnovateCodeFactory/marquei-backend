@@ -10,6 +10,7 @@ import {
   BUSINESS_REMINDER_TYPES,
   getFirstName,
   hasProhibitedTerm,
+  normalizeNotificationTemplate,
   slugifyBusinessName,
   validateBusinessOpeningHours,
 } from '@app/shared/utils';
@@ -171,7 +172,9 @@ export class CreateAccountUseCase {
               BUSINESS_REMINDER_TYPE_DEFAULTS[type].offsets_min_before,
             timezone: BUSINESS_REMINDER_TYPE_DEFAULTS[type].timezone,
             message_template:
-              BUSINESS_REMINDER_TYPE_DEFAULTS[type].message_template,
+              normalizeNotificationTemplate(
+                BUSINESS_REMINDER_TYPE_DEFAULTS[type].message_template,
+              ) ?? BUSINESS_REMINDER_TYPE_DEFAULTS[type].message_template,
           })),
         },
         BusinessSubscription: {

@@ -4,6 +4,7 @@ import {
   BUSINESS_NOTIFICATION_TEMPLATE_VARIABLES,
   BUSINESS_REMINDER_TYPE_DEFAULTS,
   BUSINESS_REMINDER_TYPES,
+  normalizeNotificationTemplate,
 } from '@app/shared/utils';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { BusinessReminderType } from '@prisma/client';
@@ -34,7 +35,10 @@ export class GetBusinessNotificationsUseCase {
         offsets_min_before:
           BUSINESS_REMINDER_TYPE_DEFAULTS[type].offsets_min_before,
         timezone: BUSINESS_REMINDER_TYPE_DEFAULTS[type].timezone,
-        message_template: BUSINESS_REMINDER_TYPE_DEFAULTS[type].message_template,
+        message_template:
+          normalizeNotificationTemplate(
+            BUSINESS_REMINDER_TYPE_DEFAULTS[type].message_template,
+          ) ?? BUSINESS_REMINDER_TYPE_DEFAULTS[type].message_template,
       })),
     });
   }

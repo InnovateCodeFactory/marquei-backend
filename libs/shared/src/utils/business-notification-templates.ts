@@ -141,6 +141,27 @@ export const BUSINESS_NOTIFICATION_TEMPLATE_VARIABLES = [
 ] as const;
 
 const TEMPLATE_VARIABLE_REGEX = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
+const NAME_VARIABLE_KEYS = new Set([
+  'business_name',
+  'customer_name',
+  'professional_name',
+  'service_name',
+]);
+
+function normalizeTemplateLineBreaks(value: string) {
+  let normalized = value
+    .replace(/\\r\\n/g, '\n')
+    .replace(/\\n/g, '\n')
+    .replace(/\/n(?=\/|$|\s)/g, '\n')
+    .replace(/\r\n?/g, '\n');
+
+  // Some old templates were saved as a single line with double spaces as separators.
+  if (!normalized.includes('\n')) {
+    normalized = normalized.replace(/[ \t]{2,}/g, '\n\n');
+  }
+
+  return normalized.replace(/\n{3,}/g, '\n\n');
+}
 
 export function renderBusinessNotificationTemplate({
   template,
@@ -151,9 +172,12 @@ export function renderBusinessNotificationTemplate({
 }) {
   if (!template) return '';
 
-  return template
+  return normalizeTemplateLineBreaks(template)
     .replace(TEMPLATE_VARIABLE_REGEX, (_match, rawKey: string) => {
-      const value = variables[rawKey];
+      let value = variables[rawKey];
+      if (typeof value === 'string' && NAME_VARIABLE_KEYS.has(rawKey)) {
+        value = value.trim();
+      }
       if (value === undefined || value === null) return '';
       return String(value);
     })
@@ -163,6 +187,6 @@ export function renderBusinessNotificationTemplate({
 
 export function normalizeNotificationTemplate(value?: string | null) {
   if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
+  const trimmed = normalizeTemplateLineBreaks(value).trim();
   return trimmed.length > 0 ? trimmed : null;
 }
