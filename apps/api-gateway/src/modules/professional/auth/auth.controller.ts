@@ -22,7 +22,7 @@ import { CookieOptions, Request, Response } from 'express';
 import { RegisterPushTokenDto } from '../../client/auth/dto/requests/register-push-token.dto';
 import { CreateAccountDto } from './dto/requests/create-account';
 import { FirstAccessDto } from './dto/requests/firts-access.dto';
-import { ForgotPasswordRequestDto } from './dto/requests/forgot-password-request.dto';
+import { ProfessionalForgotPasswordRequestDto } from './dto/requests/forgot-password-request.dto';
 import { ForgotPasswordResetDto } from './dto/requests/forgot-password-reset.dto';
 import { ForgotPasswordValidateDto } from './dto/requests/forgot-password-validate.dto';
 import { LoginDto } from './dto/requests/login.dto';
@@ -282,7 +282,7 @@ export class AuthController {
   @IsPublic()
   async requestPasswordReset(
     @Res() res: Response,
-    @Body() body: ForgotPasswordRequestDto,
+    @Body() body: ProfessionalForgotPasswordRequestDto,
   ) {
     return this.responseHandler.handle({
       method: () => this.requestPasswordResetUseCase.execute(body),

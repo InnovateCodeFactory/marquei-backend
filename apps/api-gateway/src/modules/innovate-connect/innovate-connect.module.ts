@@ -6,11 +6,14 @@ import {
   InnovateConnectCatalogUseCase,
   InnovateConnectListAppointmentsUseCase,
   InnovateConnectListBusinessesUseCase,
+  InnovateConnectListAppUpdatesUseCase,
   InnovateConnectListLogsUseCase,
   InnovateConnectListServicesUseCase,
   InnovateConnectListSubscriptionsUseCase,
   InnovateConnectListUsersUseCase,
   InnovateConnectLoginUseCase,
+  InnovateConnectCreateAppUpdateModalUseCase,
+  InnovateConnectToggleAppUpdateModalUseCase,
 } from './use-cases';
 
 @Module({
@@ -22,10 +25,13 @@ import {
     InnovateConnectCatalogUseCase,
     InnovateConnectListUsersUseCase,
     InnovateConnectListBusinessesUseCase,
+    InnovateConnectListAppUpdatesUseCase,
     InnovateConnectListAppointmentsUseCase,
     InnovateConnectListServicesUseCase,
     InnovateConnectListLogsUseCase,
     InnovateConnectListSubscriptionsUseCase,
+    InnovateConnectCreateAppUpdateModalUseCase,
+    InnovateConnectToggleAppUpdateModalUseCase,
   ],
 })
 export class InnovateConnectModule {}

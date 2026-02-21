@@ -6,13 +6,14 @@ export class InnovateConnectCatalogUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute() {
-    const [users, businesses, subscriptions, services, logs] =
+    const [users, businesses, subscriptions, services, logs, appUpdates] =
       await Promise.all([
         this.prisma.user.count(),
         this.prisma.business.count(),
         this.prisma.businessSubscription.count(),
         this.prisma.service.count(),
         this.prisma.logs.count(),
+        this.prisma.appUpdateModal.count(),
       ]);
 
     return [
@@ -50,6 +51,13 @@ export class InnovateConnectCatalogUseCase {
         description: 'Logs de requisições e eventos',
         count: logs,
         endpoint: '/innovate-connect/logs',
+      },
+      {
+        key: 'app_updates',
+        label: 'App Updates',
+        description: 'Modais de atualização e novidades do app',
+        count: appUpdates,
+        endpoint: '/innovate-connect/app-updates',
       },
     ];
   }
