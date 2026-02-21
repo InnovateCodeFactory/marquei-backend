@@ -26,6 +26,7 @@ export class InnovateConnectListLogsUseCase {
           datetime: true,
           latencyMs: true,
           user_id: true,
+          user_name: true,
           device_token: true,
           app_version: true,
           app_os: true,

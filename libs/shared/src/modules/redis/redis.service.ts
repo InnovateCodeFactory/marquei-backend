@@ -142,6 +142,7 @@ export class RedisService {
       select: {
         user_type: true,
         id: true,
+        name: true,
         push_token: true,
         CurrentSelectedBusiness: {
           select: {
@@ -213,6 +214,7 @@ export class RedisService {
   }): Promise<{
     user_type: string;
     id: string;
+    name?: string | null;
     push_token?: string | null;
     personId?: string;
   } | null> {
@@ -227,6 +229,7 @@ export class RedisService {
       select: {
         user_type: true,
         id: true,
+        name: true,
         push_token: true,
         personId: true,
       },

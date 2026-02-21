@@ -866,6 +866,7 @@ model Logs {
   response     Json?
   success      Boolean
   user_id      String?
+  user_name    String?
   device_token String?
   app_version  String?
   app_os       String?
@@ -874,6 +875,7 @@ model Logs {
   created_at   DateTime @default(now())
 
   @@index([user_id], name: "idx_logs_taxnumber")
+  @@index([user_name], name: "idx_logs_user_name")
   @@index([device_token], name: "idx_logs_device_token")
 }
 

@@ -20,17 +20,31 @@ export class InnovateConnectListUsersUseCase {
           name: true,
           email: true,
           user_type: true,
-          first_access: true,
-          created_at: true,
+          push_token: true,
           person: {
             select: {
               phone: true,
             },
           },
           professional_profile: {
-            take: 1,
+            where: {
+              status: 'ACTIVE',
+            },
             select: {
               phone: true,
+              status: true,
+            },
+          },
+          CurrentSelectedBusiness: {
+            take: 1,
+            select: {
+              business: {
+                select: {
+                  id: true,
+                  name: true,
+                  is_active: true,
+                },
+              },
             },
           },
         },
@@ -38,8 +52,28 @@ export class InnovateConnectListUsersUseCase {
       this.prisma.user.count(),
     ]);
 
+    const normalizedItems = items.map(
+      ({ push_token, professional_profile, CurrentSelectedBusiness, ...user }) => {
+        const isProfessional = user.user_type === 'PROFESSIONAL';
+        return {
+          ...user,
+          is_active: isProfessional ? professional_profile.length > 0 : true,
+          selected_business:
+            isProfessional && CurrentSelectedBusiness?.[0]?.business
+              ? {
+                  id: CurrentSelectedBusiness[0].business.id,
+                  name: CurrentSelectedBusiness[0].business.name,
+                  is_active: CurrentSelectedBusiness[0].business.is_active,
+                }
+              : null,
+          professional_profile,
+          has_push_token: Boolean(push_token),
+        };
+      },
+    );
+
     return {
-      items,
+      items: normalizedItems,
       meta: {
         page,
         perPage: take,

@@ -72,6 +72,7 @@ export class AuthGuard implements CanActivate {
       (request as any).user = {
         id: user.id,
         user_type: user.user_type,
+        name: user?.name || null,
         push_token: user?.push_token || null,
         current_selected_business_slug: currentBusiness?.slug || null,
         current_selected_business_id: currentBusiness?.id || null,
@@ -103,6 +104,7 @@ export class AuthGuard implements CanActivate {
       (request as any).user = {
         id: user.id,
         user_type: user.user_type,
+        name: user?.name || null,
         push_token: user?.push_token || null,
         personId: user?.personId || null,
       };
