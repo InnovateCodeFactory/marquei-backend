@@ -2,6 +2,7 @@ export interface CachedUserProps {
   user_type: string;
   id: string;
   name?: string | null;
+  email?: string | null;
   push_token?: string | null;
   CurrentSelectedBusiness: CurrentSelectedBusiness[];
 }

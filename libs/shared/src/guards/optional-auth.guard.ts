@@ -50,7 +50,10 @@ export class OptionalAuthGuard implements CanActivate {
       (request as any).user = {
         id: user.id,
         user_type: user.user_type,
-        name: user?.name || null,
+        name: this.resolveDisplayName({
+          name: user?.name,
+          email: user?.email,
+        }),
         push_token: user?.push_token || null,
         current_selected_business_slug: currentBusiness?.slug || null,
         current_selected_business_id: currentBusiness?.id || null,
@@ -80,7 +83,10 @@ export class OptionalAuthGuard implements CanActivate {
       (request as any).user = {
         id: user.id,
         user_type: user.user_type,
-        name: user?.name || null,
+        name: this.resolveDisplayName({
+          name: user?.name,
+          email: user?.email,
+        }),
         push_token: user?.push_token || null,
         personId: user?.personId || null,
       };
@@ -99,5 +105,21 @@ export class OptionalAuthGuard implements CanActivate {
 
   private extractTokenFromCookies(request: Request): string | undefined {
     return getCookieValue(request, ACCESS_TOKEN_COOKIE);
+  }
+
+  private resolveDisplayName({
+    name,
+    email,
+  }: {
+    name?: string | null;
+    email?: string | null;
+  }): string | null {
+    const normalizedName = name?.trim();
+    if (normalizedName) return normalizedName;
+
+    const normalizedEmail = email?.trim();
+    if (normalizedEmail) return normalizedEmail;
+
+    return null;
   }
 }

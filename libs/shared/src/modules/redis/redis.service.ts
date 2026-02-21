@@ -134,8 +134,20 @@ export class RedisService {
     const cachedKey = `user:professional:${userId}`;
 
     const userInCache = await this.get({ key: cachedKey });
-
-    if (userInCache) return JSON.parse(userInCache);
+    if (userInCache) {
+      try {
+        const parsedUser = JSON.parse(userInCache) as CachedUserProps;
+        if (
+          typeof parsedUser?.name === 'string' &&
+          parsedUser.name.trim().length > 0
+        ) {
+          return parsedUser;
+        }
+      } catch {
+        // cache corrompido: segue para recarregar do banco
+      }
+      await this.del({ key: cachedKey });
+    }
 
     const user = await this.prismaService.user.findUnique({
       where: { id: userId, user_type: 'PROFESSIONAL' },
@@ -143,6 +155,7 @@ export class RedisService {
         user_type: true,
         id: true,
         name: true,
+        email: true,
         push_token: true,
         CurrentSelectedBusiness: {
           select: {
@@ -215,14 +228,34 @@ export class RedisService {
     user_type: string;
     id: string;
     name?: string | null;
+    email?: string | null;
     push_token?: string | null;
     personId?: string;
   } | null> {
     const cachedKey = `user:customer:${userId}`;
 
     const userInCache = await this.get({ key: cachedKey });
-
-    if (userInCache) return JSON.parse(userInCache);
+    if (userInCache) {
+      try {
+        const parsedUser = JSON.parse(userInCache) as {
+          user_type: string;
+          id: string;
+          name?: string | null;
+          email?: string | null;
+          push_token?: string | null;
+          personId?: string;
+        };
+        if (
+          typeof parsedUser?.name === 'string' &&
+          parsedUser.name.trim().length > 0
+        ) {
+          return parsedUser;
+        }
+      } catch {
+        // cache corrompido: segue para recarregar do banco
+      }
+      await this.del({ key: cachedKey });
+    }
 
     const user = await this.prismaService.user.findUnique({
       where: { id: userId, user_type: 'CUSTOMER' },
@@ -230,6 +263,7 @@ export class RedisService {
         user_type: true,
         id: true,
         name: true,
+        email: true,
         push_token: true,
         personId: true,
       },
