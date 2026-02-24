@@ -1,13 +1,32 @@
 import { IsPublic } from '@app/shared/decorators/isPublic.decorator';
 import { ResponseHandlerService } from '@app/shared/services';
-import { Body, Controller, Get, Post, Query, Res, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { InnovateConnectCreateAppUpdateModalDto } from './dto/requests/innovate-connect-create-app-update-modal.dto';
 import { InnovateConnectAuthGuard } from './guards/innovate-connect-auth.guard';
 import { InnovateConnectLoginDto } from './dto/requests/innovate-connect-login.dto';
+import { InnovateConnectListAppUpdatesDto } from './dto/requests/innovate-connect-list-app-updates.dto';
 import { InnovateConnectPaginationDto } from './dto/requests/innovate-connect-pagination.dto';
+import { InnovateConnectToggleAppUpdateModalDto } from './dto/requests/innovate-connect-toggle-app-update-modal.dto';
 import {
   InnovateConnectCatalogUseCase,
+  InnovateConnectCreateAppUpdateModalUseCase,
+  InnovateConnectListAppUpdatesUseCase,
   InnovateConnectListAppointmentsUseCase,
   InnovateConnectListBusinessesUseCase,
   InnovateConnectListLogsUseCase,
@@ -15,6 +34,7 @@ import {
   InnovateConnectListSubscriptionsUseCase,
   InnovateConnectListUsersUseCase,
   InnovateConnectLoginUseCase,
+  InnovateConnectToggleAppUpdateModalUseCase,
 } from './use-cases';
 
 @Controller('innovate-connect')
@@ -31,6 +51,9 @@ export class InnovateConnectController {
     private readonly listServicesUseCase: InnovateConnectListServicesUseCase,
     private readonly listLogsUseCase: InnovateConnectListLogsUseCase,
     private readonly listSubscriptionsUseCase: InnovateConnectListSubscriptionsUseCase,
+    private readonly listAppUpdatesUseCase: InnovateConnectListAppUpdatesUseCase,
+    private readonly createAppUpdateModalUseCase: InnovateConnectCreateAppUpdateModalUseCase,
+    private readonly toggleAppUpdateModalUseCase: InnovateConnectToggleAppUpdateModalUseCase,
   ) {}
 
   @Post('auth/login')
@@ -113,6 +136,61 @@ export class InnovateConnectController {
   ) {
     return this.responseHandler.handle({
       method: () => this.listSubscriptionsUseCase.execute(query),
+      res,
+    });
+  }
+
+  @Get('app-updates')
+  @UseGuards(InnovateConnectAuthGuard)
+  async listAppUpdates(
+    @Res() res: Response,
+    @Query() query: InnovateConnectListAppUpdatesDto,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.listAppUpdatesUseCase.execute(query),
+      res,
+    });
+  }
+
+  @Post('app-updates')
+  @UseGuards(InnovateConnectAuthGuard)
+  @UseInterceptors(
+    FileInterceptor('banner', {
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!allowed.includes(file.mimetype)) {
+          return cb(new BadRequestException('Tipo de banner inválido'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  async createAppUpdate(
+    @Res() res: Response,
+    @Body() body: InnovateConnectCreateAppUpdateModalDto,
+    @UploadedFile() banner?: Express.Multer.File,
+  ) {
+    return this.responseHandler.handle({
+      method: () => this.createAppUpdateModalUseCase.execute(body, banner),
+      res,
+      successStatus: 201,
+    });
+  }
+
+  @Patch('app-updates/:id/active')
+  @UseGuards(InnovateConnectAuthGuard)
+  async setAppUpdateActive(
+    @Res() res: Response,
+    @Param('id') id: string,
+    @Body() body: InnovateConnectToggleAppUpdateModalDto,
+  ) {
+    return this.responseHandler.handle({
+      method: () =>
+        this.toggleAppUpdateModalUseCase.execute({
+          id,
+          isActive: body.is_active,
+        }),
       res,
     });
   }

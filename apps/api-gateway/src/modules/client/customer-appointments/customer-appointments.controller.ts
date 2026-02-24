@@ -5,7 +5,7 @@ import { Body, Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CancelCustomerAppointmentDto } from './dto/requests/cancel-appointment.dto';
-import { ConfirmAppointmentDto } from './dto/requests/confirm-appointment.dto';
+import { ClientConfirmAppointmentDto } from './dto/requests/confirm-appointment.dto';
 import { CreateCustomerAppointmentDto } from './dto/requests/create-customer-appointment.dto';
 import { GetCustomerAppointmentsDto } from './dto/requests/get-customer-appointments.dto';
 import {
@@ -58,7 +58,7 @@ export class CustomerAppointmentsController {
   @ApiOperation({ summary: 'Confirm a pending appointment (customer)' })
   async confirmAppointment(
     @Res() res: Response,
-    @Body() body: ConfirmAppointmentDto,
+    @Body() body: ClientConfirmAppointmentDto,
     @Req() req: AppRequest,
   ) {
     return await this.responseHandler.handle({

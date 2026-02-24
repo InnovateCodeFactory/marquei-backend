@@ -6,13 +6,13 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { ConfirmAppointmentDto } from '../dto/requests/confirm-appointment.dto';
+import { ProfessionalConfirmAppointmentDto } from '../dto/requests/confirm-appointment.dto';
 
 @Injectable()
 export class ConfirmAppointmentUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(body: ConfirmAppointmentDto, req: AppRequest) {
+  async execute(body: ProfessionalConfirmAppointmentDto, req: AppRequest) {
     const { appointment_id } = body;
     const { user, headers } = req;
 
@@ -75,4 +75,3 @@ export class ConfirmAppointmentUseCase {
     return null;
   }
 }
-

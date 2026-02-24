@@ -6,3 +6,6 @@ export * from './innovate-connect-list-appointments.use-case';
 export * from './innovate-connect-list-services.use-case';
 export * from './innovate-connect-list-logs.use-case';
 export * from './innovate-connect-list-subscriptions.use-case';
+export * from './innovate-connect-list-app-updates.use-case';
+export * from './innovate-connect-create-app-update-modal.use-case';
+export * from './innovate-connect-toggle-app-update-modal.use-case';

@@ -7,7 +7,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CreateUserCustomerDto } from './dto/requests/create-customer.dto';
 import { CustomerFirstAccessDto } from './dto/requests/customer-first-access.dto';
-import { ForgotPasswordRequestDto } from './dto/requests/forgot-password-request.dto';
+import { ClientForgotPasswordRequestDto } from './dto/requests/forgot-password-request.dto';
 import { ForgotPasswordResetDto } from './dto/requests/forgot-password-reset.dto';
 import { ForgotPasswordValidateDto } from './dto/requests/forgot-password-validate.dto';
 import { RefreshTokenDto } from './dto/requests/refresh-token.dto';
@@ -158,7 +158,7 @@ export class AuthController {
   @IsPublic()
   async requestPasswordReset(
     @Res() res: Response,
-    @Body() body: ForgotPasswordRequestDto,
+    @Body() body: ClientForgotPasswordRequestDto,
   ) {
     return await this.responseHandler.handle({
       method: () => this.requestPasswordResetUseCase.execute(body),

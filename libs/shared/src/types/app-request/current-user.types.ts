@@ -3,6 +3,7 @@ import { BusinessPublicTypeEnum } from '@app/shared/enum';
 export type CurrentUser = {
   id: string;
   user_type: 'CUSTOMER' | 'PROFESSIONAL';
+  name?: string | null;
   push_token?: string | null;
   personId?: string | null;
   preferred_content_genre?: BusinessPublicTypeEnum | null;

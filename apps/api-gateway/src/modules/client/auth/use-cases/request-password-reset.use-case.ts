@@ -5,7 +5,7 @@ import { CachedKeys } from '@app/shared/utils/cached-keys';
 import { formatPhoneNumber, generateRandomString } from '@app/shared/utils';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { WhatsAppValidationService } from 'apps/api-gateway/src/shared/services/whatsapp-validation.service';
-import { ForgotPasswordRequestDto } from '../dto/requests/forgot-password-request.dto';
+import { ClientForgotPasswordRequestDto } from '../dto/requests/forgot-password-request.dto';
 
 @Injectable()
 export class RequestPasswordResetUseCase {
@@ -18,7 +18,7 @@ export class RequestPasswordResetUseCase {
     private readonly whatsappValidationService: WhatsAppValidationService,
   ) {}
 
-  async execute({ email }: ForgotPasswordRequestDto) {
+  async execute({ email }: ClientForgotPasswordRequestDto) {
     const normalizedEmail = email.trim().toLowerCase();
 
     const user = await this.prismaService.user.findFirst({

@@ -21,9 +21,30 @@ export class InnovateConnectListBusinessesUseCase {
           is_active: true,
           is_verified: true,
           is_test: true,
+          rating: true,
+          reviews_count: true,
+          public_type: true,
           uf: true,
+          city: true,
           phone: true,
-          created_at: true,
+          BusinessCategory: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          BusinessServiceType: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          _count: {
+            select: {
+              services: true,
+              professionals: true,
+            },
+          },
           owner: {
             select: {
               id: true,

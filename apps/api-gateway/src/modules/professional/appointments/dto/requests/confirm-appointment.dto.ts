@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 
-export class ConfirmAppointmentDto {
+export class ProfessionalConfirmAppointmentDto {
   @IsString()
   @IsNotEmpty()
   @ApiProperty({
@@ -10,4 +10,3 @@ export class ConfirmAppointmentDto {
   })
   appointment_id: string;
 }
-

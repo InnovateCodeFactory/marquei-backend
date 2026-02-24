@@ -8,7 +8,7 @@ import { NotificationMessageBuilder } from '@app/shared/utils/notification-messa
 import { tz } from '@date-fns/tz';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { format } from 'date-fns';
-import { ConfirmAppointmentDto } from '../dto/requests/confirm-appointment.dto';
+import { ClientConfirmAppointmentDto } from '../dto/requests/confirm-appointment.dto';
 
 @Injectable()
 export class ConfirmCustomerAppointmentUseCase {
@@ -17,7 +17,7 @@ export class ConfirmCustomerAppointmentUseCase {
     private readonly rmqService: RmqService,
   ) {}
 
-  async execute(body: ConfirmAppointmentDto, req: AppRequest) {
+  async execute(body: ClientConfirmAppointmentDto, req: AppRequest) {
     const { appointment_id } = body;
     const { user, headers } = req;
 

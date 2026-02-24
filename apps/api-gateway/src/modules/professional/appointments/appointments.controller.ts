@@ -16,7 +16,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { BlockTimesDto } from './dto/requests/block-times.dto';
 import { CancelAppointmentDto } from './dto/requests/cancel-appointment.dto';
-import { ConfirmAppointmentDto } from './dto/requests/confirm-appointment.dto';
+import { ProfessionalConfirmAppointmentDto } from './dto/requests/confirm-appointment.dto';
 import { CreateAppointmentDto } from './dto/requests/create-appointment.dto';
 import { GetAvailableTimesDto } from './dto/requests/get-available-times.dto';
 import { GetAppointmentsDto } from './dto/requests/get-appointments.dto';
@@ -162,7 +162,7 @@ export class AppointmentsController {
   async confirmAppointment(
     @Res() res: Response,
     @Req() req: AppRequest,
-    @Body() body: ConfirmAppointmentDto,
+    @Body() body: ProfessionalConfirmAppointmentDto,
   ) {
     return await this.responseHandler.handle({
       method: () => this.confirmAppointmentUseCase.execute(body, req),
