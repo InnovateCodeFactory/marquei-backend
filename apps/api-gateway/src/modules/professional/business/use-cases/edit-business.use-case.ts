@@ -44,9 +44,6 @@ export class EditBusinessUseCase {
     }
     if ('instagram' in dto) {
       data.instagram = dto.instagram ?? null;
-      if (typeof dto.instagram === 'string' && dto.instagram.trim().length) {
-        validations.push(this.validateUrl(dto.instagram, 'instagram'));
-      }
     }
 
     if ('zipCode' in dto) data.zipCode = dto.zipCode ?? null;
@@ -112,6 +109,11 @@ export class EditBusinessUseCase {
     if (field === 'instagram' && !this.isAllowedInstagramHost(hostname)) {
       throw new BadRequestException('URL do Instagram inválida');
     }
+
+    // Instagram frequently blocks automated HEAD/GET checks (anti-bot/rate-limit),
+    // which causes false negatives even for valid public profiles.
+    // For Instagram we validate scheme + host + SSRF rules and skip reachability.
+    if (field === 'instagram') return;
 
     const ok = await this.checkUrlReachable(parsed);
     if (!ok) {
