@@ -153,12 +153,21 @@ export const NotificationMessageBuilder = {
     reviewer_name: string;
     business_name: string;
     rating: number;
-    comment: string;
+    comment?: string | null;
   }) => {
     const starsLabel = rating === 1 ? 'estrela' : 'estrelas';
+    const trimmedComment = comment?.trim();
+
+    if (!trimmedComment) {
+      return {
+        title: '⭐ Nova avaliação',
+        body: `${reviewer_name?.trim()} avaliou ${business_name?.trim()} com ${rating} ${starsLabel}.`,
+      };
+    }
+
     return {
       title: '⭐ Nova avaliação',
-      body: `${reviewer_name?.trim()} avaliou ${business_name?.trim()} com ${rating} ${starsLabel}: "${comment?.trim()}"`,
+      body: `${reviewer_name?.trim()} avaliou ${business_name?.trim()} com ${rating} ${starsLabel}: "${trimmedComment}"`,
     };
   },
 };

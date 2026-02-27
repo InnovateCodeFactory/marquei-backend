@@ -70,7 +70,6 @@ export class RateBusinessUseCase {
     });
 
     const trimmedComment = dto.comment?.trim();
-    if (!trimmedComment) return null;
 
     const [business, reviewer] = await Promise.all([
       this.prisma.business.findUnique({
