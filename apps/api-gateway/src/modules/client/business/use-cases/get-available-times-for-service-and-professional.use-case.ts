@@ -25,6 +25,7 @@ type OpeningHours = {
 
 const BUSINESS_TZ_ID = 'America/Sao_Paulo';
 const Z = tz(BUSINESS_TZ_ID);
+const SLOT_INTERVAL_MINUTES = 15;
 
 @Injectable()
 export class GetAvailableTimesForServiceAndProfessionalUseCase {
@@ -234,7 +235,7 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
         if (!isTodayInTZ || isBefore(nowLocal, startLocal)) {
           candidates.push(startLocal);
         }
-        startLocal = addMinutes(startLocal, appointmentDuration, {
+        startLocal = addMinutes(startLocal, SLOT_INTERVAL_MINUTES, {
           in: Z,
         }) as TZDate;
       }
@@ -313,21 +314,25 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
     ];
 
     // --- filtra candidatos removendo conflitos (comparação local) ---
-    const availableSlots = candidates
-      .filter((startLocal) => {
-        const endLocal = addMinutes(startLocal, appointmentDuration, {
-          in: Z,
-        }) as TZDate;
+    const availableSlots = Array.from(
+      new Set(
+        candidates
+          .filter((startLocal) => {
+            const endLocal = addMinutes(startLocal, appointmentDuration, {
+              in: Z,
+            }) as TZDate;
 
-        return !busyRanges.some((b) =>
-          areIntervalsOverlapping(
-            { start: startLocal as Date, end: endLocal as Date },
-            { start: b.start as Date, end: b.end as Date },
-            { inclusive: false },
-          ),
-        );
-      })
-      .map((slot) => format(slot, 'HH:mm', { in: Z }));
+            return !busyRanges.some((b) =>
+              areIntervalsOverlapping(
+                { start: startLocal as Date, end: endLocal as Date },
+                { start: b.start as Date, end: b.end as Date },
+                { inclusive: false },
+              ),
+            );
+          })
+          .map((slot) => format(slot, 'HH:mm', { in: Z })),
+      ),
+    );
 
     return {
       date: format(selectedDateLocal, 'yyyy-MM-dd', { in: Z }),

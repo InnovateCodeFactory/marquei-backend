@@ -1,5 +1,6 @@
 import { PrismaService } from '@app/shared';
 import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifications';
+import { SendWhatsAppTextMessageDto } from '@app/shared/dto/messaging/whatsapp-notifications';
 import { GoogleCalendarService } from '@app/shared/modules/google-calendar/google-calendar.service';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import {
@@ -86,6 +87,7 @@ export class CreateAppointmentUseCase {
           personId: true,
           person: {
             select: {
+              phone: true,
               user: { select: { push_token: true } },
             },
           },
@@ -363,19 +365,19 @@ export class CreateAppointmentUseCase {
       }
     }
 
+    const dayAndMonth = format(startLocal, 'dd/MM', { in: IN_TZ });
+    const time = format(startLocal, 'HH:mm', { in: IN_TZ });
+    const professionalName = getTwoNames(professional.User?.name || '');
+    const message =
+      NotificationMessageBuilder.buildAppointmentCreatedMessageForCustomer({
+        professional_name: professionalName || 'Profissional',
+        dayAndMonth,
+        time,
+        service_name: targetName,
+      });
+
     const customerPushToken = bc.person?.user?.push_token;
     if (customerPushToken) {
-      const dayAndMonth = format(startLocal, 'dd/MM', { in: IN_TZ });
-      const time = format(startLocal, 'HH:mm', { in: IN_TZ });
-      const professionalName = getTwoNames(professional.User?.name || '');
-      const message =
-        NotificationMessageBuilder.buildAppointmentCreatedMessageForCustomer({
-          professional_name: professionalName || 'Profissional',
-          dayAndMonth,
-          time,
-          service_name: targetName,
-        });
-
       await this.rmqService.publishToQueue({
         payload: new SendPushNotificationDto({
           pushTokens: [customerPushToken],
@@ -383,6 +385,15 @@ export class CreateAppointmentUseCase {
           body: message.body,
         }),
         routingKey: MESSAGING_QUEUES.PUSH_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
+      });
+    } else if (bc.person?.phone) {
+      await this.rmqService.publishToQueue({
+        payload: new SendWhatsAppTextMessageDto({
+          phone_number: bc.person.phone,
+          message: `${message.title}\n\n${message.body}`.trim(),
+        }),
+        routingKey:
+          MESSAGING_QUEUES.WHATSAPP_NOTIFICATIONS.SEND_TEXT_MESSAGE_QUEUE,
       });
     }
 

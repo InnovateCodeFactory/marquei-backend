@@ -3,7 +3,6 @@ import { Transform } from 'class-transformer';
 import {
   IsArray,
   IsBooleanString,
-  IsNotEmpty,
   IsNumberString,
   IsOptional,
   IsString,
@@ -34,17 +33,19 @@ export class GetStatementDto {
   })
   end_date?: string;
 
+  @IsOptional()
   @IsNumberString()
-  @IsNotEmpty()
-  @ApiProperty({
+  @Transform(({ value }) => (value === undefined ? '1' : value))
+  @ApiPropertyOptional({
     description: 'The page number for pagination',
     example: '1',
   })
   page: string;
 
+  @IsOptional()
   @IsNumberString()
-  @IsNotEmpty()
-  @ApiProperty({
+  @Transform(({ value }) => (value === undefined ? '20' : value))
+  @ApiPropertyOptional({
     description: 'The number of items per page',
     example: '10',
   })

@@ -23,6 +23,7 @@ type OpeningHours = {
 
 const BUSINESS_TZ_ID = 'America/Sao_Paulo';
 const IN_TZ = tz(BUSINESS_TZ_ID);
+const SLOT_INTERVAL_MINUTES = 15;
 
 @Injectable()
 export class GetAvailableTimesUseCase {
@@ -197,7 +198,10 @@ export class GetAvailableTimesUseCase {
           if (!isTodayLocal || isBefore(nowLocal, startLocal)) {
             slotStartsLocal.push(startLocal);
           }
-          startLocal = addMinutes(startLocal, selectedDuration) as TZDate;
+          startLocal = addMinutes(
+            startLocal,
+            SLOT_INTERVAL_MINUTES,
+          ) as TZDate;
         }
       }
 
@@ -272,21 +276,25 @@ export class GetAvailableTimesUseCase {
       ];
 
       // Filtra slots removendo overlaps (comparação 100% local)
-      const availableSlots = slotStartsLocal
-        .filter((slotStartLocal) => {
-          const slotEndLocal = addMinutes(
-            slotStartLocal,
-            selectedDuration,
-          ) as TZDate;
-          return !busyRangesLocal.some((b) =>
-            areIntervalsOverlapping(
-              { start: slotStartLocal, end: slotEndLocal },
-              b,
-              { inclusive: false },
-            ),
-          );
-        })
-        .map((slot) => format(slot, 'HH:mm', { in: IN_TZ }));
+      const availableSlots = Array.from(
+        new Set(
+          slotStartsLocal
+            .filter((slotStartLocal) => {
+              const slotEndLocal = addMinutes(
+                slotStartLocal,
+                selectedDuration,
+              ) as TZDate;
+              return !busyRangesLocal.some((b) =>
+                areIntervalsOverlapping(
+                  { start: slotStartLocal, end: slotEndLocal },
+                  b,
+                  { inclusive: false },
+                ),
+              );
+            })
+            .map((slot) => format(slot, 'HH:mm', { in: IN_TZ })),
+        ),
+      );
 
       days.push({ date: dateStr, availableSlots });
     }

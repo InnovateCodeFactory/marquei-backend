@@ -28,6 +28,12 @@ type DashboardAnalyticsPayload = {
     appointments: LineSeriesPayload;
     customers: LineSeriesPayload;
   };
+  topServices: {
+    name: string;
+    revenue: number;
+    revenueFormatted: string;
+    appointments: number;
+  }[];
   revenueChart: {
     total: string;
     labels: string[];
@@ -55,6 +61,7 @@ export class ProfessionalDashboardAnalyticsUseCase {
       return {
         summaryCards: [],
         quickCharts: { appointments: emptyLine(), customers: emptyLine() },
+        topServices: [],
         revenueChart: { total: 'R$0', labels: [], series: [] },
         appointmentsChart: { labels: [], series: [] },
       } as DashboardAnalyticsPayload;
@@ -129,11 +136,12 @@ export class ProfessionalDashboardAnalyticsUseCase {
       ? Math.floor(revenuePrevCents / completedPrev)
       : 0;
 
-    const [revenueSeries, customersSeries, appointmentSeries] =
+    const [revenueSeries, customersSeries, appointmentSeries, topServices] =
       await Promise.all([
         this.getRevenueSeries({ startDate, endDate, businessId }),
         this.getCustomersSeries({ startDate, endDate, businessId }),
         this.getAppointmentsSeries({ startDate, endDate, businessId }),
+        this.getTopServices({ startDate, endDate, businessId }),
       ]);
 
     const summaryCards: SummaryCard[] = [
@@ -183,6 +191,7 @@ export class ProfessionalDashboardAnalyticsUseCase {
         appointments: appointmentsQuick,
         customers: customersQuick,
       },
+      topServices,
       revenueChart: {
         total: new Price(revenueNowCents).toCurrency(),
         labels: revenueSeries.labels,
@@ -322,6 +331,53 @@ export class ProfessionalDashboardAnalyticsUseCase {
       canceledSeries,
       completedTotal,
     };
+  }
+
+  private async getTopServices(params: {
+    startDate: Date;
+    endDate: Date;
+    businessId: string;
+  }) {
+    const { startDate, endDate, businessId } = params;
+    const startDateStr = format(startDate, 'yyyy-MM-dd');
+    const endDateStr = format(endDate, 'yyyy-MM-dd');
+
+    const rows = (await this.prismaService.$queryRawUnsafe<any[]>(
+      `
+      select
+        coalesce(sc.name, s.name, 'Serviço') as service_name,
+        coalesce(sum(ps.value_in_cents), 0) as revenue_cents,
+        count(ps.id)::int as appointments_count
+      from "ProfessionalStatement" ps
+      left join "Appointment" a on a.id = ps."appointmentId"
+      left join "ServiceCombo" sc on sc.id = a."serviceComboId"
+      left join "Service" s on s.id = a.service_id
+      where ps."businessId" = $3
+        and ps.type = 'INCOME'
+        and (ps.created_at at time zone 'America/Sao_Paulo')::date
+            between $1::date and $2::date
+      group by 1
+      order by revenue_cents desc
+      limit 6
+      `,
+      startDateStr,
+      endDateStr,
+      businessId,
+    )) as {
+      service_name: string;
+      revenue_cents: unknown;
+      appointments_count: unknown;
+    }[];
+
+    return rows.map((row) => {
+      const revenueCents = toNumber(row.revenue_cents ?? 0);
+      return {
+        name: row.service_name || 'Serviço',
+        revenue: revenueCents / 100,
+        revenueFormatted: new Price(revenueCents).toCurrency(),
+        appointments: toNumber(row.appointments_count ?? 0),
+      };
+    });
   }
 
   private async getFromCache({ key }: { key: string }) {

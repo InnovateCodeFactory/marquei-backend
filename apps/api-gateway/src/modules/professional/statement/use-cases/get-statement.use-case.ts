@@ -56,8 +56,23 @@ export class GetStatementUseCase implements OnModuleInit {
       search,
     } = query;
 
-    const pageNumber = Number(page);
-    const limitNumber = Number(limit);
+    const DEFAULT_PAGE = 1;
+    const DEFAULT_LIMIT = 20;
+    const MAX_LIMIT = 100;
+
+    const pageNumberRaw = Number(page);
+    const limitNumberRaw = Number(limit);
+
+    const pageNumber =
+      Number.isFinite(pageNumberRaw) && pageNumberRaw > 0
+        ? Math.floor(pageNumberRaw)
+        : DEFAULT_PAGE;
+    const limitNumberCandidate =
+      Number.isFinite(limitNumberRaw) && limitNumberRaw > 0
+        ? Math.floor(limitNumberRaw)
+        : DEFAULT_LIMIT;
+    const limitNumber = Math.min(MAX_LIMIT, limitNumberCandidate);
+
     if (isNaN(pageNumber) || isNaN(limitNumber)) {
       throw new BadRequestException('Page and limit must be valid numbers');
     }
@@ -72,7 +87,10 @@ export class GetStatementUseCase implements OnModuleInit {
         ...where.created_at,
         lte: addMinutes(addHours(new Date(end_date), 23), 59),
       };
-    if (type) where.type = type.toUpperCase();
+    if (type) {
+      const normalizedType = type.toUpperCase();
+      where.type = normalizedType === 'EXPENSE' ? 'OUTCOME' : normalizedType;
+    }
     if (professional_ids && professional_ids.length > 0) {
       where.professionalProfileId = { in: professional_ids };
     }

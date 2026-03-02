@@ -357,8 +357,11 @@ export class AuthController {
 
   private getCookieOptions(): CookieOptions {
     const sameSite = this.configService.get('WEB_COOKIE_SAMESITE') || 'lax';
-    const domain = this.configService.get('WEB_COOKIE_DOMAIN') || undefined;
-    const secure = this.configService.get('NODE_ENV') === 'production';
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
+    const secure = isProduction;
+    const domain = isProduction
+      ? this.configService.get('WEB_COOKIE_DOMAIN') || undefined
+      : undefined;
 
     return {
       httpOnly: true,

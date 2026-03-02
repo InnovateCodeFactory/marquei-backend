@@ -38,10 +38,13 @@ export class UploadPortfolioItemsUseCase {
     });
     if (!business) throw new NotFoundException('Business not found');
 
+    // Ignore any unknown body fields and trust only controlled request context + folder_id.
+    const requestedFolderId = dto?.folder_id?.trim();
+
     let folderId: string | null = null;
-    if (dto.folder_id) {
+    if (requestedFolderId) {
       const folder = await this.prisma.businessPortfolioFolder.findFirst({
-        where: { id: dto.folder_id, businessId },
+        where: { id: requestedFolderId, businessId },
         select: { id: true },
       });
       if (!folder) throw new NotFoundException('Folder not found');
@@ -83,6 +86,7 @@ export class UploadPortfolioItemsUseCase {
               id: true,
               key: true,
               folderId: true,
+              uploadedById: true,
               created_at: true,
             },
           });
@@ -90,6 +94,7 @@ export class UploadPortfolioItemsUseCase {
           return {
             id: item.id,
             folder_id: item.folderId,
+            uploaded_by_id: item.uploadedById,
             created_at: item.created_at,
             key: item.key,
             url: publicUrl,

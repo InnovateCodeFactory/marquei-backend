@@ -5,13 +5,16 @@ import { Price } from '@app/shared/value-objects';
 import { tz } from '@date-fns/tz';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { addMinutes, format } from 'date-fns';
-import { GetCustomerDetailsDto } from '../dto/requests/get-customer-details.dto';
+import { GetCustomerAppointmentsDto } from '../dto/requests/get-customer-appointments.dto';
 
 @Injectable()
 export class GetCustomerAppointmentsUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute({ id }: GetCustomerDetailsDto, user: CurrentUser) {
+  async execute(
+    { id, page, limit }: GetCustomerAppointmentsDto,
+    user: CurrentUser,
+  ) {
     // id = BusinessCustomer.id (vínculo no negócio)
     const bc = await this.prisma.businessCustomer.findUnique({
       where: { id },
@@ -19,12 +22,33 @@ export class GetCustomerAppointmentsUseCase {
     });
     if (!bc) throw new NotFoundException('Cliente não encontrado');
 
+    const DEFAULT_PAGE = 1;
+    const DEFAULT_LIMIT = 20;
+    const MAX_LIMIT = 100;
+
+    // Backward compatibility:
+    // if no pagination params are sent, keep legacy behavior (return full list).
+    const hasPagination = page !== undefined || limit !== undefined;
+    const pageNumberRaw = Number(page);
+    const limitRaw = Number(limit);
+    const pageNumber =
+      Number.isFinite(pageNumberRaw) && pageNumberRaw > 0
+        ? Math.floor(pageNumberRaw)
+        : DEFAULT_PAGE;
+    const pageSizeCandidate =
+      Number.isFinite(limitRaw) && limitRaw > 0
+        ? Math.floor(limitRaw)
+        : DEFAULT_LIMIT;
+    const pageSize = Math.min(MAX_LIMIT, pageSizeCandidate);
+    const skip = (pageNumber - 1) * pageSize;
+
     const appointments = await this.prisma.appointment.findMany({
       where: {
         personId: bc.personId, // cliente do agendamento
         professional: { business_id: user.current_selected_business_id }, // só do negócio atual
       },
       orderBy: { start_at_utc: 'desc' },
+      ...(hasPagination ? { skip, take: pageSize } : {}),
       select: {
         id: true,
         status: true,

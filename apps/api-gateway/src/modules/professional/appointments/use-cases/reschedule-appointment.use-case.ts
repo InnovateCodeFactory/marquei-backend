@@ -174,6 +174,13 @@ export class RescheduleAppointmentUseCase {
 
     // Transação: update + evento + reminders
     await this.prisma.$transaction([
+      this.prisma.appointmentEvent.deleteMany({
+        where: {
+          appointmentId: appointment.id,
+          event_type: 'REMINDER_SENT',
+          by_professional: true,
+        },
+      }),
       this.prisma.appointment.update({
         where: { id: appointment.id },
         data: {

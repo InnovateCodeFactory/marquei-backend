@@ -8,6 +8,7 @@ import { CreateCustomerDto } from './dto/requests/create-customer.dto';
 import { UpdateCustomerDto } from './dto/requests/update-customer.dto';
 import { FindCustomersDto } from './dto/requests/find-customers.dto';
 import { GetCustomerDetailsDto } from './dto/requests/get-customer-details.dto';
+import { GetCustomerAppointmentsDto } from './dto/requests/get-customer-appointments.dto';
 import {
   CreateCustomerUseCase,
   FindCustomersUseCase,
@@ -81,7 +82,7 @@ export class CustomersController {
     summary: 'Get customer appointments by customer ID',
   })
   async getCustomerAppointments(
-    @Query() query: GetCustomerDetailsDto,
+    @Query() query: GetCustomerAppointmentsDto,
     @Res() res: Response,
     @CurrentUserDecorator() currentUser: CurrentUser,
   ) {
