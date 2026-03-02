@@ -59,7 +59,7 @@ export class GetAppointmentsUseCase {
     const appointments = await this.prisma.appointment.findMany({
       where: {
         professionalProfileId: prof.id,
-        status: { in: ['CONFIRMED', 'PENDING'] },
+        status: { in: ['CONFIRMED', 'PENDING', 'COMPLETED'] },
         ...(startDate || endDate
           ? {
               start_at_utc: {

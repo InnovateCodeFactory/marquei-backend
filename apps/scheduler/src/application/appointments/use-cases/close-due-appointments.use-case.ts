@@ -114,19 +114,17 @@ export class CloseDueAppointmentsUseCase implements OnApplicationBootstrap {
         if (!rows.length) break;
 
         const statementRows = rows.map((r) => {
-          const comboSnapshot = (r.combo_snapshot || null) as
-            | {
-                combo_name?: string;
-                final_price_in_cents?: number;
-                services?: Array<{
-                  service_id?: string;
-                  name?: string;
-                  sort_order?: number;
-                  duration_minutes_snapshot?: number;
-                  price_in_cents_snapshot?: number;
-                }>;
-              }
-            | null;
+          const comboSnapshot = (r.combo_snapshot || null) as {
+            combo_name?: string;
+            final_price_in_cents?: number;
+            services?: Array<{
+              service_id?: string;
+              name?: string;
+              sort_order?: number;
+              duration_minutes_snapshot?: number;
+              price_in_cents_snapshot?: number;
+            }>;
+          } | null;
 
           const comboServices =
             r.serviceCombo?.items?.map((item) => ({

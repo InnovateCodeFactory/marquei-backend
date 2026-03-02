@@ -4,6 +4,7 @@ import { IsIn, IsNotEmpty, IsString } from 'class-validator';
 export const GENERAL_LINK_KEYS = [
   'terms_of_service_url',
   'privacy_policy_url',
+  'website_professional_url',
   'help_center_url',
   'facebook_url',
   'instagram_url',
