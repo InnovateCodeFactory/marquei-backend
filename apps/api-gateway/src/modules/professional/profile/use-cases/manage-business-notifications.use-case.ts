@@ -5,11 +5,39 @@ import {
   normalizeNotificationTemplate,
 } from '@app/shared/utils';
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { BusinessReminderType, ReminderChannel } from '@prisma/client';
 import { ManageBusinessNotificationsDto } from '../dto/requests/manage-business-notifications.dto';
 
 @Injectable()
 export class ManageBusinessNotificationsUseCase {
   constructor(private readonly prismaService: PrismaService) {}
+
+  private normalizeChannels(dto: ManageBusinessNotificationsDto) {
+    if (!dto.channels) return undefined;
+
+    if (dto.type === BusinessReminderType.APPOINTMENT_CONFIRMATION_REQUEST) {
+      return [ReminderChannel.WHATSAPP];
+    }
+
+    const uniqueChannels = Array.from(new Set(dto.channels));
+    return uniqueChannels.length ? uniqueChannels : undefined;
+  }
+
+  private normalizeOffsets(dto: ManageBusinessNotificationsDto) {
+    if (dto.type === BusinessReminderType.APPOINTMENT_CONFIRMATION_REQUEST) {
+      return [];
+    }
+
+    if (!dto.offsets_min_before) return undefined;
+    const uniqueOffsets = Array.from(
+      new Set(dto.offsets_min_before.filter((offset) => Number.isFinite(offset))),
+    )
+      .map((offset) => Number(offset))
+      .filter((offset) => offset > 0)
+      .sort((a, b) => b - a);
+
+    return uniqueOffsets.length ? uniqueOffsets : undefined;
+  }
 
   async execute(dto: ManageBusinessNotificationsDto, req: AppRequest) {
     const businessId = req.user?.current_selected_business_id;
@@ -17,11 +45,14 @@ export class ManageBusinessNotificationsUseCase {
 
     const defaults = BUSINESS_REMINDER_TYPE_DEFAULTS[dto.type];
 
+    const normalizedChannels = this.normalizeChannels(dto);
+    const normalizedOffsets = this.normalizeOffsets(dto);
+
     const updateData = {
       ...(dto.is_active !== undefined && { is_active: dto.is_active }),
-      ...(dto.channels !== undefined && { channels: dto.channels }),
-      ...(dto.offsets_min_before !== undefined && {
-        offsets_min_before: dto.offsets_min_before,
+      ...(normalizedChannels !== undefined && { channels: normalizedChannels }),
+      ...(normalizedOffsets !== undefined && {
+        offsets_min_before: normalizedOffsets,
       }),
       ...(dto.timezone !== undefined && { timezone: dto.timezone }),
       ...(dto.message_template !== undefined && {

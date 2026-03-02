@@ -7,7 +7,7 @@ import {
   normalizeNotificationTemplate,
 } from '@app/shared/utils';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { BusinessReminderType } from '@prisma/client';
+import { BusinessReminderType, ReminderChannel } from '@prisma/client';
 
 @Injectable()
 export class GetBusinessNotificationsUseCase {
@@ -46,8 +46,15 @@ export class GetBusinessNotificationsUseCase {
   async execute(req: AppRequest) {
     const businessId = req.user?.current_selected_business_id;
     if (!businessId) throw new NotFoundException('Negócio não encontrado');
+    const professionalName = req.user?.name?.trim() || 'Profissional';
 
     await this.ensureDefaultsForBusiness(businessId);
+
+    const business = await this.prismaService.business.findUnique({
+      where: { id: businessId },
+      select: { name: true },
+    });
+    const businessName = business?.name?.trim() || 'Seu negócio';
 
     const settings = await this.prismaService.businessReminderSettings.findMany({
       where: { businessId },
@@ -76,15 +83,25 @@ export class GetBusinessNotificationsUseCase {
     const reminder_types = BUSINESS_REMINDER_TYPES.map((type) => {
       const current = byType.get(type);
       const defaults = BUSINESS_REMINDER_TYPE_DEFAULTS[type];
+      const isConfirmationType =
+        type === BusinessReminderType.APPOINTMENT_CONFIRMATION_REQUEST;
+
+      const currentChannels = current?.channels ?? defaults.channels;
+      const channels = isConfirmationType
+        ? [ReminderChannel.WHATSAPP]
+        : currentChannels;
+
+      const currentOffsets =
+        current?.offsets_min_before ?? defaults.offsets_min_before;
+      const offsets = isConfirmationType ? [] : currentOffsets;
 
       return {
         type,
         title: defaults.title,
         description: defaults.description,
         is_active: current?.is_active ?? defaults.is_active,
-        channels: current?.channels ?? defaults.channels,
-        offsets_min_before:
-          current?.offsets_min_before ?? defaults.offsets_min_before,
+        channels,
+        offsets_min_before: offsets,
         timezone: current?.timezone ?? defaults.timezone,
         message_template: current?.message_template ?? defaults.message_template,
       };
@@ -92,9 +109,25 @@ export class GetBusinessNotificationsUseCase {
 
     return {
       reminder_types,
-      available_variables: BUSINESS_NOTIFICATION_TEMPLATE_VARIABLES.filter(
-        (variable) => !hiddenVariableKeys.has(variable.key),
-      ),
+      available_variables: BUSINESS_NOTIFICATION_TEMPLATE_VARIABLES
+        .filter((variable) => !hiddenVariableKeys.has(variable.key))
+        .map((variable) => {
+          if (variable.key === 'business_name') {
+            return {
+              ...variable,
+              example: businessName,
+            };
+          }
+
+          if (variable.key === 'professional_name') {
+            return {
+              ...variable,
+              example: professionalName,
+            };
+          }
+
+          return variable;
+        }),
       reminder_type_options: [
         {
           type: BusinessReminderType.APPOINTMENT_REMINDER,
