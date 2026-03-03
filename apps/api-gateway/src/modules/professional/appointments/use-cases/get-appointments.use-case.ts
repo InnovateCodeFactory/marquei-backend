@@ -55,10 +55,41 @@ export class GetAppointmentsUseCase {
 
     const { startDate, endDate } = this.parseDateRange(query);
 
+    const businessProfessionals = await this.prisma.professionalProfile.findMany({
+      where: {
+        business_id: currentUser.current_selected_business_id,
+      },
+      select: { id: true },
+    });
+
+    const businessProfessionalIds = businessProfessionals.map(
+      (professional) => professional.id,
+    );
+
+    if (!businessProfessionalIds.length) {
+      return {
+        items: [],
+        unavailableHours: {},
+      };
+    }
+
+    const professionalProfileIdFilter = query?.professional_profile_id?.trim();
+
+    if (
+      professionalProfileIdFilter &&
+      !businessProfessionalIds.includes(professionalProfileIdFilter)
+    ) {
+      throw new BadRequestException(
+        'professional_profile_id does not belong to the selected business.',
+      );
+    }
+
     // Busca agendamentos
     const appointments = await this.prisma.appointment.findMany({
       where: {
-        professionalProfileId: prof.id,
+        professionalProfileId: professionalProfileIdFilter
+          ? professionalProfileIdFilter
+          : { in: businessProfessionalIds },
         status: { in: ['CONFIRMED', 'PENDING', 'COMPLETED'] },
         ...(startDate || endDate
           ? {
@@ -121,7 +152,9 @@ export class GetAppointmentsUseCase {
     // Busca bloqueios do profissional (incluindo o ID)
     const blocksRaw = await this.prisma.professionalTimesBlock.findMany({
       where: {
-        professionalProfileId: prof.id,
+        professionalProfileId: professionalProfileIdFilter
+          ? professionalProfileIdFilter
+          : { in: businessProfessionalIds },
         businessId: currentUser.current_selected_business_id,
         ...(startDate ? { end_at_utc: { gte: startDate } } : {}),
         ...(endDate ? { start_at_utc: { lte: endDate } } : {}),

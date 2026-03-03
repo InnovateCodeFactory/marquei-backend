@@ -1,10 +1,14 @@
 import { PrismaService } from '@app/shared';
+import { FileSystemService } from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class GetProfessionalProfileDetailsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fileSystem: FileSystemService,
+  ) {}
 
   async execute(req: AppRequest) {
     const { id: userId, current_selected_business_id } = req.user;
@@ -39,8 +43,9 @@ export class GetProfessionalProfileDetailsUseCase {
       email: prof.User?.email ?? null,
       document_number: prof.User?.document_number ?? null,
       phone: prof.phone ?? null,
-      profile_image: prof.profile_image ?? null,
+      profile_image: prof.profile_image
+        ? this.fileSystem.getPublicUrl({ key: prof.profile_image })
+        : null,
     };
   }
 }
-

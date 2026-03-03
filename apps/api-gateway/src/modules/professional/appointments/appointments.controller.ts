@@ -88,9 +88,9 @@ export class AppointmentsController {
 
   @Get('get-appointments')
   @ApiOperation({
-    summary: 'Retrieve appointments for the current professional',
+    summary: 'Retrieve appointments for the current selected business',
     description:
-      'Fetches all appointments for the current professional profile, filtered by status.',
+      'Fetches appointments for the selected business, with optional filter by professional_profile_id and date range.',
   })
   async getAppointments(
     @Res() res: Response,

@@ -1,7 +1,15 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsOptional } from 'class-validator';
+import { IsDateString, IsOptional, IsString } from 'class-validator';
 
 export class GetAppointmentsDto {
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    description: 'Filter by professional profile id',
+    example: 'cmig0u8u3001gqf01wj0qzngf',
+  })
+  professional_profile_id?: string;
+
   @IsOptional()
   @IsDateString()
   @ApiPropertyOptional({
