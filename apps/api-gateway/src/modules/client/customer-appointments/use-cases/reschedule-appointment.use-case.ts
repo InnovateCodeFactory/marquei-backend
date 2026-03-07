@@ -4,6 +4,7 @@ import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifica
 import { GoogleCalendarService } from '@app/shared/modules/google-calendar/google-calendar.service';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
+import { AppointmentEventsStreamService } from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import { getTwoNames } from '@app/shared/utils';
 import { TZDate, tz } from '@date-fns/tz';
@@ -29,6 +30,7 @@ export class RescheduleCustomerAppointmentUseCase {
     private readonly prisma: PrismaService,
     private readonly rmqService: RmqService,
     private readonly googleCalendarService: GoogleCalendarService,
+    private readonly appointmentEventsStreamService: AppointmentEventsStreamService,
   ) {}
 
   async execute(dto: RescheduleCustomerAppointmentDto, req: AppRequest) {
@@ -218,6 +220,16 @@ export class RescheduleCustomerAppointmentUseCase {
           ]
         : []),
     ]);
+
+    this.appointmentEventsStreamService.publishAppointmentEvent({
+      event_type: 'appointment-rescheduled',
+      appointment_id: current.id,
+      business_id: effectiveProfessional.business_id,
+      professional_profile_id: effectiveProfessional.id,
+      created_by_user_id: req.user.id,
+      created_by_user_type: 'CUSTOMER',
+      origin: 'CLIENT_APP',
+    });
 
     // 5) montar mensagem
     const customerName = getTwoNames(current.customerPerson?.name || 'Cliente');

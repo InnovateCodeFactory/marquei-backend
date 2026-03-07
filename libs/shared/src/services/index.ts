@@ -1,3 +1,4 @@
+export * from './appointment-events-stream.service';
 export * from './encryption.service';
 export * from './file-system.service';
 export * from './hashing.service';

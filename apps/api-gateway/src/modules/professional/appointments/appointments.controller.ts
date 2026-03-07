@@ -1,19 +1,28 @@
 import { CurrentUserDecorator } from '@app/shared/decorators/current-user.decorator';
-import { ResponseHandlerService } from '@app/shared/services';
+import {
+  AppointmentEventsStreamService,
+  ResponseHandlerService,
+} from '@app/shared/services';
 import { AppRequest, CurrentUser } from '@app/shared/types/app-request';
 import {
   Body,
   Controller,
   Delete,
   Get,
+  Header,
+  MessageEvent,
   Param,
   Post,
   Query,
   Req,
   Res,
+  Sse,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Response } from 'express';
+import { Observable } from 'rxjs';
 import { BlockTimesDto } from './dto/requests/block-times.dto';
 import { CancelAppointmentDto } from './dto/requests/cancel-appointment.dto';
 import { ProfessionalConfirmAppointmentDto } from './dto/requests/confirm-appointment.dto';
@@ -50,7 +59,31 @@ export class AppointmentsController {
     private readonly blockTimesUseCase: BlockTimesUseCase,
     private readonly listBlockedTimesUseCase: ListBlockedTimesUseCase,
     private readonly deleteBlockedTimeUseCase: DeleteBlockedTimeUseCase,
+    private readonly appointmentEventsStreamService: AppointmentEventsStreamService,
   ) {}
+
+  @Sse('events')
+  @SkipThrottle()
+  @Header('Cache-Control', 'no-cache, no-transform')
+  @Header('Connection', 'keep-alive')
+  @Header('X-Accel-Buffering', 'no')
+  @ApiOperation({
+    summary: 'Stream appointment events (SSE)',
+    description:
+      'Opens a server-sent events stream for real-time appointment creation updates in the current business.',
+  })
+  streamAppointmentEvents(
+    @CurrentUserDecorator() user: CurrentUser,
+  ): Observable<MessageEvent> {
+    if (!user?.current_selected_business_id) {
+      throw new UnauthorizedException('User not authorized');
+    }
+
+    return this.appointmentEventsStreamService.connect({
+      business_id: user.current_selected_business_id,
+      user_id: user.id,
+    });
+  }
 
   @Get('get-available-times')
   @ApiOperation({

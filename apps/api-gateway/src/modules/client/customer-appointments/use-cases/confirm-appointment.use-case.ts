@@ -2,6 +2,7 @@ import { PrismaService } from '@app/shared';
 import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifications';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
+import { AppointmentEventsStreamService } from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import { getClientIp } from '@app/shared/utils';
 import { NotificationMessageBuilder } from '@app/shared/utils/notification-message-builder';
@@ -15,6 +16,7 @@ export class ConfirmCustomerAppointmentUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly rmqService: RmqService,
+    private readonly appointmentEventsStreamService: AppointmentEventsStreamService,
   ) {}
 
   async execute(body: ClientConfirmAppointmentDto, req: AppRequest) {
@@ -32,6 +34,8 @@ export class ConfirmCustomerAppointmentUseCase {
         customerPerson: { select: { name: true } },
         professional: {
           select: {
+            id: true,
+            business_id: true,
             push_notification_enabled: true,
             User: { select: { push_token: true } },
           },
@@ -71,6 +75,16 @@ export class ConfirmCustomerAppointmentUseCase {
         },
       }),
     ]);
+
+    this.appointmentEventsStreamService.publishAppointmentEvent({
+      event_type: 'appointment-confirmed',
+      appointment_id: appointment.id,
+      business_id: appointment.professional.business_id,
+      professional_profile_id: appointment.professional.id,
+      created_by_user_id: user.id,
+      created_by_user_type: 'CUSTOMER',
+      origin: 'CLIENT_APP',
+    });
 
     if (!reminderRequestedByProfessional) return null;
 

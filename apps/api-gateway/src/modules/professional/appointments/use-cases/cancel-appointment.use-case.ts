@@ -4,6 +4,7 @@ import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifica
 import { GoogleCalendarService } from '@app/shared/modules/google-calendar/google-calendar.service';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
+import { AppointmentEventsStreamService } from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import {
   formatDurationToHoursAndMinutes,
@@ -30,6 +31,7 @@ export class CancelAppointmentUseCase {
     private readonly prisma: PrismaService,
     private readonly rmqService: RmqService,
     private readonly googleCalendarService: GoogleCalendarService,
+    private readonly appointmentEventsStreamService: AppointmentEventsStreamService,
   ) {}
 
   async execute(body: CancelAppointmentDto, req: AppRequest) {
@@ -49,6 +51,7 @@ export class CancelAppointmentUseCase {
 
         professional: {
           select: {
+            id: true,
             userId: true,
             User: { select: { name: true } },
             business_id: true,
@@ -116,6 +119,16 @@ export class CancelAppointmentUseCase {
         },
       }),
     ]);
+
+    this.appointmentEventsStreamService.publishAppointmentEvent({
+      event_type: 'appointment-cancelled',
+      appointment_id: appointment.id,
+      business_id: appointment.professional.business_id,
+      professional_profile_id: appointment.professional.id,
+      created_by_user_id: user.id,
+      created_by_user_type: 'PROFESSIONAL',
+      origin: 'PROFESSIONAL_APP',
+    });
 
     const customerPushToken = appointment.customerPerson?.user?.push_token;
     if (customerPushToken) {

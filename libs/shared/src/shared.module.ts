@@ -8,6 +8,7 @@ import { GoogleCalendarModule } from './modules/google-calendar/google-calendar.
 import { RedisModule } from './modules/redis/redis.module';
 import { RmqModule } from './modules/rmq/rmq.module';
 import {
+  AppointmentEventsStreamService,
   EncryptionService,
   FileSystemService,
   HashingService,
@@ -47,6 +48,7 @@ import {
     FileSystemService,
     TokenService,
     EncryptionService,
+    AppointmentEventsStreamService,
   ],
   exports: [
     ConfigModule,
@@ -60,6 +62,7 @@ import {
     FileSystemService,
     TokenService,
     EncryptionService,
+    AppointmentEventsStreamService,
     ScheduleModule,
     GoogleCalendarModule,
   ],

@@ -7,6 +7,7 @@ import {
   RABBIT_EXCHANGE,
   RmqService,
 } from '@app/shared/modules/rmq/rmq.service';
+import { AppointmentEventsStreamService } from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import { getClientIp, getTwoNames } from '@app/shared/utils';
 import { NotificationMessageBuilder } from '@app/shared/utils/notification-message-builder';
@@ -32,6 +33,7 @@ export class CreateAppointmentUseCase {
     private readonly prisma: PrismaService,
     private readonly rmqService: RmqService,
     private readonly googleCalendarService: GoogleCalendarService,
+    private readonly appointmentEventsStreamService: AppointmentEventsStreamService,
   ) {}
 
   async execute(payload: CreateAppointmentDto, req: AppRequest) {
@@ -343,6 +345,15 @@ export class CreateAppointmentUseCase {
       select: {
         id: true,
       },
+    });
+
+    this.appointmentEventsStreamService.publishAppointmentCreated({
+      appointment_id: appointment.id,
+      business_id: professional.business_id,
+      professional_profile_id: professional_id,
+      created_by_user_id: user.id,
+      created_by_user_type: 'PROFESSIONAL',
+      origin: 'PROFESSIONAL_APP',
     });
 
     // 6) Publicar evento para integração com Google Calendar (assíncrono)

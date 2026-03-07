@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/shared';
+import { AppointmentEventsStreamService } from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import { getClientIp } from '@app/shared/utils';
 import {
@@ -10,7 +11,10 @@ import { ProfessionalConfirmAppointmentDto } from '../dto/requests/confirm-appoi
 
 @Injectable()
 export class ConfirmAppointmentUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly appointmentEventsStreamService: AppointmentEventsStreamService,
+  ) {}
 
   async execute(body: ProfessionalConfirmAppointmentDto, req: AppRequest) {
     const { appointment_id } = body;
@@ -26,6 +30,7 @@ export class ConfirmAppointmentUseCase {
             business_id: true,
           },
         },
+        professionalProfileId: true,
       },
     });
 
@@ -71,6 +76,16 @@ export class ConfirmAppointmentUseCase {
         },
       }),
     ]);
+
+    this.appointmentEventsStreamService.publishAppointmentEvent({
+      event_type: 'appointment-confirmed',
+      appointment_id: appointment.id,
+      business_id: appointment.professional.business_id,
+      professional_profile_id: appointment.professionalProfileId,
+      created_by_user_id: user.id,
+      created_by_user_type: 'PROFESSIONAL',
+      origin: 'PROFESSIONAL_APP',
+    });
 
     return null;
   }
