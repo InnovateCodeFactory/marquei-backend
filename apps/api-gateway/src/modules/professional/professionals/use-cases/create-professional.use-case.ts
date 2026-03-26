@@ -7,7 +7,11 @@ import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { HashingService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { generateRandomString, getFirstName, hasProhibitedTerm } from '@app/shared/utils';
+import {
+  generateRandomString,
+  getFirstName,
+  hasProhibitedTerm,
+} from '@app/shared/utils';
 import {
   BadRequestException,
   ForbiddenException,
@@ -142,13 +146,21 @@ export class CreateProfessionalUseCase {
         },
         select: {
           id: true,
-          business: { select: { name: true } },
+          business: { select: { name: true, id: true } },
+          userId: true,
         },
       });
 
       createdProfessionalId = professional.id;
 
       await Promise.all([
+        this.prismaService.currentSelectedBusiness.create({
+          data: {
+            user: { connect: { id: professional?.userId } },
+            business: { connect: { id: professional.business.id } },
+          },
+        }),
+
         this.rmqService.publishToQueue({
           routingKey:
             MESSAGING_QUEUES.IN_APP_NOTIFICATIONS.SEND_NOTIFICATION_QUEUE,
