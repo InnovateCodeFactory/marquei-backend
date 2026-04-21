@@ -100,11 +100,8 @@ export class LoginUseCase {
       refresh_token: refreshToken,
       user: {
         is_the_owner: isOwner,
-        ...(currentBusiness?.slug && {
-          current_selected_business_slug:
-            currentBusiness.slug,
-          current_selected_business_name: currentBusiness.name,
-        }),
+        current_selected_business_slug: currentBusiness?.slug || null,
+        current_selected_business_name: currentBusiness?.name || null,
         first_access: user.first_access,
         has_push_token: user?.push_token !== null,
         current_selected_business_cover_image: this.fs.getPublicUrl({
@@ -116,7 +113,9 @@ export class LoginUseCase {
         id: user.id,
         name: user.name,
         email: user?.email,
-        document_number: formatCpf(user.document_number),
+        document_number: user.document_number
+          ? formatCpf(user.document_number)
+          : null,
         profile_image: this.fs.getPublicUrl({
           key: professionalProfile?.profile_image,
         }),
