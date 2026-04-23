@@ -81,6 +81,21 @@ export class GetAvailableTimesUseCase {
     });
     if (!business) throw new Error('Negócio não encontrado');
 
+    const professional = await this.prismaService.professionalProfile.findFirst({
+      where: {
+        id: professional_id,
+        business_id: business.id,
+        status: 'ACTIVE',
+      },
+      select: { id: true },
+    });
+
+    if (!professional) {
+      throw new BadRequestException(
+        'Profissional não encontrado para o negócio selecionado.',
+      );
+    }
+
     const [serviceDuration, professionalExecutes] = hasServiceId
       ? await Promise.all([
           this.prismaService.service.findFirst({
@@ -195,8 +210,8 @@ export class GetAvailableTimesUseCase {
         format(nowLocal, 'yyyy-MM-dd', { in: IN_TZ });
 
       // Janela local do dia → UTC (para buscar no banco)
-      const dayStartLocal = startOfDay(currentDateLocal) as TZDate;
-      const dayEndLocal = endOfDay(currentDateLocal) as TZDate;
+      const dayStartLocal = startOfDay(currentDateLocal, { in: IN_TZ }) as TZDate;
+      const dayEndLocal = endOfDay(currentDateLocal, { in: IN_TZ }) as TZDate;
       const dayStartUtc: Date = new Date(dayStartLocal);
       const dayEndUtc: Date = new Date(dayEndLocal);
 
@@ -221,9 +236,10 @@ export class GetAvailableTimesUseCase {
       // Bloqueios de horários que INTERSECTAM o dia (em UTC)
       const blocks = await this.prismaService.professionalTimesBlock.findMany({
         where: {
+          businessId: business.id,
           professionalProfileId: professional_id,
-          start_at_utc: { lt: dayEndUtc },
-          end_at_utc: { gt: dayStartUtc },
+          start_at_utc: { not: null, lt: dayEndUtc },
+          end_at_utc: { not: null, gt: dayStartUtc },
         },
         select: {
           start_at_utc: true,
@@ -250,13 +266,23 @@ export class GetAvailableTimesUseCase {
           return { start: startLocal, end: endLocal };
         }),
         // blocks
-        ...blocks.map((b) => {
-          const z = b.timezone || BUSINESS_TZ_ID;
-          return {
-            start: new TZDate(b.start_at_utc, z),
-            end: new TZDate(b.end_at_utc, z),
-          };
-        }),
+        ...blocks
+          .filter(
+            (
+              b,
+            ): b is {
+              start_at_utc: Date;
+              end_at_utc: Date;
+              timezone: string;
+            } => Boolean(b.start_at_utc && b.end_at_utc),
+          )
+          .map((b) => {
+            const z = b.timezone || BUSINESS_TZ_ID;
+            return {
+              start: new TZDate(b.start_at_utc, z),
+              end: new TZDate(b.end_at_utc, z),
+            };
+          }),
       ];
 
       // Gera slots usando janelas livres reais, no passo da duração selecionada

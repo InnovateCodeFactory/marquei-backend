@@ -1,5 +1,6 @@
 import { PrismaService } from '@app/shared';
 import { AppointmentStatusEnum } from '@app/shared/enum';
+import { parseYmdToTZDate } from '@app/shared/utils';
 import { TZDate, tz } from '@date-fns/tz';
 import {
   BadRequestException,
@@ -81,25 +82,13 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
       );
     }
 
-    // --- valida 'day' (yyyy-MM-dd) e cria um TZDate no fuso do negócio ---
-    // Não usamos parse() aqui pra evitar ambiguidade de fuso; fazemos split manual.
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
-    if (!m) {
-      throw new BadRequestException(
-        'Parâmetro "day" inválido. Use yyyy-MM-dd.',
-      );
-    }
-    const [_, y, mo, d] = m;
-    const year = Number(y);
-    const monthIndex = Number(mo) - 1; // 0-11
-    const dayNum = Number(d);
-
-    const selectedDateLocal = new TZDate(
-      year,
-      monthIndex,
-      dayNum,
-      BUSINESS_TZ_ID,
-    );
+    const selectedDateLocal = parseYmdToTZDate({
+      ymd: day,
+      tzId: BUSINESS_TZ_ID,
+    });
+    const year = selectedDateLocal.getFullYear();
+    const monthIndex = selectedDateLocal.getMonth();
+    const dayNum = selectedDateLocal.getDate();
 
     // --- carrega dados em paralelo ---
     const [business, professional, service, combo, professionalHasService, professionalHasCombo] =
@@ -262,9 +251,10 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
     // --- também busca bloqueios que INTERSECTAM o dia ---
     const blocks = await this.prisma.professionalTimesBlock.findMany({
       where: {
+        businessId: business.id,
         professionalProfileId: professional_id,
-        start_at_utc: { lt: dayEndUtc },
-        end_at_utc: { gt: dayStartUtc },
+        start_at_utc: { not: null, lt: dayEndUtc },
+        end_at_utc: { not: null, gt: dayStartUtc },
       },
       select: { start_at_utc: true, end_at_utc: true, timezone: true },
       orderBy: { start_at_utc: 'asc' },
@@ -287,13 +277,23 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
         return { start: startLocal, end: endLocal };
       }),
       // Blocks
-      ...blocks.map((b) => {
-        const zone = b.timezone || BUSINESS_TZ_ID;
-        return {
-          start: new TZDate(b.start_at_utc, zone),
-          end: new TZDate(b.end_at_utc, zone),
-        };
-      }),
+      ...blocks
+        .filter(
+          (
+            b,
+          ): b is {
+            start_at_utc: Date;
+            end_at_utc: Date;
+            timezone: string;
+          } => Boolean(b.start_at_utc && b.end_at_utc),
+        )
+        .map((b) => {
+          const zone = b.timezone || BUSINESS_TZ_ID;
+          return {
+            start: new TZDate(b.start_at_utc, zone),
+            end: new TZDate(b.end_at_utc, zone),
+          };
+        }),
     ];
 
     // --- gera slots nas janelas livres, no passo da duração do atendimento ---

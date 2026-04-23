@@ -4,7 +4,9 @@ import { JwtService } from '@nestjs/jwt';
 import { CheckActiveSubscriptionUseCase } from '../plans/use-cases/check-active-subscription.use-case';
 import { AuthController } from './auth.controller';
 import {
+  ConsumeWebSsoLinkUseCase,
   CreateAccountUseCase,
+  CreateWebSsoLinkUseCase,
   FirstAccessUseCase,
   LoginUseCase,
   LogoutUseCase,
@@ -26,6 +28,8 @@ import {
     LoginUseCase,
     FirstAccessUseCase,
     CreateAccountUseCase,
+    CreateWebSsoLinkUseCase,
+    ConsumeWebSsoLinkUseCase,
     RegisterPushTokenUseCase,
     RefreshTokenUseCase,
     LogoutUseCase,

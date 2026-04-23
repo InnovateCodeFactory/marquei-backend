@@ -146,6 +146,22 @@ export class RescheduleCustomerAppointmentUseCase {
       );
     }
 
+    const overlappingBlock = await this.prisma.professionalTimesBlock.findFirst({
+      where: {
+        professionalProfileId: newProfessionalId,
+        businessId: effectiveProfessional.business_id,
+        start_at_utc: { lt: endUtc },
+        end_at_utc: { gt: startUtc },
+      },
+      select: { id: true },
+    });
+
+    if (overlappingBlock) {
+      throw new BadRequestException(
+        'Este horário está bloqueado na agenda do profissional.',
+      );
+    }
+
     // 4) atualiza o agendamento
     const reminderSettings =
       await this.prisma.businessReminderSettings.findFirst({

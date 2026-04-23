@@ -1,5 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsISO8601, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+} from 'class-validator';
 
 export class GetAvailableTimesDto {
   @IsString()
@@ -26,12 +31,12 @@ export class GetAvailableTimesDto {
   })
   professional_id: string;
 
-  @IsISO8601()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
   @IsNotEmpty()
   @ApiProperty({
     description:
-      'The start date to check for available times, in ISO 8601 format.',
-    example: '2023-10-01T00:00:00Z',
+      'The start date to check for available times, in yyyy-MM-dd format.',
+    example: '2026-04-23',
     type: String,
   })
   start_date: string;

@@ -86,6 +86,9 @@ export class AppointmentsController {
   }
 
   @Get('get-available-times')
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   @ApiOperation({
     summary: 'Retrieve available appointment times for a service',
     description:

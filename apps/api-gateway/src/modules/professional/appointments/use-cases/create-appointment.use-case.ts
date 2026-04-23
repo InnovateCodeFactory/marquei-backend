@@ -270,6 +270,22 @@ export class CreateAppointmentUseCase {
       );
     }
 
+    const overlappingBlock = await this.prisma.professionalTimesBlock.findFirst({
+      where: {
+        professionalProfileId: professional_id,
+        businessId: professional.business_id,
+        start_at_utc: { lt: endUtc },
+        end_at_utc: { gt: startUtc },
+      },
+      select: { id: true },
+    });
+
+    if (overlappingBlock) {
+      throw new BadRequestException(
+        'Este horário está bloqueado na agenda do profissional.',
+      );
+    }
+
     // 4) Buscar configurações de lembretes do negócio e preparar jobs
     const reminderJobSettings =
       await this.prisma.businessReminderSettings.findFirst({

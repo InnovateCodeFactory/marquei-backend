@@ -1,4 +1,6 @@
 export * from './create-account.use-case';
+export * from './create-web-sso-link.use-case';
+export * from './consume-web-sso-link.use-case';
 export * from './first-access.use-case';
 export * from './login.use-case';
 export * from './logout.use-case';
