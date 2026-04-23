@@ -16,7 +16,10 @@ export class ListBlockedTimesUseCase {
     }
 
     const items = await this.prisma.professionalTimesBlock.findMany({
-      where: { businessId: user.current_selected_business_id },
+      where: {
+        businessId: user.current_selected_business_id,
+        professionalProfileId: user.professional_profile_id,
+      },
       orderBy: { start_at_utc: 'asc' },
       select: {
         id: true,

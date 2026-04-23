@@ -55,12 +55,13 @@ export class GetAppointmentsUseCase {
 
     const { startDate, endDate } = this.parseDateRange(query);
 
-    const businessProfessionals = await this.prisma.professionalProfile.findMany({
-      where: {
-        business_id: currentUser.current_selected_business_id,
-      },
-      select: { id: true },
-    });
+    const businessProfessionals =
+      await this.prisma.professionalProfile.findMany({
+        where: {
+          business_id: currentUser.current_selected_business_id,
+        },
+        select: { id: true },
+      });
 
     const businessProfessionalIds = businessProfessionals.map(
       (professional) => professional.id,
