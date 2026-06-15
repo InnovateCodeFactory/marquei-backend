@@ -5,6 +5,8 @@ import { BusinessCategoryModule } from './business-category/business-category.mo
 import { BusinessServiceTypeModule } from './business-service-type/business-service-type.module';
 import { BusinessModule } from './business/business.module';
 import { CustomersModule } from './customers/customers.module';
+import { CustomerPlanSubscriptionsModule } from './customer-plan-subscriptions/customer-plan-subscriptions.module';
+import { CustomerServicePlansModule } from './customer-service-plans/customer-service-plans.module';
 import { InAppNotificationsModule } from './in-app-notifications/in-app-notifications.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { PlansModule } from './plans/plans.module';
@@ -25,6 +27,8 @@ import { ServiceCombosModule } from './service-combos/service-combos.module';
     BusinessCategoryModule,
     BusinessModule,
     CustomersModule,
+    CustomerServicePlansModule,
+    CustomerPlanSubscriptionsModule,
     ServicesModule,
     PlansModule,
     AppointmentsModule,

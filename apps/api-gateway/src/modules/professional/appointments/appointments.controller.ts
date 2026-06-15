@@ -27,6 +27,7 @@ import { BlockTimesDto } from './dto/requests/block-times.dto';
 import { CancelAppointmentDto } from './dto/requests/cancel-appointment.dto';
 import { ProfessionalConfirmAppointmentDto } from './dto/requests/confirm-appointment.dto';
 import { CreateAppointmentDto } from './dto/requests/create-appointment.dto';
+import { CreateRecurringAppointmentDto } from './dto/requests/create-recurring-appointment.dto';
 import { GetAvailableTimesDto } from './dto/requests/get-available-times.dto';
 import { GetAppointmentsDto } from './dto/requests/get-appointments.dto';
 import { RequestAppointmentConfirmationDto } from './dto/requests/request-appointment-confirmation.dto';
@@ -34,6 +35,7 @@ import { RescheduleAppointmentDto } from './dto/requests/reschedule-appointment.
 import {
   ConfirmAppointmentUseCase,
   CreateAppointmentUseCase,
+  CreateRecurringAppointmentUseCase,
   GetAppointmentsUseCase,
   GetAvailableTimesUseCase,
   RequestAppointmentConfirmationUseCase,
@@ -52,6 +54,7 @@ export class AppointmentsController {
     private readonly confirmAppointmentUseCase: ConfirmAppointmentUseCase,
     private readonly getAvailableTimesUseCase: GetAvailableTimesUseCase,
     private readonly createAppointmentUseCase: CreateAppointmentUseCase,
+    private readonly createRecurringAppointmentUseCase: CreateRecurringAppointmentUseCase,
     private readonly getAppointmentsUseCase: GetAppointmentsUseCase,
     private readonly requestAppointmentConfirmationUseCase: RequestAppointmentConfirmationUseCase,
     private readonly cancelAppointmentUseCase: CancelAppointmentUseCase,
@@ -119,6 +122,24 @@ export class AppointmentsController {
     return await this.responseHandler.handle({
       method: () => this.createAppointmentUseCase.execute(body, req),
       res,
+    });
+  }
+
+  @Post('create-recurring-appointment')
+  @ApiOperation({
+    summary: 'Create a recurring appointment series',
+    description:
+      'Creates a recurrence series and materializes the next appointments, reserving plan credits when a subscription is provided.',
+  })
+  async createRecurringAppointment(
+    @Res() res: Response,
+    @Req() req: AppRequest,
+    @Body() body: CreateRecurringAppointmentDto,
+  ) {
+    return await this.responseHandler.handle({
+      method: () => this.createRecurringAppointmentUseCase.execute(body, req),
+      res,
+      successStatus: 201,
     });
   }
 

@@ -9,7 +9,10 @@ import {
   RABBIT_EXCHANGE,
   RmqService,
 } from '@app/shared/modules/rmq/rmq.service';
-import { AppointmentEventsStreamService } from '@app/shared/services';
+import {
+  AppointmentEventsStreamService,
+  CustomerPlanCreditService,
+} from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import { getTwoNames } from '@app/shared/utils';
 import { NotificationMessageBuilder } from '@app/shared/utils/notification-message-builder';
@@ -35,11 +38,18 @@ export class CreateAppointmentUseCase {
     private readonly rmqService: RmqService,
     private readonly googleCalendarService: GoogleCalendarService,
     private readonly appointmentEventsStreamService: AppointmentEventsStreamService,
+    private readonly customerPlanCreditService: CustomerPlanCreditService,
   ) {}
 
   async execute(payload: CreateCustomerAppointmentDto, request: AppRequest) {
-    const { appointment_date, professional_id, service_id, combo_id, notes } =
-      payload;
+    const {
+      appointment_date,
+      professional_id,
+      service_id,
+      combo_id,
+      notes,
+      plan_subscription_id,
+    } = payload;
 
     const hasServiceId = Boolean(service_id?.trim());
     const hasComboId = Boolean(combo_id?.trim());
@@ -291,38 +301,66 @@ export class CreateAppointmentUseCase {
       }
     }
 
-    // 4) Cria o agendamento no novo formato (sempre UTC no banco)
-    const appointment = await this.prismaService.appointment.create({
-      data: {
-        start_at_utc: startUtc,
-        end_at_utc: endUtc,
-        duration_minutes: targetDuration,
-        timezone: BUSINESS_TZ_ID,
+    // 4) Cria o agendamento e reserva crédito do plano na mesma transação.
+    const appointment = await this.prismaService.$transaction(async (tx) => {
+      const preparedPlan = plan_subscription_id
+        ? await this.customerPlanCreditService.prepareReservation({
+            tx,
+            subscriptionId: plan_subscription_id,
+            businessId: professional.business_id,
+            personId: request.user.personId,
+            serviceId: targetServiceId,
+            comboId: targetComboId,
+            appointmentStartUtc: startUtc,
+          })
+        : null;
 
-        professional: { connect: { id: professional_id } },
-        status: 'PENDING',
-        service: { connect: { id: targetServiceId } },
-        ...(targetComboId
-          ? {
-              serviceCombo: { connect: { id: targetComboId } },
-              combo_snapshot: comboSnapshot,
-            }
-          : {}),
-        notes: notes || null,
-        customerPerson: { connect: { id: request.user.personId } },
-        start_offset_minutes: startLocal.getTimezoneOffset(),
-        ...(reminderJobs?.length > 0 && {
-          ReminderJob: {
-            createMany: {
-              skipDuplicates: true,
-              data: reminderJobs,
+      const created = await tx.appointment.create({
+        data: {
+          start_at_utc: startUtc,
+          end_at_utc: endUtc,
+          duration_minutes: targetDuration,
+          timezone: BUSINESS_TZ_ID,
+
+          professional: { connect: { id: professional_id } },
+          status: 'PENDING',
+          service: { connect: { id: targetServiceId } },
+          ...(targetComboId
+            ? {
+                serviceCombo: { connect: { id: targetComboId } },
+                combo_snapshot: comboSnapshot,
+              }
+            : {}),
+          notes: notes || null,
+          customerPerson: { connect: { id: request.user.personId } },
+          start_offset_minutes: startLocal.getTimezoneOffset(),
+          ...(reminderJobs?.length > 0 && {
+            ReminderJob: {
+              createMany: {
+                skipDuplicates: true,
+                data: reminderJobs,
+              },
             },
+          }),
+        },
+        select: { id: true },
+      });
+
+      if (preparedPlan) {
+        await this.customerPlanCreditService.reservePreparedCredit({
+          tx,
+          appointmentId: created.id,
+          subscriptionId: preparedPlan.subscription.id,
+          cycleId: preparedPlan.cycle.id,
+          metadata: {
+            origin: 'CLIENT_APP',
+            service_id: targetServiceId,
+            combo_id: targetComboId,
           },
-        }),
-      },
-      select: {
-        id: true,
-      },
+        });
+      }
+
+      return created;
     });
 
     this.appointmentEventsStreamService.publishAppointmentCreated({

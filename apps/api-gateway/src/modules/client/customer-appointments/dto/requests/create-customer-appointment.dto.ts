@@ -36,6 +36,14 @@ export class CreateCustomerAppointmentDto {
 
   @IsString()
   @IsOptional()
+  @ApiPropertyOptional({
+    description: 'ID da assinatura de plano do cliente usada no agendamento',
+    example: 'customer-plan-subscription-id-123',
+  })
+  plan_subscription_id?: string;
+
+  @IsString()
+  @IsOptional()
   @ApiProperty({
     description: 'Any additional notes for the appointment',
     example: 'Please arrive 10 minutes early.',

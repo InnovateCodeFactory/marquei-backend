@@ -51,6 +51,14 @@ export class GetNextAppointmentUseCase {
             final_price_in_cents: true,
           },
         },
+        planRedemption: {
+          select: {
+            status: true,
+            subscription: {
+              select: { plan: { select: { id: true, name: true } } },
+            },
+          },
+        },
       },
     });
 
@@ -82,6 +90,13 @@ export class GetNextAppointmentUseCase {
               nextAppointment.service.price_in_cents,
           ).toCurrency(),
         },
+        plan: nextAppointment.planRedemption
+          ? {
+              status: nextAppointment.planRedemption.status,
+              id: nextAppointment.planRedemption.subscription.plan.id,
+              name: nextAppointment.planRedemption.subscription.plan.name,
+            }
+          : null,
         date: {
           day: format(nextAppointment.start_at_utc, 'dd', {
             locale: ptBR,

@@ -1,4 +1,6 @@
 export * from './appointment-events-stream.service';
+export * from './customer-plan-credit.service';
+export * from './recurring-appointments.service';
 export * from './encryption.service';
 export * from './file-system.service';
 export * from './hashing.service';

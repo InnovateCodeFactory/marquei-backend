@@ -9,9 +9,11 @@ import { RedisModule } from './modules/redis/redis.module';
 import { RmqModule } from './modules/rmq/rmq.module';
 import {
   AppointmentEventsStreamService,
+  CustomerPlanCreditService,
   EncryptionService,
   FileSystemService,
   HashingService,
+  RecurringAppointmentsService,
   ResponseHandlerService,
   TokenService,
   TypedConfigService,
@@ -49,6 +51,8 @@ import {
     TokenService,
     EncryptionService,
     AppointmentEventsStreamService,
+    CustomerPlanCreditService,
+    RecurringAppointmentsService,
   ],
   exports: [
     ConfigModule,
@@ -63,6 +67,8 @@ import {
     TokenService,
     EncryptionService,
     AppointmentEventsStreamService,
+    CustomerPlanCreditService,
+    RecurringAppointmentsService,
     ScheduleModule,
     GoogleCalendarModule,
   ],

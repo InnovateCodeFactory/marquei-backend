@@ -4,7 +4,10 @@ import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifica
 import { GoogleCalendarService } from '@app/shared/modules/google-calendar/google-calendar.service';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
-import { AppointmentEventsStreamService } from '@app/shared/services';
+import {
+  AppointmentEventsStreamService,
+  CustomerPlanCreditService,
+} from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import {
   formatDurationToHoursAndMinutes,
@@ -32,6 +35,7 @@ export class CancelAppointmentUseCase {
     private readonly rmqService: RmqService,
     private readonly googleCalendarService: GoogleCalendarService,
     private readonly appointmentEventsStreamService: AppointmentEventsStreamService,
+    private readonly customerPlanCreditService: CustomerPlanCreditService,
   ) {}
 
   async execute(body: CancelAppointmentDto, req: AppRequest) {
@@ -91,9 +95,9 @@ export class CancelAppointmentUseCase {
       throw new BadRequestException('Agendamento já está cancelado');
     }
 
-    // Transação: grava evento e atualiza status
-    await this.prisma.$transaction([
-      this.prisma.appointmentEvent.create({
+    // Transação: grava evento, atualiza status e restaura crédito reservado.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.appointmentEvent.create({
         data: {
           appointmentId: appointment.id,
           by_professional: true,
@@ -103,12 +107,12 @@ export class CancelAppointmentUseCase {
           ip: getClientIp(req),
           user_agent: headers['user-agent'],
         },
-      }),
-      this.prisma.appointment.update({
+      });
+      await tx.appointment.update({
         where: { id: appointment.id },
         data: { status: 'CANCELED' },
-      }),
-      this.prisma.reminderJob.updateMany({
+      });
+      await tx.reminderJob.updateMany({
         where: {
           appointmentId: appointment.id,
           status: { in: ['PENDING', 'SCHEDULED'] },
@@ -117,8 +121,12 @@ export class CancelAppointmentUseCase {
           status: 'CANCELED',
           error: 'appointment_canceled',
         },
-      }),
-    ]);
+      });
+      await this.customerPlanCreditService.refundReservedCredit(
+        tx,
+        appointment.id,
+      );
+    });
 
     this.appointmentEventsStreamService.publishAppointmentEvent({
       event_type: 'appointment-cancelled',
