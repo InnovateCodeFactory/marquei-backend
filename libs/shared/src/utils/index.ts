@@ -201,6 +201,7 @@ export function getTwoNames(name: string): string {
 export * from './prohibited-terms';
 export * from './validate-opening-hours';
 export * from './business-notification-templates';
+export * from './customer-plan-summary';
 
 export function codeGenerator({
   length,

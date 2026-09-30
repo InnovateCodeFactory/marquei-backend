@@ -1,4 +1,5 @@
 import { PrismaService } from '@app/shared';
+import { WaitlistHoldService } from '@app/shared/services';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { parseYmdToTZDate } from '@app/shared/utils';
 import { TZDate, tz } from '@date-fns/tz';
@@ -21,12 +22,22 @@ type OpeningHours = {
   times?: { startTime: string; endTime: string }[]; // 'HH:mm'
 }[];
 
+/**
+ * CLOSED: negócio fechado no dia (ou dia já encerrado/passado).
+ * FULL: dia aberto, todos os horários ocupados.
+ * AVAILABLE: há horário livre.
+ */
+export type AvailabilityStatus = 'CLOSED' | 'FULL' | 'AVAILABLE';
+
 const BUSINESS_TZ_ID = 'America/Sao_Paulo';
 const IN_TZ = tz(BUSINESS_TZ_ID);
 
 @Injectable()
 export class GetAvailableTimesUseCase {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly waitlistHoldService: WaitlistHoldService,
+  ) {}
 
   private appendSlotsFromFreeWindow(params: {
     freeStart: TZDate;
@@ -81,14 +92,16 @@ export class GetAvailableTimesUseCase {
     });
     if (!business) throw new Error('Negócio não encontrado');
 
-    const professional = await this.prismaService.professionalProfile.findFirst({
-      where: {
-        id: professional_id,
-        business_id: business.id,
-        status: 'ACTIVE',
+    const professional = await this.prismaService.professionalProfile.findFirst(
+      {
+        where: {
+          id: professional_id,
+          business_id: business.id,
+          status: 'ACTIVE',
+        },
+        select: { id: true },
       },
-      select: { id: true },
-    });
+    );
 
     if (!professional) {
       throw new BadRequestException(
@@ -164,9 +177,7 @@ export class GetAvailableTimesUseCase {
     if (!hasServiceId) {
       const activeServicesCount = (
         serviceDuration as { items: { service: { is_active: boolean } }[] }
-      ).items.filter(
-        (item) => item.service?.is_active,
-      ).length;
+      ).items.filter((item) => item.service?.is_active).length;
       if (activeServicesCount < 2) {
         throw new BadRequestException(
           'Combo indisponível para agendamento no momento.',
@@ -185,7 +196,11 @@ export class GetAvailableTimesUseCase {
       tzId: BUSINESS_TZ_ID,
     });
 
-    const days: { date: string; availableSlots: string[] }[] = [];
+    const days: {
+      date: string;
+      status: AvailabilityStatus;
+      availableSlots: string[];
+    }[] = [];
 
     for (let i = 0; i < 3; i++) {
       // Dia local corrente (TZDate)
@@ -199,7 +214,7 @@ export class GetAvailableTimesUseCase {
       const dayConfig = openingHours.find((d) => d.day === weekday);
 
       if (!dayConfig || dayConfig.closed || !dayConfig.times?.length) {
-        days.push({ date: dateStr, availableSlots: [] });
+        days.push({ date: dateStr, status: 'CLOSED', availableSlots: [] });
         continue;
       }
 
@@ -210,7 +225,9 @@ export class GetAvailableTimesUseCase {
         format(nowLocal, 'yyyy-MM-dd', { in: IN_TZ });
 
       // Janela local do dia → UTC (para buscar no banco)
-      const dayStartLocal = startOfDay(currentDateLocal, { in: IN_TZ }) as TZDate;
+      const dayStartLocal = startOfDay(currentDateLocal, {
+        in: IN_TZ,
+      }) as TZDate;
       const dayEndLocal = endOfDay(currentDateLocal, { in: IN_TZ }) as TZDate;
       const dayStartUtc: Date = new Date(dayStartLocal);
       const dayEndUtc: Date = new Date(dayEndLocal);
@@ -249,8 +266,20 @@ export class GetAvailableTimesUseCase {
         orderBy: { start_at_utc: 'asc' },
       });
 
+      // Ofertas ativas da lista de espera seguram o horário
+      const holds = await this.waitlistHoldService.listHolds({
+        professionalProfileId: professional_id,
+        fromUtc: dayStartUtc,
+        toUtc: dayEndUtc,
+      });
+
       // Ranges ocupados em horário LOCAL (usar TZ do registro se existir)
       const busyRangesLocal = [
+        // vagas seguradas por oferta da lista de espera
+        ...holds.map((hold) => ({
+          start: new TZDate(hold.slot_start_at_utc, BUSINESS_TZ_ID),
+          end: new TZDate(hold.slot_end_at_utc, BUSINESS_TZ_ID),
+        })),
         // appointments
         ...appointments.map((appt) => {
           const apptZone = appt.timezone || BUSINESS_TZ_ID;
@@ -285,91 +314,131 @@ export class GetAvailableTimesUseCase {
           }),
       ];
 
-      // Gera slots usando janelas livres reais, no passo da duração selecionada
-      const slots = new Set<string>();
+      const slotParams = {
+        times: dayConfig.times,
+        currentDateLocal,
+        selectedDuration,
+        isTodayLocal,
+        nowLocal,
+      };
+      const availableSlots = this.buildSlots({
+        ...slotParams,
+        busyRangesLocal,
+      });
 
-      for (const t of dayConfig.times) {
-        const [sh, sm] = t.startTime.split(':').map(Number);
-        const [eh, em] = t.endTime.split(':').map(Number);
+      let status: AvailabilityStatus = 'AVAILABLE';
+      if (!availableSlots.length) {
+        const isPastDay =
+          dateStr < format(nowLocal, 'yyyy-MM-dd', { in: IN_TZ });
+        const potentialSlots = isPastDay
+          ? []
+          : this.buildSlots({ ...slotParams, busyRangesLocal: [] });
+        status = potentialSlots.length ? 'FULL' : 'CLOSED';
+      }
 
-        const openingStartLocal = new TZDate(
-          currentDateLocal.getFullYear(),
-          currentDateLocal.getMonth(),
-          currentDateLocal.getDate(),
-          sh,
-          sm ?? 0,
-          0,
-          BUSINESS_TZ_ID,
-        );
-        const openingEndLocal = new TZDate(
-          currentDateLocal.getFullYear(),
-          currentDateLocal.getMonth(),
-          currentDateLocal.getDate(),
-          eh,
-          em ?? 0,
-          0,
-          BUSINESS_TZ_ID,
-        );
+      days.push({ date: dateStr, status, availableSlots });
+    }
 
-        if (
-          !isBefore(openingStartLocal, openingEndLocal) &&
-          !isEqual(openingStartLocal, openingEndLocal)
-        ) {
-          continue;
-        }
+    return { days };
+  }
 
-        const overlappingBusy = busyRangesLocal
-          .filter((busy) =>
-            areIntervalsOverlapping(
-              { start: openingStartLocal, end: openingEndLocal },
-              { start: busy.start, end: busy.end },
-              { inclusive: false },
-            ),
-          )
-          .sort((a, b) => a.start.getTime() - b.start.getTime());
+  private buildSlots(params: {
+    times: { startTime: string; endTime: string }[];
+    currentDateLocal: TZDate;
+    selectedDuration: number;
+    isTodayLocal: boolean;
+    nowLocal: TZDate;
+    busyRangesLocal: { start: TZDate; end: TZDate }[];
+  }) {
+    const {
+      times,
+      currentDateLocal,
+      selectedDuration,
+      isTodayLocal,
+      nowLocal,
+      busyRangesLocal,
+    } = params;
 
-        let cursor = openingStartLocal;
-        for (const busy of overlappingBusy) {
-          const busyStart = isBefore(busy.start, openingStartLocal)
-            ? openingStartLocal
-            : busy.start;
-          const busyEnd = isBefore(openingEndLocal, busy.end)
-            ? openingEndLocal
-            : busy.end;
+    // Gera slots usando janelas livres reais, no passo da duração selecionada
+    const slots = new Set<string>();
 
-          if (isBefore(cursor, busyStart)) {
-            this.appendSlotsFromFreeWindow({
-              freeStart: cursor,
-              freeEnd: busyStart,
-              selectedDuration,
-              isTodayLocal,
-              nowLocal,
-              slots,
-            });
-          }
+    for (const t of times) {
+      const [sh, sm] = t.startTime.split(':').map(Number);
+      const [eh, em] = t.endTime.split(':').map(Number);
 
-          if (isBefore(cursor, busyEnd)) {
-            cursor = busyEnd as TZDate;
-          }
-        }
+      const openingStartLocal = new TZDate(
+        currentDateLocal.getFullYear(),
+        currentDateLocal.getMonth(),
+        currentDateLocal.getDate(),
+        sh,
+        sm ?? 0,
+        0,
+        BUSINESS_TZ_ID,
+      );
+      const openingEndLocal = new TZDate(
+        currentDateLocal.getFullYear(),
+        currentDateLocal.getMonth(),
+        currentDateLocal.getDate(),
+        eh,
+        em ?? 0,
+        0,
+        BUSINESS_TZ_ID,
+      );
 
-        if (isBefore(cursor, openingEndLocal)) {
+      if (
+        !isBefore(openingStartLocal, openingEndLocal) &&
+        !isEqual(openingStartLocal, openingEndLocal)
+      ) {
+        continue;
+      }
+
+      const overlappingBusy = busyRangesLocal
+        .filter((busy) =>
+          areIntervalsOverlapping(
+            { start: openingStartLocal, end: openingEndLocal },
+            { start: busy.start, end: busy.end },
+            { inclusive: false },
+          ),
+        )
+        .sort((a, b) => a.start.getTime() - b.start.getTime());
+
+      let cursor = openingStartLocal;
+      for (const busy of overlappingBusy) {
+        const busyStart = isBefore(busy.start, openingStartLocal)
+          ? openingStartLocal
+          : busy.start;
+        const busyEnd = isBefore(openingEndLocal, busy.end)
+          ? openingEndLocal
+          : busy.end;
+
+        if (isBefore(cursor, busyStart)) {
           this.appendSlotsFromFreeWindow({
             freeStart: cursor,
-            freeEnd: openingEndLocal,
+            freeEnd: busyStart,
             selectedDuration,
             isTodayLocal,
             nowLocal,
             slots,
           });
         }
+
+        if (isBefore(cursor, busyEnd)) {
+          cursor = busyEnd as TZDate;
+        }
       }
 
-      const availableSlots = Array.from(slots).sort();
-
-      days.push({ date: dateStr, availableSlots });
+      if (isBefore(cursor, openingEndLocal)) {
+        this.appendSlotsFromFreeWindow({
+          freeStart: cursor,
+          freeEnd: openingEndLocal,
+          selectedDuration,
+          isTodayLocal,
+          nowLocal,
+          slots,
+        });
+      }
     }
 
-    return { days };
+    return Array.from(slots).sort();
   }
 }

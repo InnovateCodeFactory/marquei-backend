@@ -2,6 +2,7 @@ import { EnvSchemaType } from '@app/shared/environment';
 import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { RABBIT_DLX_EXCHANGE, SCHEDULER_QUEUES } from './constants';
 import { RmqService } from './rmq.service';
 
 @Global()
@@ -20,6 +21,14 @@ import { RmqService } from './rmq.service';
             {
               name: 'amqp.direct',
               type: 'topic',
+            },
+            { name: RABBIT_DLX_EXCHANGE, type: 'topic' },
+          ],
+          queues: [
+            {
+              name: SCHEDULER_QUEUES.WAITLIST.SLOT_FREED_DLQ,
+              exchange: RABBIT_DLX_EXCHANGE,
+              routingKey: SCHEDULER_QUEUES.WAITLIST.SLOT_FREED_DLQ,
             },
           ],
           uri: `amqp://${rabbitmqUser}:${rabbitmqPass}@${rabbitmqHost}:${rabbitmqPort}`,

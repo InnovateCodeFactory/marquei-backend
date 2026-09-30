@@ -8,6 +8,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
 import { ProfileModule } from './profile/profile.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { InAppNotificationsModule } from './in-app-notifications/in-app-notifications.module';
+import { WaitlistModule } from './waitlist/waitlist.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { InAppNotificationsModule } from './in-app-notifications/in-app-notifica
     OnboardingModule,
     FavoritesModule,
     InAppNotificationsModule,
+    WaitlistModule,
   ],
 })
 export class ClientModule {}

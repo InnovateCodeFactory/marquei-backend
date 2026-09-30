@@ -4,7 +4,9 @@ import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifica
 import { GoogleCalendarService } from '@app/shared/modules/google-calendar/google-calendar.service';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
-import { AppointmentEventsStreamService } from '@app/shared/services';
+import { AppointmentEventsStreamService,
+  WaitlistHoldService,
+} from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import { getTwoNames } from '@app/shared/utils';
 import { TZDate, tz } from '@date-fns/tz';
@@ -31,6 +33,7 @@ export class RescheduleCustomerAppointmentUseCase {
     private readonly rmqService: RmqService,
     private readonly googleCalendarService: GoogleCalendarService,
     private readonly appointmentEventsStreamService: AppointmentEventsStreamService,
+    private readonly waitlistHoldService: WaitlistHoldService,
   ) {}
 
   async execute(dto: RescheduleCustomerAppointmentDto, req: AppRequest) {
@@ -159,6 +162,18 @@ export class RescheduleCustomerAppointmentUseCase {
     if (overlappingBlock) {
       throw new BadRequestException(
         'Este horário está bloqueado na agenda do profissional.',
+      );
+    }
+
+    const waitlistHold = await this.waitlistHoldService.findBlockingHold({
+      professionalProfileId: newProfessionalId,
+      startUtc: startUtc,
+      endUtc: endUtc,
+    });
+
+    if (waitlistHold) {
+      throw new BadRequestException(
+        'Este horário está reservado para a lista de espera. Tente outro horário.',
       );
     }
 

@@ -7,6 +7,7 @@ import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import {
   AppointmentEventsStreamService,
   CustomerPlanCreditService,
+  WaitlistEventsService,
 } from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import {
@@ -36,6 +37,7 @@ export class CancelAppointmentUseCase {
     private readonly googleCalendarService: GoogleCalendarService,
     private readonly appointmentEventsStreamService: AppointmentEventsStreamService,
     private readonly customerPlanCreditService: CustomerPlanCreditService,
+    private readonly waitlistEventsService: WaitlistEventsService,
   ) {}
 
   async execute(body: CancelAppointmentDto, req: AppRequest) {
@@ -49,6 +51,8 @@ export class CancelAppointmentUseCase {
         status: true,
         // UTC + contexto do agendamento
         start_at_utc: true,
+        end_at_utc: true,
+        personId: true,
         timezone: true,
         duration_minutes: true,
         google_calendar_event_id: true,
@@ -127,6 +131,21 @@ export class CancelAppointmentUseCase {
         appointment.id,
       );
     });
+
+    // Horário liberado: oferece a vaga para a lista de espera (assíncrono, não bloqueia o cancelamento).
+    if (
+      ['PENDING', 'CONFIRMED'].includes(appointment.status) &&
+      appointment.start_at_utc.getTime() > Date.now()
+    ) {
+      await this.waitlistEventsService.publishSlotFreed({
+        businessId: appointment.professional.business_id,
+        professionalProfileId: appointment.professional.id,
+        slotStartUtc: appointment.start_at_utc,
+        slotEndUtc: appointment.end_at_utc,
+        excludedPersonId: appointment.personId,
+        reason: 'APPOINTMENT_CANCELED',
+      });
+    }
 
     this.appointmentEventsStreamService.publishAppointmentEvent({
       event_type: 'appointment-cancelled',

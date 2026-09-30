@@ -1,4 +1,6 @@
 import { PrismaService } from '@app/shared';
+import { CustomerPlanSummaryService } from '@app/shared/services';
+import { CustomerPlanSummary, getAvailableCredits } from '@app/shared/utils';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { Price } from '@app/shared/value-objects';
 import {
@@ -16,7 +18,10 @@ import {
 
 @Injectable()
 export class CreateCustomerPlanSubscriptionUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly summaryService: CustomerPlanSummaryService,
+  ) {}
 
   async execute(dto: CreateCustomerPlanSubscriptionDto, user: CurrentUser) {
     const businessId = getBusinessId(user);
@@ -99,34 +104,48 @@ export class CreateCustomerPlanSubscriptionUseCase {
       return created;
     });
 
-    return presentSubscription(subscription);
+    return presentOne(this.summaryService, subscription);
   }
 }
 
 @Injectable()
 export class ListCustomerPlanSubscriptionsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly summaryService: CustomerPlanSummaryService,
+  ) {}
 
   async execute(query: ListCustomerPlanSubscriptionsDto, user: CurrentUser) {
     const businessId = getBusinessId(user);
+
+    const limit = Math.min(Math.max(query.limit ?? 200, 1), 200);
+    const page = Math.max(query.page ?? 1, 1);
 
     const subscriptions = await this.prisma.customerPlanSubscription.findMany({
       where: {
         businessId,
         ...(query.customer_id ? { businessCustomerId: query.customer_id } : {}),
+        ...(query.status ? { status: query.status } : {}),
       },
       include: subscriptionInclude,
-      orderBy: [{ status: 'asc' }, { created_at: 'desc' }],
-      take: 200,
+      orderBy:
+        query.sort === 'cycle_end'
+          ? [{ current_cycle_end: 'asc' }, { id: 'asc' }]
+          : [{ status: 'asc' }, { created_at: 'desc' }, { id: 'asc' }],
+      take: limit,
+      skip: (page - 1) * limit,
     });
 
-    return subscriptions.map(presentSubscription);
+    return presentMany(this.summaryService, subscriptions);
   }
 }
 
 @Injectable()
 export class RenewCustomerPlanSubscriptionUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly summaryService: CustomerPlanSummaryService,
+  ) {}
 
   async execute(id: string, user: CurrentUser) {
     const businessId = getBusinessId(user);
@@ -183,13 +202,16 @@ export class RenewCustomerPlanSubscriptionUseCase {
       });
     });
 
-    return presentSubscription(updated);
+    return presentOne(this.summaryService, updated);
   }
 }
 
 @Injectable()
 export class UpdateCustomerPlanSubscriptionStatusUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly summaryService: CustomerPlanSummaryService,
+  ) {}
 
   async execute(
     id: string,
@@ -209,7 +231,7 @@ export class UpdateCustomerPlanSubscriptionStatusUseCase {
       include: subscriptionInclude,
     });
 
-    return presentSubscription(updated);
+    return presentOne(this.summaryService, updated);
   }
 }
 
@@ -293,18 +315,48 @@ function buildRulesSnapshot(plan: {
   };
 }
 
+async function presentOne(
+  summaryService: CustomerPlanSummaryService,
+  subscription: SubscriptionWithInclude,
+) {
+  const [presented] = await presentMany(summaryService, [subscription]);
+  return presented;
+}
+
+async function presentMany(
+  summaryService: CustomerPlanSummaryService,
+  subscriptions: SubscriptionWithInclude[],
+) {
+  const summaries = await summaryService.summarize(
+    subscriptions.map((subscription) => ({
+      id: subscription.id,
+      current_cycle_end: subscription.current_cycle_end,
+      cycle: subscription.cycles[0]
+        ? {
+            id: subscription.cycles[0].id,
+            credits_granted: subscription.cycles[0].credits_granted,
+            credits_reserved: subscription.cycles[0].credits_reserved,
+            credits_consumed: subscription.cycles[0].credits_consumed,
+            credits_refunded: subscription.cycles[0].credits_refunded,
+          }
+        : null,
+    })),
+  );
+
+  return subscriptions.map((subscription) =>
+    presentSubscription(subscription, summaries.get(subscription.id)),
+  );
+}
+
+type SubscriptionWithInclude = Prisma.CustomerPlanSubscriptionGetPayload<{
+  include: typeof subscriptionInclude;
+}>;
+
 function presentSubscription(
-  subscription: Prisma.CustomerPlanSubscriptionGetPayload<{
-    include: typeof subscriptionInclude;
-  }>,
+  subscription: SubscriptionWithInclude,
+  summary?: CustomerPlanSummary,
 ) {
   const cycle = subscription.cycles[0] ?? null;
-  const availableCredits = cycle
-    ? cycle.credits_granted -
-      cycle.credits_reserved -
-      cycle.credits_consumed +
-      cycle.credits_refunded
-    : 0;
 
   return {
     id: subscription.id,
@@ -335,9 +387,12 @@ function presentSubscription(
           credits_reserved: cycle.credits_reserved,
           credits_consumed: cycle.credits_consumed,
           credits_refunded: cycle.credits_refunded,
-          available_credits: availableCredits,
+          available_credits: getAvailableCredits(cycle),
         }
       : null,
+    // Assinatura NÃO renova sozinha: o cliente paga o profissional e cria a
+    // nova série de agendamentos a cada ciclo (ver PLANO_ACAO, seção 14).
+    ...summary,
     created_at: subscription.created_at,
   };
 }

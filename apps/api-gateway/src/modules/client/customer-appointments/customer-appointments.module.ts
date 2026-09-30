@@ -21,5 +21,6 @@ import {
     CancelCustomerAppointmentUseCase,
     RescheduleCustomerAppointmentUseCase,
   ],
+  exports: [CreateAppointmentUseCase],
 })
 export class CustomerAppointmentsModule {}

@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { BusinessReminderType, Prisma } from '@prisma/client';
 import { addDays, endOfWeek, startOfWeek, subDays } from 'date-fns';
+import { BUSINESS_REMINDER_TYPE_DEFAULTS } from '../utils/business-notification-templates';
+import { getAvailableCredits } from '../utils/customer-plan-summary';
 
 type Tx = any;
 
@@ -30,12 +32,7 @@ export class CustomerPlanCreditService {
     credits_consumed: number;
     credits_refunded: number;
   }) {
-    return (
-      cycle.credits_granted -
-      cycle.credits_reserved -
-      cycle.credits_consumed +
-      cycle.credits_refunded
-    );
+    return getAvailableCredits(cycle);
   }
 
   async prepareReservation({
@@ -152,7 +149,7 @@ export class CustomerPlanCreditService {
       SET "credits_reserved" = "credits_reserved" + 1,
           "updated_at" = NOW()
       WHERE "id" = ${cycleId}
-        AND ("credits_granted" - "credits_reserved" - "credits_consumed" + "credits_refunded") > 0
+        AND ("credits_granted" - "credits_reserved" - "credits_consumed") > 0
     `;
 
     if (Number(updated) !== 1) {
@@ -168,6 +165,104 @@ export class CustomerPlanCreditService {
         metadata: metadata ?? Prisma.JsonNull,
       },
     });
+
+    await this.syncLastAppointmentReminder({ tx, subscriptionId, cycleId });
+  }
+
+  /**
+   * Quando a reserva esgota os créditos do ciclo, agenda o aviso "este é o
+   * último agendamento do plano" (assinatura não renova sozinha) no
+   * agendamento cronologicamente mais tardio ainda ativo do ciclo.
+   * Idempotente por (assinatura, ciclo, tipo, canal): nunca reenvia um aviso
+   * já enviado; se o "último" mudou (remarcação/cancelamento), reaponta o job.
+   */
+  private async syncLastAppointmentReminder({
+    tx,
+    subscriptionId,
+    cycleId,
+  }: {
+    tx: Tx;
+    subscriptionId: string;
+    cycleId: string;
+  }) {
+    const type = BusinessReminderType.PLAN_LAST_APPOINTMENT;
+    const cycle = await tx.customerServicePlanCycle.findUnique({
+      where: { id: cycleId },
+      select: {
+        credits_granted: true,
+        credits_reserved: true,
+        credits_consumed: true,
+        credits_refunded: true,
+        subscription: { select: { businessId: true, personId: true } },
+      },
+    });
+    if (!cycle || this.availableCredits(cycle) !== 0) return;
+
+    const last = await tx.appointmentPlanRedemption.findFirst({
+      where: {
+        cycleId,
+        status: 'RESERVED',
+        appointment: { status: { in: ['PENDING', 'CONFIRMED'] } },
+      },
+      orderBy: { appointment: { start_at_utc: 'desc' } },
+      select: { appointmentId: true, appointment: { select: { start_at_utc: true } } },
+    });
+    if (!last) return;
+
+    const settings = await tx.businessReminderSettings.findFirst({
+      where: { businessId: cycle.subscription.businessId, type },
+      select: { is_active: true, channels: true, offsets_min_before: true },
+    });
+    const defaults = BUSINESS_REMINDER_TYPE_DEFAULTS[type];
+    if (settings && !settings.is_active) return;
+
+    const channels = settings?.channels?.length
+      ? settings.channels
+      : defaults.channels;
+    const offsets = settings?.offsets_min_before?.length
+      ? settings.offsets_min_before
+      : defaults.offsets_min_before;
+    const offsetMin = Math.max(...offsets);
+
+    const start = last.appointment.start_at_utc as Date;
+    const now = new Date();
+    if (start.getTime() <= now.getTime()) return;
+    // Se já estamos dentro da janela do aviso, envia em 1 minuto.
+    const due = new Date(
+      Math.max(start.getTime() - offsetMin * 60_000, now.getTime() + 60_000),
+    );
+    if (due.getTime() >= start.getTime()) return;
+
+    for (const channel of channels) {
+      const where = {
+        customerPlanSubscriptionId: subscriptionId,
+        cycleId,
+        type,
+        channel,
+      };
+      await tx.reminderJob.upsert({
+        where: { uq_job_plan_cycle_type_channel: where },
+        create: {
+          ...where,
+          businessId: cycle.subscription.businessId,
+          personId: cycle.subscription.personId,
+          appointmentId: last.appointmentId,
+          due_at_utc: due,
+        },
+        update: {},
+      });
+      // Reaponta jobs ainda não enviados para o "último" atual.
+      await tx.reminderJob.updateMany({
+        where: { ...where, status: { not: 'SENT' } },
+        data: {
+          appointmentId: last.appointmentId,
+          due_at_utc: due,
+          status: 'PENDING',
+          error: null,
+          attempts: 0,
+        },
+      });
+    }
   }
 
   async consumeReservedCredit(tx: Tx, redemptionId: string) {

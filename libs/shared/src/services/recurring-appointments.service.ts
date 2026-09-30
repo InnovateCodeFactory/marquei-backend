@@ -4,6 +4,7 @@ import { Prisma, RecurringAppointmentFrequency, UserType } from '@prisma/client'
 import { TZDate } from '@date-fns/tz';
 import { addMinutes, addMonths, addWeeks, format } from 'date-fns';
 import { CustomerPlanCreditService } from './customer-plan-credit.service';
+import { WaitlistHoldService } from './waitlist-hold.service';
 
 const BUSINESS_TZ_ID = 'America/Sao_Paulo';
 
@@ -36,6 +37,7 @@ export class RecurringAppointmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly customerPlanCreditService: CustomerPlanCreditService,
+    private readonly waitlistHoldService: WaitlistHoldService,
   ) {}
 
   async createSeries(params: CreateRecurringAppointmentsParams) {
@@ -458,7 +460,18 @@ export class RecurringAppointmentsService {
       select: { id: true },
     });
 
-    return block ? 'Horário bloqueado na agenda do profissional.' : null;
+    if (block) return 'Horário bloqueado na agenda do profissional.';
+
+    const hold = await this.waitlistHoldService.findBlockingHold(
+      {
+        professionalProfileId: params.professionalProfileId,
+        startUtc: params.startUtc,
+        endUtc: params.endUtc,
+      },
+      tx,
+    );
+
+    return hold ? 'Horário reservado para a lista de espera.' : null;
   }
 
   private buildOccurrenceDates({

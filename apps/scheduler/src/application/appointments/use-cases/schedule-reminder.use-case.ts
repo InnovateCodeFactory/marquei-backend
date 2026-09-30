@@ -53,6 +53,7 @@ export class ScheduleReminderUseCase implements OnModuleInit {
       // Marca jobs muito antigos como SKIPPED para não disparar reminders atrasados
       await this.prismaService.reminderJob.updateMany({
         where: {
+          type: BusinessReminderType.APPOINTMENT_REMINDER,
           status: { in: ['PENDING', 'SCHEDULED'] },
           due_at_utc: { lt: dueGte },
         },
@@ -67,6 +68,8 @@ export class ScheduleReminderUseCase implements OnModuleInit {
         await lock.renew(90).catch(() => void 0);
         const jobs = await this.prismaService.reminderJob.findMany({
           where: {
+            // lembretes de plano (PLAN_*) têm despachante próprio
+            type: BusinessReminderType.APPOINTMENT_REMINDER,
             status: { in: ['PENDING', 'SCHEDULED'] },
             due_at_utc: { lte: dueLte, gte: dueGte },
           },

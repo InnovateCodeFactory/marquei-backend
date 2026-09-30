@@ -102,6 +102,10 @@ model UserIntegration {
 
 model Business {
   id                         String                       @id @default(cuid())
+  is_waitlist_enabled        Boolean                      @default(true)
+  waitlist_offer_ttl_minutes Int                          @default(10)
+  waitlistEntries            WaitlistEntry[]
+  waitlistOffers             WaitlistOffer[]
   name                       String
   slug                       String                       @unique
   description                String?
@@ -199,10 +203,14 @@ model BusinessReminderSettings {
 }
 
 model ReminderJob {
-  id               String            @id @default(cuid())
+  id               String               @id @default(cuid())
   businessId       String
-  appointmentId    String
+  appointmentId    String?
   personId         String
+  type             BusinessReminderType @default(APPOINTMENT_REMINDER)
+  // Lembretes de plano (PLAN_*): assinatura e ciclo aos quais o aviso se refere
+  customerPlanSubscriptionId String?
+  cycleId                    String?
   channel          ReminderChannel
   due_at_utc       DateTime // quando disparar (UTC)
   scheduled_at_utc DateTime?
@@ -212,15 +220,20 @@ model ReminderJob {
   attempts         Int               @default(0)
   metadata         Json?
 
-  business    Business    @relation(fields: [businessId], references: [id])
-  appointment Appointment @relation(fields: [appointmentId], references: [id])
-  person      Person      @relation(fields: [personId], references: [id])
+  business             Business                  @relation(fields: [businessId], references: [id])
+  appointment          Appointment?              @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  person               Person                    @relation(fields: [personId], references: [id])
+  customerPlanSubscription CustomerPlanSubscription? @relation(fields: [customerPlanSubscriptionId], references: [id])
+  cycle                CustomerServicePlanCycle? @relation(fields: [cycleId], references: [id])
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
   // Evita duplicar o mesmo lembrete do mesmo agendamento/canal/hora
   @@unique([appointmentId, channel, due_at_utc], name: "uq_job_apt_channel_due")
+  // Um aviso de plano por assinatura/ciclo/tipo/canal (idempotência)
+  @@unique([customerPlanSubscriptionId, cycleId, type, channel], name: "uq_job_plan_cycle_type_channel")
+  @@index([type, status, due_at_utc], name: "idx_job_type_status_due")
   @@index([status, due_at_utc], name: "idx_job_status_due")
   @@index([businessId], name: "idx_job_business")
   @@index([appointmentId], name: "idx_job_appointment")
@@ -271,6 +284,8 @@ model CurrentSelectedBusiness {
 
 model Service {
   id                String                       @id @default(cuid())
+  waitlistEntries WaitlistEntry[]
+  waitlistOffers  WaitlistOffer[]
   name              String
   duration          Int // Minutos
   price_in_cents    Int // preço padrão do serviço
@@ -293,6 +308,8 @@ model Service {
 
 model ProfessionalProfile {
   id String @id @default(cuid())
+  waitlistEntries WaitlistEntry[]
+  waitlistOffers  WaitlistOffer[]
 
   business_id   String
   business      Business                   @relation(fields: [business_id], references: [id])
@@ -388,6 +405,7 @@ model ProfessionalStatement {
 
 model Appointment {
   id         String            @id @default(cuid())
+  waitlistEntry WaitlistEntry?
   service_id String
   status     AppointmentStatus
   notes      String?
@@ -430,6 +448,8 @@ model Appointment {
 
 model ServiceCombo {
   id                      String                   @id @default(cuid())
+  waitlistEntries WaitlistEntry[]
+  waitlistOffers  WaitlistOffer[]
   businessId              String
   business                Business                 @relation(fields: [businessId], references: [id])
   name                    String
@@ -527,6 +547,7 @@ model ProfessionalTimesBlock {
 // Vincular pessoa como user do tipo Customer e vincular como cliente das empresas
 model Person {
   id              String  @id @default(cuid())
+  waitlistEntries WaitlistEntry[]
   // Identificadores para dedupe e match automático
   document_number String? @unique // CPF/CNPJ, limpo e sem máscara
   email           String? @unique // email em minúsculas
@@ -572,6 +593,7 @@ model Favorite {
 
 model BusinessCustomer {
   id         String @id @default(cuid())
+  waitlistEntries WaitlistEntry[]
   businessId String
   personId   String
 
@@ -690,6 +712,7 @@ model CustomerPlanSubscription {
   redemptions     AppointmentPlanRedemption[]
   recurringSeries RecurringAppointmentSeries[]
   statements      ProfessionalStatement[]
+  reminderJobs    ReminderJob[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -715,7 +738,8 @@ model CustomerServicePlanCycle {
   credits_consumed Int      @default(0)
   credits_refunded Int      @default(0)
 
-  redemptions AppointmentPlanRedemption[]
+  redemptions  AppointmentPlanRedemption[]
+  reminderJobs ReminderJob[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -1275,6 +1299,8 @@ enum ReminderChannel {
 enum BusinessReminderType {
   APPOINTMENT_REMINDER
   APPOINTMENT_CONFIRMATION_REQUEST
+  PLAN_LAST_APPOINTMENT
+  PLAN_CYCLE_ENDING
 }
 
 enum ReminderJobStatus {
@@ -1506,4 +1532,113 @@ enum ServiceComboPricingMode {
 enum ServiceComboDurationMode {
   SUM_SERVICES
   CUSTOM
+}
+
+// ---------------------------------------------------------------------------
+// Lista de espera para dias lotados (ver PLANO_ACAO_LISTA_ESPERA.md)
+// ---------------------------------------------------------------------------
+
+enum WaitlistEntryStatus {
+  WAITING
+  CONVERTED
+  CANCELED
+  EXPIRED_DAY_PASSED
+}
+
+enum WaitlistOfferStatus {
+  PENDING
+  CONVERTED
+  EXPIRED
+  DECLINED
+  SUPERSEDED
+}
+
+enum WaitlistEventType {
+  JOINED
+  LEFT
+  OFFER_SENT
+  OFFER_EXPIRED
+  OFFER_DECLINED
+  CONVERTED
+  REMOVED_DAY_PASSED
+}
+
+// Um cliente esperando vaga num negócio, numa data.
+model WaitlistEntry {
+  id                    String              @id @default(cuid())
+  businessId            String
+  business              Business            @relation(fields: [businessId], references: [id])
+  businessCustomerId    String
+  businessCustomer      BusinessCustomer    @relation(fields: [businessCustomerId], references: [id])
+  personId              String
+  person                Person              @relation(fields: [personId], references: [id])
+  professionalProfileId String? // null = qualquer profissional serve
+  professional          ProfessionalProfile? @relation(fields: [professionalProfileId], references: [id])
+  serviceId             String? // null = qualquer serviço
+  service               Service?            @relation(fields: [serviceId], references: [id])
+  serviceComboId        String? // combo escolhido no lugar de serviço
+  serviceCombo          ServiceCombo?       @relation(fields: [serviceComboId], references: [id])
+  date                  DateTime            @db.Date // dia no fuso do negócio
+  status                WaitlistEntryStatus @default(WAITING)
+  // Define a ordem da fila. Reentrar depois de sair reinicia a posição.
+  queued_at             DateTime            @default(now())
+  converted_appointment_id String?          @unique
+  converted_appointment Appointment?        @relation(fields: [converted_appointment_id], references: [id])
+
+  offers WaitlistOffer[]
+  events WaitlistEvent[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([businessId, personId, date], name: "uq_waitlist_business_person_date")
+  @@index([businessId, professionalProfileId, date, status], name: "idx_waitlist_queue")
+  @@index([personId, status], name: "idx_waitlist_person_status")
+  @@index([date, status], name: "idx_waitlist_date_status")
+}
+
+// A vaga específica ofertada a uma entrada, com prazo para aceitar.
+model WaitlistOffer {
+  id                    String              @id @default(cuid())
+  waitlistEntryId       String
+  waitlistEntry         WaitlistEntry       @relation(fields: [waitlistEntryId], references: [id])
+  businessId            String
+  business              Business            @relation(fields: [businessId], references: [id])
+  professionalProfileId String
+  professional          ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
+  serviceId             String?
+  service               Service?            @relation(fields: [serviceId], references: [id])
+  serviceComboId        String?
+  serviceCombo          ServiceCombo?       @relation(fields: [serviceComboId], references: [id])
+  slot_start_at_utc     DateTime
+  slot_end_at_utc       DateTime
+  status                WaitlistOfferStatus @default(PENDING)
+  expires_at_utc        DateTime
+  notified_at_utc       DateTime?
+  responded_at_utc      DateTime?
+  metadata              Json?
+
+  events WaitlistEvent[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([status, expires_at_utc], name: "idx_waitlist_offer_status_expires")
+  @@index([waitlistEntryId], name: "idx_waitlist_offer_entry")
+  @@index([professionalProfileId, status, slot_start_at_utc], name: "idx_waitlist_offer_hold")
+}
+
+// Log imutável de auditoria.
+model WaitlistEvent {
+  id              String            @id @default(cuid())
+  waitlistEntryId String
+  waitlistEntry   WaitlistEntry     @relation(fields: [waitlistEntryId], references: [id])
+  offerId         String?
+  offer           WaitlistOffer?    @relation(fields: [offerId], references: [id])
+  event_type      WaitlistEventType
+  by_user_id      String? // null = sistema
+  reason          String?
+  created_at      DateTime          @default(now())
+
+  @@index([waitlistEntryId, created_at], name: "idx_waitlist_event_entry")
 }

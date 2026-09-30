@@ -10,6 +10,7 @@ import {
 import {
   AppointmentEventsStreamService,
   CustomerPlanCreditService,
+  WaitlistHoldService,
 } from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import { getClientIp, getTwoNames } from '@app/shared/utils';
@@ -38,6 +39,7 @@ export class CreateAppointmentUseCase {
     private readonly googleCalendarService: GoogleCalendarService,
     private readonly appointmentEventsStreamService: AppointmentEventsStreamService,
     private readonly customerPlanCreditService: CustomerPlanCreditService,
+    private readonly waitlistHoldService: WaitlistHoldService,
   ) {}
 
   async execute(payload: CreateAppointmentDto, req: AppRequest) {
@@ -288,6 +290,18 @@ export class CreateAppointmentUseCase {
     if (overlappingBlock) {
       throw new BadRequestException(
         'Este horário está bloqueado na agenda do profissional.',
+      );
+    }
+
+    const waitlistHold = await this.waitlistHoldService.findBlockingHold({
+      professionalProfileId: professional_id,
+      startUtc: startUtc,
+      endUtc: endUtc,
+    });
+
+    if (waitlistHold) {
+      throw new BadRequestException(
+        'Este horário está reservado para a lista de espera. Tente outro horário.',
       );
     }
 

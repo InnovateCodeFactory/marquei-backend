@@ -1,4 +1,6 @@
 import { PrismaService } from '@app/shared';
+import { CustomerPlanSummaryService } from '@app/shared/services';
+import { getAvailableCredits } from '@app/shared/utils';
 import { CurrentUser } from '@app/shared/types/app-request';
 import { Price } from '@app/shared/value-objects';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
@@ -6,7 +8,10 @@ import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class GetCustomerPlansUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly summaryService: CustomerPlanSummaryService,
+  ) {}
 
   async execute({
     user,
@@ -29,14 +34,16 @@ export class GetCustomerPlansUseCase {
       orderBy: { current_cycle_end: 'asc' },
     });
 
+    const summaries = await this.summaryService.summarize(
+      subscriptions.map((subscription) => ({
+        id: subscription.id,
+        current_cycle_end: subscription.current_cycle_end,
+        cycle: subscription.cycles[0] ?? null,
+      })),
+    );
+
     return subscriptions.map((subscription) => {
       const cycle = subscription.cycles[0] ?? null;
-      const availableCredits = cycle
-        ? cycle.credits_granted -
-          cycle.credits_reserved -
-          cycle.credits_consumed +
-          cycle.credits_refunded
-        : 0;
 
       return {
         id: subscription.id,
@@ -66,9 +73,12 @@ export class GetCustomerPlansUseCase {
               credits_reserved: cycle.credits_reserved,
               credits_consumed: cycle.credits_consumed,
               credits_refunded: cycle.credits_refunded,
-              available_credits: availableCredits,
+              available_credits: getAvailableCredits(cycle),
             }
           : null,
+        // Assinatura NÃO renova sozinha: ver `auto_renews`, `alert` e
+        // `next_payment_estimate` no resumo.
+        ...summaries.get(subscription.id),
       };
     });
   }

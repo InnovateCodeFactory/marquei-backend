@@ -12,6 +12,7 @@ import {
 import {
   AppointmentEventsStreamService,
   CustomerPlanCreditService,
+  WaitlistHoldService,
 } from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import { getTwoNames } from '@app/shared/utils';
@@ -39,9 +40,31 @@ export class CreateAppointmentUseCase {
     private readonly googleCalendarService: GoogleCalendarService,
     private readonly appointmentEventsStreamService: AppointmentEventsStreamService,
     private readonly customerPlanCreditService: CustomerPlanCreditService,
+    private readonly waitlistHoldService: WaitlistHoldService,
   ) {}
 
   async execute(payload: CreateCustomerAppointmentDto, request: AppRequest) {
+    await this.run(payload, request);
+    return null;
+  }
+
+  /**
+   * Mesmo fluxo do `execute`, devolvendo o id criado. `ignoreWaitlistOfferId`
+   * libera a vaga segurada pela oferta da lista de espera que está sendo aceita.
+   */
+  async createAndReturnId(
+    payload: CreateCustomerAppointmentDto,
+    request: AppRequest,
+    options?: { ignoreWaitlistOfferId?: string },
+  ) {
+    return this.run(payload, request, options);
+  }
+
+  private async run(
+    payload: CreateCustomerAppointmentDto,
+    request: AppRequest,
+    options?: { ignoreWaitlistOfferId?: string },
+  ): Promise<{ appointmentId: string }> {
     const {
       appointment_date,
       professional_id,
@@ -264,6 +287,19 @@ export class CreateAppointmentUseCase {
       );
     }
 
+    const waitlistHold = await this.waitlistHoldService.findBlockingHold({
+      professionalProfileId: professional_id,
+      startUtc,
+      endUtc,
+      ignoreOfferId: options?.ignoreWaitlistOfferId,
+    });
+
+    if (waitlistHold) {
+      throw new BadRequestException(
+        'Este horário está reservado para a lista de espera. Tente outro horário.',
+      );
+    }
+
     const reminderJobSettings =
       await this.prismaService.businessReminderSettings.findFirst({
         where: {
@@ -444,7 +480,7 @@ export class CreateAppointmentUseCase {
       }),
     ]);
 
-    return null;
+    return { appointmentId: appointment.id };
   }
 
   @RabbitSubscribe({

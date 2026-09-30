@@ -25,6 +25,7 @@ export class SendNotificationUseCase {
           to: payload.pushTokens,
           title: payload.title,
           body: payload.body,
+          ...(payload.data ? { data: payload.data } : {}),
         },
         options: {
           verbose: true,
