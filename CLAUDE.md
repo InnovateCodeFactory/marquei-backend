@@ -29,7 +29,7 @@ libs/
                   # compartilhados entre os 4 apps
 ```
 
-Cada app tem seu próprio `Dockerfile` e é buildado/deployado independentemente (ver `.github/workflows/deploy.yml`, que builda e publica os 4 no GHCR a cada push em `main`).
+Um único `Dockerfile` na raiz builda qualquer app (`--build-arg APP_NAME`) e o `migrator`. O workflow `.github/workflows/deploy.yml` (só `main`) detecta quais apps mudaram (`.github/scripts/detect-changes.sh`, testes em `detect-changes.test.sh`), builda e deploya só esses e roda `prisma migrate deploy` antes de subir os containers (nunca em `develop`).
 
 ### `api-gateway` — os dois módulos dedicados
 

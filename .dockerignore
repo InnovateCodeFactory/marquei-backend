@@ -1,25 +1,49 @@
-**/.classpath
-**/.dockerignore
+# VCS / CI / editor
 **/.git
 **/.gitignore
-**/.project
-**/.settings
-**/.toolstarget
+**/.github
 **/.vs
 **/.vscode
+**/.idea
+**/.project
+**/.classpath
+**/.settings
+**/.toolstarget
 **/*.*proj.user
 **/*.dbmdl
 **/*.jfm
-**/charts
+
+# Segredos e configuracao local: nunca entram no contexto de build
+**/.env
+**/.env.*
+client_secret*.json
+**/secrets.dev.yaml
+**/values.dev.yaml
+**/CLAUDE.local.md
+
+# Ferramentas de IA / indices locais
+**/.claude
+**/.cocoindex_code
+**/graphify-out
+
+# Docker / infra que nao faz parte da imagem
+**/Dockerfile*
 **/docker-compose*
 **/compose*
-**/Dockerfile*
+**/charts
+run
+scripts
+
+# Artefatos e dependencias (reinstalados no build)
 **/node_modules
 **/npm-debug.log
 **/obj
-**/secrets.dev.yaml
-**/values.dev.yaml
-LICENSE
-README.md
 **/dist
+**/coverage
 **/test
+
+# Documentacao e desenho
+**/*.md
+**/*.excalidraw
+drawing
+LICENSE

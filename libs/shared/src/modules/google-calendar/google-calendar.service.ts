@@ -1,7 +1,9 @@
 import { EnvSchemaType } from '@app/shared/environment';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { google, calendar_v3 } from 'googleapis';
+// Pacote so do Calendar: o `googleapis` completo carrega os tipos de TODAS as APIs
+// do Google (~3,2 milhoes de linhas de .d.ts) e estourava o heap do tsc no build.
+import { auth, calendar, calendar_v3 } from '@googleapis/calendar';
 import { authenticate } from '@google-cloud/local-auth';
 import * as path from 'node:path';
 
@@ -87,7 +89,7 @@ export class GoogleCalendarService {
   }
 
   private createOAuthClient() {
-    return new google.auth.OAuth2(
+    return new auth.OAuth2(
       this.clientId,
       this.clientSecret,
       this.redirectUri,
@@ -98,7 +100,7 @@ export class GoogleCalendarService {
     const oAuth2Client = this.createOAuthClient();
     oAuth2Client.setCredentials(tokens);
 
-    return google.calendar({
+    return calendar({
       version: 'v3',
       auth: oAuth2Client,
     });
@@ -123,7 +125,7 @@ export class GoogleCalendarService {
       keyfilePath,
     });
 
-    return google.calendar({
+    return calendar({
       version: 'v3',
       auth: auth as any,
     });

@@ -5,6 +5,7 @@ services:
     image: ghcr.io/innovatecodefactory/marquei-api-gateway:latest
     container_name: api-gateway
     restart: always
+    init: true
     ports:
       - "3000:3000"
     environment:
@@ -18,6 +19,7 @@ services:
     image: ghcr.io/innovatecodefactory/marquei-messaging:latest
     container_name: messaging
     restart: always
+    init: true
     environment:
       - PORT=3001
     env_file: .env
@@ -29,6 +31,7 @@ services:
     image: ghcr.io/innovatecodefactory/marquei-payment:latest
     container_name: payment
     restart: always
+    init: true
     environment:
       - PORT=3002
     env_file: .env
@@ -40,8 +43,21 @@ services:
     image: ghcr.io/innovatecodefactory/marquei-scheduler:latest
     container_name: scheduler
     restart: always
+    init: true
     environment:
       - PORT=3003
+    env_file: .env
+    networks:
+      - rabbit_external_network
+      - redis_external_network
+
+  # `prisma migrate deploy`: so roda sob demanda (profile "migrate"), via
+  # `docker compose --profile migrate run --rm migrator` em run/prod-up.sh.
+  # Usa o mesmo .env (DATABASE_URL de producao) e as mesmas redes dos apps.
+  migrator:
+    image: ghcr.io/innovatecodefactory/marquei-migrator:${MIGRATOR_TAG:-latest}
+    profiles: ["migrate"]
+    restart: "no"
     env_file: .env
     networks:
       - rabbit_external_network
