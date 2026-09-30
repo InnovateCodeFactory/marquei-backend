@@ -773,3 +773,77 @@ Testar no `client-app`:
 - Recorrencia cria agendamentos reais para bloquear agenda e ativar lembretes.
 - Cliente pode cancelar/reagendar ocorrencias individuais.
 - Profissional gerencia a serie inteira.
+- **Assinatura NAO e auto-renovavel e a renovacao NAO re-agenda** (ver secao 14).
+
+## 14. Renovacao manual, lembretes e visibilidade da assinatura (decisao de produto, 2026-09-29)
+
+Decisao do dono do produto (que e usuario do proprio sistema): o cliente lembra sozinho de pagar e de agendar; o profissional nao fica cobrando. O sistema so precisa deixar isso obvio e avisar na hora certa.
+
+### 14.1. Regras
+
+- A assinatura **nao renova sozinha** e o app deve dizer isso de forma explicita ("Este plano nao renova automaticamente").
+- `POST /professional/customer-plan-subscriptions/:id/renew` continua so criando novo ciclo + receita. **Nao** recria `RecurringAppointmentSeries`. Nenhum re-agendamento automatico.
+- A cada fim de ciclo, o **proprio cliente** (no `client-app`) cria de novo a serie/agendamentos do novo ciclo, escolhendo os dias que quiser, usando o fluxo de recorrencia que ja existe.
+- O cliente paga o profissional por fora; o profissional registra a renovacao no `app` (v1 sem pagamento online, ver secao 13).
+- Nenhuma renovacao/cobranca automatica em nenhum canal.
+
+### 14.2. Lembretes (reaproveitar `ReminderJob` + pipeline push/WhatsApp/in-app de `BusinessReminderType`)
+
+Novos valores no enum `BusinessReminderType`:
+
+- `PLAN_LAST_APPOINTMENT`: disparado quando o agendamento e o ultimo coberto pelos creditos do ciclo (`credits_reserved + credits_consumed >= credits_granted` no momento em que o agendamento e criado/confirmado). Texto: "Esse e o ultimo agendamento do seu plano. Para continuar, renove com o profissional e crie uma nova serie."
+- `PLAN_CYCLE_ENDING`: disparado N dias antes de `current_cycle_end` (default 3) quando ainda ha creditos ou nao ha serie criada para o proximo ciclo. Texto deixa claro que o plano nao renova sozinho.
+
+### 14.3. Dados expostos pela API (cliente e profissional)
+
+Adicionar ao retorno de assinatura (`GET /client/customer-plans` e `GET /professional/customer-plan-subscriptions`):
+
+- `auto_renews: false` (constante, explicita no contrato)
+- `next_payment_estimate`: `current_cycle_end + 1ms` (estimativa de quando deve pagar de novo)
+- `days_until_cycle_end`
+- `credits_remaining`: creditos ainda nao usados nem reservados
+- `credits_scheduled`: reservados (agendados e ainda nao realizados)
+- `credits_used`: consumidos
+- `is_last_credit`: `credits_remaining + credits_scheduled === 1` ou proximo agendamento e o ultimo
+- `cycle_ended`: `now > current_cycle_end`
+- `appointments`: lista do ciclo atual, ordenada por data, cada item com `sequence` ("3 de 4"), `start_at`, `status`, `is_next` (proximo a acontecer) e `redemption_status`
+
+Nomes exatos podem variar na implementacao; o que nao pode faltar e cada informacao acima estar disponivel sem o app ter que calcular nada.
+
+### 14.4. `client-app`: tela "Meus Planos" (`src/app/(tabs)/profile/customer-plans.tsx`)
+
+Precisa responder de relance, sem o cliente ter que pensar:
+
+- em qual agendamento estou: "Agendamento 3 de 4" com barra/segmentos de progresso;
+- quantos ainda tenho e quais datas (linha do tempo dos agendamentos do ciclo, o proximo destacado);
+- quando devo pagar de novo (estimativa: "Renova em 12 dias, por volta de 20/10") e aviso fixo "Nao renova automaticamente";
+- estado de alerta quando `is_last_credit` ou `cycle_ended`: card de destaque "Ultimo agendamento do plano" / "Seu plano terminou" com CTA "Agendar novo ciclo" (leva ao fluxo de agendamento com plano + repetir);
+- reaproveitar `src/shared/ui/`, `src/shared/theme/`, sem i18n, usar as skills de design obrigatorias.
+
+### 14.5. `app` (profissional)
+
+- Nova listagem "Assinaturas ativas" (em `src/app/(tabs)/profile/registrations/customer-plans/`, ao lado do catalogo de planos): todos os clientes com assinatura ativa do negocio, cada linha com nome do cliente, plano, "N de M usados", proxima data de pagamento estimada, badge de alerta (ultimo credito / ciclo acabando / vencido).
+- Filtros/ordenacao: vencendo em breve (default), sem creditos, ciclo vencido, por nome.
+- Detalhe da assinatura: mesmas informacoes que o cliente ve (agendamentos do ciclo, creditos, vencimento) + acoes existentes (renovar, pausar, cancelar, restaurar credito).
+- `CustomerPlansCard.tsx` (detalhe do cliente) passa a mostrar as mesmas informacoes resumidas.
+- Backend: `GET /professional/customer-plan-subscriptions` ganha paginacao (hoje `take: 200` fixo), filtro `status` e ordenacao por `current_cycle_end`.
+- i18n obrigatorio no `app`.
+
+### 14.6. Criterios de aceite
+
+- Renovar uma assinatura com serie ativa **nao** cria nenhum agendamento novo.
+- Ao criar o ultimo agendamento coberto pelo ciclo, o cliente recebe `PLAN_LAST_APPOINTMENT` (idempotente: nao envia duas vezes pro mesmo ciclo).
+- Cliente abre "Meus Planos" e ve, sem calcular: posicao atual (X de N), datas restantes, data estimada do proximo pagamento e o aviso de que nao renova sozinho.
+- Profissional ve todas as assinaturas ativas, ordenadas por vencimento, com as mesmas informacoes por cliente.
+
+## 15. Status da implementacao das secoes 14 e 3 (2026-09-29)
+
+Implementado e validado contra `marquei-dev` (script `scripts/e2e-dev-plans-waitlist.ts` + Jest). **Migrations ainda nao aplicadas em producao** (`20260429120000_customer_service_plans_recurring`, `20260929120000_plan_reminders`, `20260929130000_waitlist`, `20260929140000_waitlist_combo`).
+
+- **Bug corrigido:** `credits_refunded` era somado duas vezes em "creditos disponiveis" (cancelar devolvia 2 creditos). Agora `disponiveis = granted - reserved - consumed`; `refunded` e so contador de auditoria. Regra unica em `libs/shared/src/utils/customer-plan-summary.ts`, coberta por teste.
+- `renew` continua so criando ciclo + receita, sem recriar serie (teste garante).
+- Novos valores de `BusinessReminderType`: `PLAN_LAST_APPOINTMENT` (job criado quando a reserva esgota os creditos, apontando pro ultimo agendamento cronologico do ciclo; revalidado no envio) e `PLAN_CYCLE_ENDING` (gerado 3 dias antes do fim do ciclo). Reusam `ReminderJob` (colunas novas `type`, `customerPlanSubscriptionId`, `cycleId`; `appointmentId` agora opcional) e as filas de push/WhatsApp. Unico por assinatura/ciclo/tipo/canal. Ficam fora de `BUSINESS_REMINDER_TYPES` (nao aparecem na tela de notificacoes do profissional ainda; usam defaults).
+- API de assinatura (cliente e profissional) devolve `auto_renews: false`, `alert`, `cycle_ended`, `days_until_cycle_end`, `next_payment_estimate`, `credits_*`, `is_last_credit`, `current_sequence` e `appointments[]` (com `sequence`/`is_next`). `GET /professional/customer-plan-subscriptions` ganhou `status`, `sort=cycle_end`, `page`, `limit` (contrato antigo de array preservado).
+- `client-app`: "Meus Planos" redesenhado (posicao "Agendamento X de N", segmentos por credito, proximo pagamento estimado, aviso fixo de nao renovacao, cartao de alerta com CTA "Agendar proximo ciclo").
+- `app`: tela "Assinaturas ativas" (`registrations/customer-plans/subscriptions`) com filtros (vencendo, sem agendamentos, vencidas, todas), ordenada por vencimento, e o cartao do detalhe do cliente com as mesmas informacoes. i18n em `pt` e `en` (demais idiomas caem no fallback `pt`).
+- Nao feito: endpoint `restore-credit` (previsto na secao 5.3, nao existe); nao verificado nesta rodada: preview de recorrencia (secao 5.6) e telas de recorrencia do `app`; deteccao de "ciclo vencido -> EXPIRED" automatica (a assinatura continua `ACTIVE` com `cycle_ended: true`).

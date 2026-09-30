@@ -4,8 +4,12 @@
   "sourceRoot": "apps/api-gateway/src",
   "compilerOptions": {
     "deleteOutDir": true,
-    "webpack": true,
-    "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
+    "builder": {
+      "type": "tsc",
+      "options": {
+        "configPath": "apps/api-gateway/tsconfig.app.json"
+      }
+    }
   },
   "monorepo": true,
   "root": "apps/api-gateway",
@@ -16,7 +20,12 @@
       "entryFile": "main",
       "sourceRoot": "apps/api-gateway/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
+        "builder": {
+          "type": "tsc",
+          "options": {
+            "configPath": "apps/api-gateway/tsconfig.app.json"
+          }
+        }
       }
     },
     "messaging": {
@@ -25,7 +34,12 @@
       "entryFile": "main",
       "sourceRoot": "apps/messaging/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/messaging/tsconfig.app.json"
+        "builder": {
+          "type": "tsc",
+          "options": {
+            "configPath": "apps/messaging/tsconfig.app.json"
+          }
+        }
       }
     },
     "payment": {
@@ -34,7 +48,12 @@
       "entryFile": "main",
       "sourceRoot": "apps/payment/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/payment/tsconfig.app.json"
+        "builder": {
+          "type": "tsc",
+          "options": {
+            "configPath": "apps/payment/tsconfig.app.json"
+          }
+        }
       }
     },
     "scheduler": {
@@ -43,7 +62,12 @@
       "entryFile": "main",
       "sourceRoot": "apps/scheduler/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/scheduler/tsconfig.app.json"
+        "builder": {
+          "type": "tsc",
+          "options": {
+            "configPath": "apps/scheduler/tsconfig.app.json"
+          }
+        }
       }
     },
     "shared": {
@@ -52,7 +76,12 @@
       "entryFile": "index",
       "sourceRoot": "libs/shared/src",
       "compilerOptions": {
-        "tsConfigPath": "libs/shared/tsconfig.lib.json"
+        "builder": {
+          "type": "tsc",
+          "options": {
+            "configPath": "libs/shared/tsconfig.lib.json"
+          }
+        }
       }
     }
   }

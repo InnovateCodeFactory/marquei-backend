@@ -57,4 +57,11 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 client_secret_324221970568-q1aka42rlqpupbtj4sjm0gu6peupmnd5.apps.googleusercontent.com.json
 
-vps-minio-utils.txt
+vps-minio-utils.txt.cocoindex_code
+
+# Notas pessoais locais (podem conter segredo/credencial de produção)
+CLAUDE.local.md
+
+.cocoindex_code/
+
+.claude/settings.local.json
