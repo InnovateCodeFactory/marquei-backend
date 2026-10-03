@@ -1,3 +1,4 @@
+import { toWhatsAppNumber } from '@app/shared/utils';
 import { SendWhatsAppTextMessageDto } from '@app/shared/dto/messaging/whatsapp-notifications';
 import { EnvSchemaType } from '@app/shared/environment';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
@@ -49,12 +50,20 @@ export class SendWhatsAppTextMessageUseCase {
         return;
       }
 
+      const whatsappNumber = toWhatsAppNumber(phone_number);
+      if (!whatsappNumber) {
+        this.logger.error(
+          `Telefone inválido para envio da mensagem via WhatsApp: ${phone_number}`,
+        );
+        return;
+      }
+
       const { data }: SendTextMessageResponse =
         await this.whatsappBaseService.makeRequest({
           method: 'POST',
           endpoint: '/integrators/send-text-message',
           data: {
-            phoneNumber: phone_number,
+            phoneNumber: whatsappNumber,
             message: normalizedMessage,
             sessionId: this.sessionId,
           },

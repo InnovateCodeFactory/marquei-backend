@@ -6,7 +6,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { hasProhibitedTerm } from '@app/shared/utils';
+import { hasProhibitedTerm, normalizePhoneNational } from '@app/shared/utils';
 import { UpdateProfessionalDto } from '../dto/requests/update-professional.dto';
 
 @Injectable()
@@ -21,7 +21,9 @@ export class UpdateProfessionalUseCase {
       typeof value === 'string' ? value.trim() : value;
     const professionalProfileId = payload.professionalProfileId;
     const email = trimValue(payload.email)?.toLowerCase();
-    const phone = trimValue(payload.phone);
+    const rawPhone = trimValue(payload.phone);
+    const phone = rawPhone ? normalizePhoneNational(rawPhone) : rawPhone;
+    if (rawPhone && !phone) throw new BadRequestException('Telefone inválido');
     const name = trimValue(payload.name);
     const servicesId = payload.servicesId;
 
@@ -105,7 +107,8 @@ export class UpdateProfessionalUseCase {
     }
 
     // Only update if there are changes
-    const hasProfileChanges = Object.keys(professionalProfileUpdateData).length > 0;
+    const hasProfileChanges =
+      Object.keys(professionalProfileUpdateData).length > 0;
     const hasUserChanges = Object.keys(userUpdateData).length > 0;
 
     if (!hasProfileChanges && !hasUserChanges) {
@@ -152,7 +155,9 @@ export class UpdateProfessionalUseCase {
       });
       const currentIds = new Set(current.map((x) => x.service_id));
       const toAdd = unique.filter((id) => !currentIds.has(id));
-      const toRemove = Array.from(currentIds).filter((id) => !unique.includes(id));
+      const toRemove = Array.from(currentIds).filter(
+        (id) => !unique.includes(id),
+      );
 
       if (toRemove.length) {
         await this.prismaService.professionalService.deleteMany({

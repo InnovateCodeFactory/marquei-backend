@@ -7,6 +7,7 @@ import { AppRequest } from '@app/shared/types/app-request';
 import {
   normalizeNotificationTemplate,
   renderBusinessNotificationTemplate,
+  toWhatsAppNumber,
 } from '@app/shared/utils';
 import {
   BadRequestException,
@@ -43,7 +44,9 @@ export class TestBusinessNotificationMessageUseCase {
 
     const template = normalizeNotificationTemplate(dto.message_template);
     if (!template) {
-      throw new BadRequestException('Digite uma mensagem para realizar o teste.');
+      throw new BadRequestException(
+        'Digite uma mensagem para realizar o teste.',
+      );
     }
 
     const [business, user] = await Promise.all([
@@ -106,7 +109,7 @@ export class TestBusinessNotificationMessageUseCase {
       user.professional_profile?.[0]?.phone?.trim() ||
       user.person?.phone?.trim() ||
       null;
-    const phoneNumber = rawPhone ? this.normalizePhoneNumber(rawPhone) : null;
+    const phoneNumber = toWhatsAppNumber(rawPhone);
 
     const whatsapp: ChannelTestResult = {
       attempted: false,
@@ -152,21 +155,5 @@ export class TestBusinessNotificationMessageUseCase {
     const digits = raw.replace(/\D/g, '');
     if (digits.length <= 4) return digits;
     return `${'*'.repeat(Math.max(digits.length - 4, 0))}${digits.slice(-4)}`;
-  }
-
-  private normalizePhoneNumber(raw: string): string {
-    const digits = raw.replace(/\D/g, '');
-    if (!digits) return '';
-    const normalized = digits.replace(/^0+/, '');
-    if (
-      (normalized.length === 12 || normalized.length === 13) &&
-      normalized.startsWith('55')
-    ) {
-      return normalized;
-    }
-    if (normalized.length === 10 || normalized.length === 11) {
-      return `55${normalized}`;
-    }
-    return normalized.startsWith('55') ? normalized : `55${normalized}`;
   }
 }

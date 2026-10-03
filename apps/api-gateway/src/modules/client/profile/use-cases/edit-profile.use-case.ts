@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { EditProfileDto } from '../dto/requests/edit-profile.dto';
-import { hasProhibitedTerm } from '@app/shared/utils';
+import { hasProhibitedTerm, normalizePhoneNational } from '@app/shared/utils';
 
 type NormalizedPayload = {
   email?: string; // string normalizada ou undefined (não enviado)
@@ -30,9 +30,7 @@ export class EditProfileUseCase {
     const norm = this.normalize(dto);
 
     if (norm.name && hasProhibitedTerm(norm.name, 'user')) {
-      throw new BadRequestException(
-        'Nome contém termos não permitidos',
-      );
+      throw new BadRequestException('Nome contém termos não permitidos');
     }
 
     // Nada para atualizar? encerra cedo
@@ -129,8 +127,17 @@ export class EditProfileUseCase {
     if ('name' in dto)
       out.name = typeof dto.name === 'string' ? dto.name.trim() : undefined;
 
-    if ('phone' in dto)
-      out.phone = typeof dto.phone === 'string' ? dto.phone.trim() : undefined;
+    if ('phone' in dto) {
+      const rawPhone =
+        typeof dto.phone === 'string' ? dto.phone.trim() : undefined;
+      if (rawPhone) {
+        const national = normalizePhoneNational(rawPhone);
+        if (!national) throw new BadRequestException('Telefone inválido');
+        out.phone = national;
+      } else {
+        out.phone = rawPhone;
+      }
+    }
 
     if ('document_number' in dto) {
       if (dto.document_number === null) {

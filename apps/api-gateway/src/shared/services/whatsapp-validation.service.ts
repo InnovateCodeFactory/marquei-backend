@@ -1,3 +1,4 @@
+import { toWhatsAppNumber } from '@app/shared/utils';
 import { PrismaService } from '@app/shared';
 import { UserTypeEnum } from '@app/shared/enum';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
@@ -52,8 +53,8 @@ export class WhatsAppValidationService {
     }
 
     // normaliza telefone e garante DDI 55
-    const phone = this.normalizePhoneNumber(payload.phone_number);
-    if (phone.length < 12) throw new BadRequestException('Telefone inválido');
+    const phone = toWhatsAppNumber(payload.phone_number);
+    if (!phone) throw new BadRequestException('Telefone inválido');
 
     await this.rmqService.publishToQueue({
       routingKey:
@@ -277,21 +278,5 @@ export class WhatsAppValidationService {
   private maskCode(code: string) {
     // mantém 2 últimos dígitos visíveis
     return code.replace(/.(?=.{2}$)/g, '*');
-  }
-
-  private normalizePhoneNumber(raw: string): string {
-    const digits = raw.replace(/\D/g, '');
-    if (!digits) return '';
-    const normalized = digits.replace(/^0+/, '');
-    if (
-      (normalized.length === 12 || normalized.length === 13) &&
-      normalized.startsWith('55')
-    ) {
-      return normalized;
-    }
-    if (normalized.length === 10 || normalized.length === 11) {
-      return `55${normalized}`;
-    }
-    return normalized.startsWith('55') ? normalized : `55${normalized}`;
   }
 }

@@ -3,8 +3,16 @@ import { SendWelcomeMailDto } from '@app/shared/dto/messaging/mail-notifications
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
 import { HashingService, TokenService } from '@app/shared/services';
-import { getFirstName, hasProhibitedTerm } from '@app/shared/utils';
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import {
+  getFirstName,
+  hasProhibitedTerm,
+  normalizePhoneNational,
+} from '@app/shared/utils';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { CreateUserCustomerDto } from '../dto/requests/create-customer.dto';
 
 @Injectable()
@@ -19,7 +27,8 @@ export class CreateCustomerUseCase {
   async execute(dto: CreateUserCustomerDto) {
     const name = dto.name.trim();
     const email = dto.email.trim().toLowerCase();
-    const phone = dto.phone.trim();
+    const phone = normalizePhoneNational(dto.phone);
+    if (!phone) throw new BadRequestException('Telefone inválido');
     const deviceToken = dto.device_token?.trim();
 
     if (hasProhibitedTerm(name, 'customer')) {

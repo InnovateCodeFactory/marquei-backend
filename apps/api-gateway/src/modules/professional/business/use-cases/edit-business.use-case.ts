@@ -10,13 +10,15 @@ import { lookup as dnsLookup } from 'node:dns/promises';
 import { request as httpsRequest } from 'node:https';
 import { isIP } from 'node:net';
 import { EditBusinessDto } from '../dto/requests/edit-business.dto';
-import { hasProhibitedTerm, validateBusinessOpeningHours } from '@app/shared/utils';
+import {
+  hasProhibitedTerm,
+  validateBusinessOpeningHours,
+  normalizePhoneNational,
+} from '@app/shared/utils';
 
 @Injectable()
 export class EditBusinessUseCase {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async execute(user: CurrentUser, dto: EditBusinessDto) {
     const businessId = user?.current_selected_business_id;
@@ -25,7 +27,11 @@ export class EditBusinessUseCase {
     const data: Prisma.BusinessUpdateInput = {};
     const validations: Array<Promise<void>> = [];
 
-    if ('name' in dto && typeof dto.name === 'string' && dto.name.trim().length) {
+    if (
+      'name' in dto &&
+      typeof dto.name === 'string' &&
+      dto.name.trim().length
+    ) {
       if (hasProhibitedTerm(dto.name, 'business')) {
         throw new BadRequestException(
           'Nome do estabelecimento contém termos não permitidos',
@@ -34,7 +40,15 @@ export class EditBusinessUseCase {
       data.name = dto.name.trim();
     }
     if ('description' in dto) data.description = dto.description ?? null;
-    if ('phone' in dto) data.phone = dto.phone ?? null;
+    if ('phone' in dto) {
+      if (dto.phone) {
+        const national = normalizePhoneNational(dto.phone);
+        if (!national) throw new BadRequestException('Telefone inválido');
+        data.phone = national;
+      } else {
+        data.phone = null;
+      }
+    }
     if ('email' in dto) data.email = dto.email ?? null;
     if ('website' in dto) {
       data.website = dto.website ?? null;
@@ -75,7 +89,11 @@ export class EditBusinessUseCase {
     });
     if (!exists) throw new NotFoundException('Business not found');
 
-    await this.prisma.business.update({ where: { id: businessId }, data, select: { id: true } });
+    await this.prisma.business.update({
+      where: { id: businessId },
+      data,
+      select: { id: true },
+    });
 
     return null;
   }
@@ -84,7 +102,9 @@ export class EditBusinessUseCase {
     const parsed = this.normalizeUrl(url);
     if (!parsed) {
       throw new BadRequestException(
-        field === 'website' ? 'URL do site inválida' : 'URL do Instagram inválida',
+        field === 'website'
+          ? 'URL do site inválida'
+          : 'URL do Instagram inválida',
       );
     }
 
@@ -118,7 +138,9 @@ export class EditBusinessUseCase {
     const ok = await this.checkUrlReachable(parsed);
     if (!ok) {
       throw new BadRequestException(
-        field === 'website' ? 'Site não encontrado' : 'Instagram não encontrado',
+        field === 'website'
+          ? 'Site não encontrado'
+          : 'Instagram não encontrado',
       );
     }
   }

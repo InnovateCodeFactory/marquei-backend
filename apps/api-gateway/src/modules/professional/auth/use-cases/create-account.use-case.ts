@@ -13,6 +13,7 @@ import {
   normalizeNotificationTemplate,
   slugifyBusinessName,
   validateBusinessOpeningHours,
+  normalizePhoneNational,
 } from '@app/shared/utils';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateAccountDto } from '../dto/requests/create-account';
@@ -44,7 +45,9 @@ export class CreateAccountUseCase {
     const email = trimValue(registerDto.email)?.toLowerCase();
     const password = registerDto.password;
     const documentNumber = trimValue(registerDto.documentNumber);
-    const phone = trimValue(registerDto.phone);
+    const rawPhone = trimValue(registerDto.phone);
+    const phone = rawPhone ? normalizePhoneNational(rawPhone) : rawPhone;
+    if (rawPhone && !phone) throw new BadRequestException('Telefone inválido');
     const business = {
       ...registerDto.business,
       name: trimValue(registerDto.business?.name),
