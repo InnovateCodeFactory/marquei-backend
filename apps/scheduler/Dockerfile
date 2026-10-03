@@ -9,7 +9,7 @@ ARG APP_PORT
 WORKDIR /app
 
 COPY pnpm-lock.yaml package.json ./
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9 --activate
 RUN pnpm fetch
 
 # ========================
@@ -23,7 +23,7 @@ ARG APP_PORT
 WORKDIR /app
 
 COPY . .
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9 --activate
 RUN pnpm install --frozen-lockfile
 
 # Copia .env global para dentro da imagem
