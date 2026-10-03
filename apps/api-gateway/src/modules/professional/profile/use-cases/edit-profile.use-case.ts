@@ -1,9 +1,14 @@
 import { PrismaService } from '@app/shared';
 import { AppRequest } from '@app/shared/types/app-request';
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { EditProfessionalProfileDto } from '../dto/requests/edit-profile.dto';
-import { hasProhibitedTerm } from '@app/shared/utils';
+import { hasProhibitedTerm, normalizePhoneNational } from '@app/shared/utils';
 
 type NormalizedPayload = {
   email?: string;
@@ -26,7 +31,8 @@ export class EditProfessionalProfileUseCase {
       where: { userId, business_id: current_selected_business_id },
       select: { id: true },
     });
-    if (!prof) throw new NotFoundException('Perfil profissional não encontrado');
+    if (!prof)
+      throw new NotFoundException('Perfil profissional não encontrado');
 
     const norm = this.normalize(dto);
     if (this.isEmpty(norm)) return null;
@@ -38,10 +44,15 @@ export class EditProfessionalProfileUseCase {
     // e-mail único por user_type=PROFESSIONAL
     if (norm.email) {
       const exists = await this.prisma.user.findFirst({
-        where: { email: norm.email, user_type: 'PROFESSIONAL', NOT: { id: userId } },
+        where: {
+          email: norm.email,
+          user_type: 'PROFESSIONAL',
+          NOT: { id: userId },
+        },
         select: { id: true },
       });
-      if (exists) throw new ConflictException('E-mail já em uso para conta profissional');
+      if (exists)
+        throw new ConflictException('E-mail já em uso para conta profissional');
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -59,16 +70,26 @@ export class EditProfessionalProfileUseCase {
       const data: Prisma.UserUpdateInput = { ...userUpdate };
       // update ProfessionalProfile in parallel
       if (Object.keys(profUpdate).length > 0) {
-        await tx.professionalProfile.update({ where: { id: prof.id }, data: profUpdate, select: { id: true } });
+        await tx.professionalProfile.update({
+          where: { id: prof.id },
+          data: profUpdate,
+          select: { id: true },
+        });
       }
 
       if (Object.keys(data).length === 0) return null;
 
       try {
-        await tx.user.update({ where: { id: userId }, data, select: { id: true } });
+        await tx.user.update({
+          where: { id: userId },
+          data,
+          select: { id: true },
+        });
       } catch (err) {
         if (isUniqueConstraintError(err)) {
-          const field = extractUniqueFieldFromError(err as Prisma.PrismaClientKnownRequestError);
+          const field = extractUniqueFieldFromError(
+            err as Prisma.PrismaClientKnownRequestError,
+          );
           throw new ConflictException(getConflictMessage(field));
         }
         throw err;
@@ -81,10 +102,27 @@ export class EditProfessionalProfileUseCase {
   private normalize(dto: EditProfessionalProfileDto): NormalizedPayload {
     const out: NormalizedPayload = {};
     if ('email' in dto)
-      out.email = typeof dto.email === 'string' ? dto.email.trim().toLowerCase() : undefined;
+      out.email =
+        typeof dto.email === 'string'
+          ? dto.email.trim().toLowerCase()
+          : undefined;
     if ('name' in dto)
       out.name = typeof dto.name === 'string' ? dto.name.trim() : undefined;
-    if ('phone' in dto) out.phone = dto.phone === null ? null : typeof dto.phone === 'string' ? dto.phone.trim() : undefined;
+    if ('phone' in dto) {
+      const rawPhone =
+        dto.phone === null
+          ? null
+          : typeof dto.phone === 'string'
+            ? dto.phone.trim()
+            : undefined;
+      if (rawPhone) {
+        const national = normalizePhoneNational(rawPhone);
+        if (!national) throw new BadRequestException('Telefone inválido');
+        out.phone = national;
+      } else {
+        out.phone = rawPhone;
+      }
+    }
     if ('document_number' in dto) {
       if (dto.document_number === null) out.document_number = null;
       else if (typeof dto.document_number === 'string') {
@@ -100,10 +138,14 @@ export class EditProfessionalProfileUseCase {
   }
 }
 
-function isUniqueConstraintError(err: unknown): err is Prisma.PrismaClientKnownRequestError {
+function isUniqueConstraintError(
+  err: unknown,
+): err is Prisma.PrismaClientKnownRequestError {
   return !!err && typeof err === 'object' && (err as any).code === 'P2002';
 }
-function extractUniqueFieldFromError(err: Prisma.PrismaClientKnownRequestError): string | undefined {
+function extractUniqueFieldFromError(
+  err: Prisma.PrismaClientKnownRequestError,
+): string | undefined {
   const target = (err.meta as any)?.target as string | string[] | undefined;
   if (Array.isArray(target) && target.length) return target[0];
   if (typeof target === 'string') return target;

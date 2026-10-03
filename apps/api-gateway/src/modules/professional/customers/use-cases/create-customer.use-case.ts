@@ -5,18 +5,14 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
-import { hasProhibitedTerm } from '@app/shared/utils';
+import { hasProhibitedTerm, normalizePhoneNational } from '@app/shared/utils';
 import { CreateCustomerDto } from '../dto/requests/create-customer.dto';
 
 export function normalizePhoneBR(phone?: string | null) {
   if (!phone) return null;
-  const digits = phone.replace(/\D/g, '');
-  if (!digits) return null;
-  let normalized = digits.replace(/^0+/, '');
-  if (normalized.startsWith('55') && normalized.length > 11) {
-    normalized = normalized.slice(2);
-  }
-  return normalized;
+  const national = normalizePhoneNational(phone);
+  if (!national) throw new BadRequestException('Telefone inválido');
+  return national;
 }
 
 function normalizeInput(dto: CreateCustomerDto) {

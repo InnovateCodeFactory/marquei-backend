@@ -1,14 +1,18 @@
 import { PrismaService } from '@app/shared';
 import { CurrentUser } from '@app/shared/types/app-request';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { hasProhibitedTerm } from '@app/shared/utils';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { hasProhibitedTerm, normalizePhoneNational } from '@app/shared/utils';
 import { UpdateCustomerDto } from '../dto/requests/update-customer.dto';
 
-function toE164(phone?: string | null) {
-  if (!phone) return null;
-  if (phone.startsWith('+55')) return `+55${phone.slice(2)}`;
-  if (phone.startsWith('55')) return `+${phone}`;
-  return `+55${phone}`;
+function toNationalPhone(phone?: string | null) {
+  if (!phone || !phone.trim()) return null;
+  const national = normalizePhoneNational(phone);
+  if (!national) throw new BadRequestException('Telefone inválido');
+  return national;
 }
 
 @Injectable()
@@ -37,7 +41,9 @@ export class UpdateCustomerUseCase {
       ...(payload.email !== undefined && {
         email: payload.email.trim().toLowerCase() || null,
       }),
-      ...(payload.phone !== undefined && { phone: toE164(payload.phone) }),
+      ...(payload.phone !== undefined && {
+        phone: toNationalPhone(payload.phone),
+      }),
       ...(payload.birthdate !== undefined && {
         birthdate: payload.birthdate ? new Date(payload.birthdate) : null,
       }),
@@ -46,7 +52,9 @@ export class UpdateCustomerUseCase {
     const bcData = this.cleanObject({
       ...(payload.notes !== undefined && { notes: payload.notes || null }),
       ...(payload.email !== undefined && { email: payload.email || null }),
-      ...(payload.phone !== undefined && { phone: payload.phone || null }),
+      ...(payload.phone !== undefined && {
+        phone: toNationalPhone(payload.phone),
+      }),
       ...(payload.isBlocked !== undefined && { is_blocked: payload.isBlocked }),
     });
 

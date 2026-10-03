@@ -11,6 +11,7 @@ import {
   generateRandomString,
   getFirstName,
   hasProhibitedTerm,
+  normalizePhoneNational,
 } from '@app/shared/utils';
 import {
   BadRequestException,
@@ -40,7 +41,9 @@ export class CreateProfessionalUseCase {
       typeof value === 'string' ? value.trim() : value;
     const name = trimValue(payload.name);
     const email = trimValue(payload.email)?.toLowerCase();
-    const phone = trimValue(payload.phone);
+    const rawPhone = trimValue(payload.phone);
+    const phone = rawPhone ? normalizePhoneNational(rawPhone) : rawPhone;
+    if (rawPhone && !phone) throw new BadRequestException('Telefone inválido');
 
     if (name && hasProhibitedTerm(name, 'user')) {
       throw new BadRequestException('Nome contém termos não permitidos');

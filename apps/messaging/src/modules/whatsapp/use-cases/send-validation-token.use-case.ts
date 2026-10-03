@@ -8,7 +8,7 @@ import { EnvSchemaType } from '@app/shared/environment';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RABBIT_EXCHANGE } from '@app/shared/modules/rmq/rmq.service';
 import { EncryptionService } from '@app/shared/services';
-import { codeGenerator } from '@app/shared/utils';
+import { codeGenerator, toWhatsAppNumber } from '@app/shared/utils';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -54,7 +54,11 @@ export class SendValidationTokenUseCase {
     }
 
     // normaliza número e garante DDI 55
-    const phone = this.normalizePhoneNumber(phone_number);
+    const phone = toWhatsAppNumber(phone_number);
+    if (!phone) {
+      this.logger.error('Telefone inválido para envio do token de validação');
+      return;
+    }
 
     // Regra de negócio: 6 dígitos numéricos
     const code = codeGenerator({ onlyNumbers: true, length: 6 });
@@ -142,24 +146,5 @@ export class SendValidationTokenUseCase {
       // (Opcional) Disparar DLQ / retentativa / métrica
       // this.emitRetryEvent(phone);
     }
-  }
-
-  private normalizePhoneNumber(raw: string): string {
-    const digits = raw.replace(/\D/g, '');
-    if (!digits) return '';
-    const normalized = digits.replace(/^0+/, '');
-    // Se já vier com DDI (12 ou 13 dígitos) e começar com 55, mantém
-    if (
-      (normalized.length === 12 || normalized.length === 13) &&
-      normalized.startsWith('55')
-    ) {
-      return normalized;
-    }
-    // Se vier apenas com DDD+telefone (10 ou 11 dígitos), prefixa DDI 55
-    if (normalized.length === 10 || normalized.length === 11) {
-      return `55${normalized}`;
-    }
-    // Fallback: evita duplicar 55, mas tenta padronizar
-    return normalized.startsWith('55') ? normalized : `55${normalized}`;
   }
 }
