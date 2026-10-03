@@ -4,7 +4,9 @@ import { SendPushNotificationDto } from '@app/shared/dto/messaging/push-notifica
 import { GoogleCalendarService } from '@app/shared/modules/google-calendar/google-calendar.service';
 import { MESSAGING_QUEUES } from '@app/shared/modules/rmq/constants';
 import { RmqService } from '@app/shared/modules/rmq/rmq.service';
-import { AppointmentEventsStreamService } from '@app/shared/services';
+import { AppointmentEventsStreamService,
+  WaitlistHoldService,
+} from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import {
   formatDurationToHoursAndMinutes,
@@ -36,6 +38,7 @@ export class RescheduleAppointmentUseCase {
     private readonly rmqService: RmqService,
     private readonly googleCalendarService: GoogleCalendarService,
     private readonly appointmentEventsStreamService: AppointmentEventsStreamService,
+    private readonly waitlistHoldService: WaitlistHoldService,
   ) {}
 
   async execute(body: RescheduleAppointmentDto, req: AppRequest) {
@@ -132,6 +135,34 @@ export class RescheduleAppointmentUseCase {
     if (overlapping) {
       throw new BadRequestException(
         'Já existe um agendamento que conflita com esse novo horário para este profissional.',
+      );
+    }
+
+    const overlappingBlock = await this.prisma.professionalTimesBlock.findFirst({
+      where: {
+        professionalProfileId: appointment.professionalProfileId,
+        businessId: appointment.professional.business_id,
+        start_at_utc: { lt: newEndUtc },
+        end_at_utc: { gt: newStartUtc },
+      },
+      select: { id: true },
+    });
+
+    if (overlappingBlock) {
+      throw new BadRequestException(
+        'Este horário está bloqueado na agenda do profissional.',
+      );
+    }
+
+    const waitlistHold = await this.waitlistHoldService.findBlockingHold({
+      professionalProfileId: appointment.professionalProfileId,
+      startUtc: newStartUtc,
+      endUtc: newEndUtc,
+    });
+
+    if (waitlistHold) {
+      throw new BadRequestException(
+        'Este horário está reservado para a lista de espera. Tente outro horário.',
       );
     }
 

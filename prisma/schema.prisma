@@ -43,21 +43,25 @@ model User {
   personId String? @unique
   person   Person? @relation("UserPerson", fields: [personId], references: [id])
 
-  businesses               Business[]                @relation("BusinessOwners")
-  professional_profile     ProfessionalProfile[]
-  CurrentSelectedBusiness  CurrentSelectedBusiness[]
-  guest                    Guest?                    @relation(name: "UserGuest")
-  UploadedMedia            UploadedMedia[]
-  BusinessRating           BusinessRating[]
-  BugReports               BugReports[]
-  integrations             UserIntegration[]
-  businessRatingPrompts    BusinessRatingPrompt[]
-  appUpdateInteractions    AppUpdateInteraction[]
-  appReviewEvents          AppReviewEvent[]
-  businessPortfolioFolders BusinessPortfolioFolder[]
-  businessPortfolioItems   BusinessPortfolioItem[]
-  serviceCombosCreated     ServiceCombo[]            @relation("ServiceComboCreatedBy")
-  serviceCombosUpdated     ServiceCombo[]            @relation("ServiceComboUpdatedBy")
+  businesses                        Business[]                   @relation("BusinessOwners")
+  professional_profile              ProfessionalProfile[]
+  CurrentSelectedBusiness           CurrentSelectedBusiness[]
+  guest                             Guest?                       @relation(name: "UserGuest")
+  UploadedMedia                     UploadedMedia[]
+  BusinessRating                    BusinessRating[]
+  BugReports                        BugReports[]
+  integrations                      UserIntegration[]
+  businessRatingPrompts             BusinessRatingPrompt[]
+  appUpdateInteractions             AppUpdateInteraction[]
+  appReviewEvents                   AppReviewEvent[]
+  businessPortfolioFolders          BusinessPortfolioFolder[]
+  businessPortfolioItems            BusinessPortfolioItem[]
+  serviceCombosCreated              ServiceCombo[]               @relation("ServiceComboCreatedBy")
+  serviceCombosUpdated              ServiceCombo[]               @relation("ServiceComboUpdatedBy")
+  customerServicePlansCreated       CustomerServicePlan[]        @relation("CustomerServicePlanCreatedBy")
+  customerServicePlansUpdated       CustomerServicePlan[]        @relation("CustomerServicePlanUpdatedBy")
+  customerPlanSubscriptionsSold     CustomerPlanSubscription[]   @relation("CustomerPlanSubscriptionSoldBy")
+  recurringAppointmentSeriesCreated RecurringAppointmentSeries[] @relation("RecurringAppointmentSeriesCreatedBy")
 
   @@unique([email, user_type], name: "uq_user_email_type")
   @@index([email, user_type], name: "idx_user_email_user_type")
@@ -97,66 +101,74 @@ model UserIntegration {
 }
 
 model Business {
-  id                       String                     @id @default(cuid())
-  name                     String
-  slug                     String                     @unique
-  description              String?
-  logo                     String?
-  coverImage               String?
-  latitude                 Float // Latitude para localização
-  longitude                Float // Longitude para localização
-  location                 Unsupported("geography")?  @map("location")
-  opening_hours            Json
-  website                  String?
-  instagram                String?
-  email                    String?
-  public_type              BusinessPublicType         @default(BOTH)
-  business_category_custom String? // categoria customizada, se aplicável
-  is_active                Boolean                    @default(true)
-  is_test                  Boolean                    @default(false)
-  is_verified              Boolean                    @default(false)
-  is_featured              Boolean                    @default(false)
-  rating                   Float                      @default(0.0)
-  reviews_count            Int                        @default(0)
-  total_one_star           Int                        @default(0)
-  total_two_star           Int                        @default(0)
-  total_three_star         Int                        @default(0)
-  total_four_star          Int                        @default(0)
-  total_five_star          Int                        @default(0)
-  average_price            Float                      @default(0.0) // preço médio dos serviços
-  stripe_customer_id       String? // ID do cliente no Stripe, se aplicável
-  phone                    String?
-  zipCode                  String?
-  street                   String?
-  neighbourhood            String?
-  number                   String?
-  complement               String?
-  city                     String?
-  uf                       String?
-  ownerId                  String
-  owner                    User                       @relation("BusinessOwners", fields: [ownerId], references: [id])
-  professionals            ProfessionalProfile[]
-  services                 Service[]
-  created_at               DateTime                   @default(now())
-  updated_at               DateTime                   @updatedAt
-  BusinessCategory         BusinessCategory?          @relation(fields: [businessCategoryId], references: [id])
-  businessCategoryId       String?
-  BusinessServiceType      BusinessServiceType?       @relation(fields: [businessServiceTypeId], references: [id])
-  businessServiceTypeId    String?
-  BusinessSubscription     BusinessSubscription[]
-  CurrentSelectedBusiness  CurrentSelectedBusiness[]
-  ProfessionalStatement    ProfessionalStatement[]
-  BusinessCustomer         BusinessCustomer[]
-  BusinessRating           BusinessRating[]
-  Favorites                Favorite[]
-  BusinessReminderSettings BusinessReminderSettings[]
-  ReminderJob              ReminderJob[]
-  ProfessionalTimesBlock   ProfessionalTimesBlock[]
-  amenities                BusinessAmenity[]
-  businessRatingPrompts    BusinessRatingPrompt[]
-  portfolioFolders         BusinessPortfolioFolder[]
-  portfolioItems           BusinessPortfolioItem[]
-  serviceCombos            ServiceCombo[]
+  id                         String                       @id @default(cuid())
+  is_waitlist_enabled        Boolean                      @default(true)
+  waitlist_offer_ttl_minutes Int                          @default(10)
+  waitlistEntries            WaitlistEntry[]
+  waitlistOffers             WaitlistOffer[]
+  name                       String
+  slug                       String                       @unique
+  description                String?
+  logo                       String?
+  coverImage                 String?
+  latitude                   Float // Latitude para localização
+  longitude                  Float // Longitude para localização
+  location                   Unsupported("geography")?    @map("location")
+  opening_hours              Json
+  website                    String?
+  instagram                  String?
+  email                      String?
+  public_type                BusinessPublicType           @default(BOTH)
+  business_category_custom   String? // categoria customizada, se aplicável
+  is_active                  Boolean                      @default(true)
+  is_test                    Boolean                      @default(false)
+  is_verified                Boolean                      @default(false)
+  is_featured                Boolean                      @default(false)
+  rating                     Float                        @default(0.0)
+  reviews_count              Int                          @default(0)
+  total_one_star             Int                          @default(0)
+  total_two_star             Int                          @default(0)
+  total_three_star           Int                          @default(0)
+  total_four_star            Int                          @default(0)
+  total_five_star            Int                          @default(0)
+  average_price              Float                        @default(0.0) // preço médio dos serviços
+  stripe_customer_id         String? // ID do cliente no Stripe, se aplicável
+  phone                      String?
+  zipCode                    String?
+  street                     String?
+  neighbourhood              String?
+  number                     String?
+  complement                 String?
+  city                       String?
+  uf                         String?
+  ownerId                    String
+  owner                      User                         @relation("BusinessOwners", fields: [ownerId], references: [id])
+  professionals              ProfessionalProfile[]
+  services                   Service[]
+  created_at                 DateTime                     @default(now())
+  updated_at                 DateTime                     @updatedAt
+  BusinessCategory           BusinessCategory?            @relation(fields: [businessCategoryId], references: [id])
+  businessCategoryId         String?
+  BusinessServiceType        BusinessServiceType?         @relation(fields: [businessServiceTypeId], references: [id])
+  businessServiceTypeId      String?
+  BusinessSubscription       BusinessSubscription[]
+  CurrentSelectedBusiness    CurrentSelectedBusiness[]
+  ProfessionalStatement      ProfessionalStatement[]
+  BusinessCustomer           BusinessCustomer[]
+  customerServicePlans       CustomerServicePlan[]
+  customerPlanSubscriptions  CustomerPlanSubscription[]
+  customerServicePlanCycles  CustomerServicePlanCycle[]
+  recurringAppointmentSeries RecurringAppointmentSeries[]
+  BusinessRating             BusinessRating[]
+  Favorites                  Favorite[]
+  BusinessReminderSettings   BusinessReminderSettings[]
+  ReminderJob                ReminderJob[]
+  ProfessionalTimesBlock     ProfessionalTimesBlock[]
+  amenities                  BusinessAmenity[]
+  businessRatingPrompts      BusinessRatingPrompt[]
+  portfolioFolders           BusinessPortfolioFolder[]
+  portfolioItems             BusinessPortfolioItem[]
+  serviceCombos              ServiceCombo[]
 
   @@index([slug], name: "idx_business_slug")
   @@index([name], name: "idx_business_name")
@@ -191,10 +203,14 @@ model BusinessReminderSettings {
 }
 
 model ReminderJob {
-  id               String            @id @default(cuid())
+  id               String               @id @default(cuid())
   businessId       String
-  appointmentId    String
+  appointmentId    String?
   personId         String
+  type             BusinessReminderType @default(APPOINTMENT_REMINDER)
+  // Lembretes de plano (PLAN_*): assinatura e ciclo aos quais o aviso se refere
+  customerPlanSubscriptionId String?
+  cycleId                    String?
   channel          ReminderChannel
   due_at_utc       DateTime // quando disparar (UTC)
   scheduled_at_utc DateTime?
@@ -204,15 +220,20 @@ model ReminderJob {
   attempts         Int               @default(0)
   metadata         Json?
 
-  business    Business    @relation(fields: [businessId], references: [id])
-  appointment Appointment @relation(fields: [appointmentId], references: [id])
-  person      Person      @relation(fields: [personId], references: [id])
+  business             Business                  @relation(fields: [businessId], references: [id])
+  appointment          Appointment?              @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  person               Person                    @relation(fields: [personId], references: [id])
+  customerPlanSubscription CustomerPlanSubscription? @relation(fields: [customerPlanSubscriptionId], references: [id])
+  cycle                CustomerServicePlanCycle? @relation(fields: [cycleId], references: [id])
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
   // Evita duplicar o mesmo lembrete do mesmo agendamento/canal/hora
   @@unique([appointmentId, channel, due_at_utc], name: "uq_job_apt_channel_due")
+  // Um aviso de plano por assinatura/ciclo/tipo/canal (idempotência)
+  @@unique([customerPlanSubscriptionId, cycleId, type, channel], name: "uq_job_plan_cycle_type_channel")
+  @@index([type, status, due_at_utc], name: "idx_job_type_status_due")
   @@index([status, due_at_utc], name: "idx_job_status_due")
   @@index([businessId], name: "idx_job_business")
   @@index([appointmentId], name: "idx_job_appointment")
@@ -262,19 +283,23 @@ model CurrentSelectedBusiness {
 }
 
 model Service {
-  id             String                @id @default(cuid())
-  name           String
-  duration       Int // Minutos
-  price_in_cents Int // preço padrão do serviço
-  businessId     String
-  business       Business              @relation(fields: [businessId], references: [id])
-  is_active      Boolean               @default(true)
-  color          String                @default("#4647fa")
-  appointments   Appointment[]
-  professionals  ProfessionalService[] // relação com a pivot
-  combo_items    ServiceComboItem[]
-  created_at     DateTime              @default(now())
-  updated_at     DateTime              @updatedAt
+  id                String                       @id @default(cuid())
+  waitlistEntries WaitlistEntry[]
+  waitlistOffers  WaitlistOffer[]
+  name              String
+  duration          Int // Minutos
+  price_in_cents    Int // preço padrão do serviço
+  businessId        String
+  business          Business                     @relation(fields: [businessId], references: [id])
+  is_active         Boolean                      @default(true)
+  color             String                       @default("#4647fa")
+  appointments      Appointment[]
+  professionals     ProfessionalService[] // relação com a pivot
+  combo_items       ServiceComboItem[]
+  customerPlanItems CustomerServicePlanService[]
+  recurringSeries   RecurringAppointmentSeries[]
+  created_at        DateTime                     @default(now())
+  updated_at        DateTime                     @updatedAt
 
   @@unique([name, businessId]) // evita duplicidade de serviços no mesmo negócio
   @@index([name], name: "idx_service_name")
@@ -283,6 +308,8 @@ model Service {
 
 model ProfessionalProfile {
   id String @id @default(cuid())
+  waitlistEntries WaitlistEntry[]
+  waitlistOffers  WaitlistOffer[]
 
   business_id   String
   business      Business                   @relation(fields: [business_id], references: [id])
@@ -295,19 +322,21 @@ model ProfessionalProfile {
   push_notification_enabled  Boolean @default(true)
   email_notification_enabled Boolean @default(true)
 
-  status                 ProfessionalStatus       @default(ACTIVE) // status do profissional
-  created_at             DateTime                 @default(now())
-  updated_at             DateTime                 @updatedAt
-  rating                 Float                    @default(0.0)
-  reviewsCount           Int                      @default(0)
-  averagePrice           Float                    @default(0.0) // preço médio dos serviços oferecidos
+  status                           ProfessionalStatus           @default(ACTIVE) // status do profissional
+  created_at                       DateTime                     @default(now())
+  updated_at                       DateTime                     @updatedAt
+  rating                           Float                        @default(0.0)
+  reviewsCount                     Int                          @default(0)
+  averagePrice                     Float                        @default(0.0) // preço médio dos serviços oferecidos
   //availability Json?             // JSON com horários disponíveis (ex: {"Monday": ["09:00", "17:00"], "Tuesday": ["10:00", "18:00"]})
-  User                   User?                    @relation(fields: [userId], references: [id])
-  userId                 String?
-  in_app_notification    InAppNotification[]
-  Appointment            Appointment[]
-  ProfessionalStatement  ProfessionalStatement[]
-  ProfessionalTimesBlock ProfessionalTimesBlock[]
+  User                             User?                        @relation(fields: [userId], references: [id])
+  userId                           String?
+  in_app_notification              InAppNotification[]
+  Appointment                      Appointment[]
+  ProfessionalStatement            ProfessionalStatement[]
+  ProfessionalTimesBlock           ProfessionalTimesBlock[]
+  customerPlanRevenueSubscriptions CustomerPlanSubscription[]   @relation("CustomerPlanRevenueProfessional")
+  recurringAppointmentSeries       RecurringAppointmentSeries[]
 
   @@index([business_id], name: "idx_professional_business")
   @@index([userId], name: "idx_professional_user")
@@ -359,20 +388,24 @@ model ProfessionalStatement {
   professional_profile  ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
   professionalProfileId String
 
-  appointment    Appointment?  @relation(fields: [appointmentId], references: [id])
-  appointmentId  String?
-  businessId     String
-  serviceComboId String?
-  serviceCombo   ServiceCombo? @relation(fields: [serviceComboId], references: [id])
+  appointment                Appointment?              @relation(fields: [appointmentId], references: [id])
+  appointmentId              String?
+  customerPlanSubscription   CustomerPlanSubscription? @relation(fields: [customerPlanSubscriptionId], references: [id])
+  customerPlanSubscriptionId String?
+  businessId                 String
+  serviceComboId             String?
+  serviceCombo               ServiceCombo?             @relation(fields: [serviceComboId], references: [id])
 
   @@index([professionalProfileId], name: "idx_professional_statement_profile")
   @@index([businessId], name: "idx_professional_statement_business")
   @@index([businessId, type, created_at], name: "idx_ps_business_type_created_at")
   @@index([serviceComboId], name: "idx_professional_statement_service_combo")
+  @@index([customerPlanSubscriptionId], name: "idx_ps_customer_plan_subscription")
 }
 
 model Appointment {
   id         String            @id @default(cuid())
+  waitlistEntry WaitlistEntry?
   service_id String
   status     AppointmentStatus
   notes      String?
@@ -395,23 +428,28 @@ model Appointment {
   serviceCombo   ServiceCombo?       @relation(fields: [serviceComboId], references: [id])
   customerPerson Person              @relation(fields: [personId], references: [id])
 
-  created_at            DateTime                @default(now())
-  updated_at            DateTime                @updatedAt
+  created_at            DateTime                         @default(now())
+  updated_at            DateTime                         @updatedAt
   professionalProfileId String
   personId              String
   events                AppointmentEvent[]
   ProfessionalStatement ProfessionalStatement[]
   ReminderJob           ReminderJob[]
+  planRedemption        AppointmentPlanRedemption?
+  recurringOccurrences  RecurringAppointmentOccurrence[]
 
   @@index([service_id], name: "idx_appointment_service")
   @@index([serviceComboId], name: "idx_appointment_service_combo")
   @@index([personId], name: "idx_appointment_person")
   @@index([professionalProfileId, start_at_utc], name: "idx_professional_start")
   @@index([professionalProfileId, end_at_utc], name: "idx_professional_end")
+  @@index([personId, status, start_at_utc], name: "idx_appointment_person_status_start")
 }
 
 model ServiceCombo {
   id                      String                   @id @default(cuid())
+  waitlistEntries WaitlistEntry[]
+  waitlistOffers  WaitlistOffer[]
   businessId              String
   business                Business                 @relation(fields: [businessId], references: [id])
   name                    String
@@ -433,12 +471,14 @@ model ServiceCombo {
   created_at              DateTime                 @default(now())
   updated_at              DateTime                 @updatedAt
 
-  created_by    User                       @relation("ServiceComboCreatedBy", fields: [created_by_user_id], references: [id])
-  updated_by    User?                      @relation("ServiceComboUpdatedBy", fields: [updated_by_user_id], references: [id])
-  items         ServiceComboItem[]
-  professionals ProfessionalServiceCombo[]
-  appointments  Appointment[]
-  statements    ProfessionalStatement[]
+  created_by        User                         @relation("ServiceComboCreatedBy", fields: [created_by_user_id], references: [id])
+  updated_by        User?                        @relation("ServiceComboUpdatedBy", fields: [updated_by_user_id], references: [id])
+  items             ServiceComboItem[]
+  professionals     ProfessionalServiceCombo[]
+  appointments      Appointment[]
+  statements        ProfessionalStatement[]
+  customerPlanItems CustomerServicePlanCombo[]
+  recurringSeries   RecurringAppointmentSeries[]
 
   @@index([businessId], name: "idx_service_combo_business")
   @@index([businessId, is_active], name: "idx_service_combo_business_active")
@@ -507,6 +547,7 @@ model ProfessionalTimesBlock {
 // Vincular pessoa como user do tipo Customer e vincular como cliente das empresas
 model Person {
   id              String  @id @default(cuid())
+  waitlistEntries WaitlistEntry[]
   // Identificadores para dedupe e match automático
   document_number String? @unique // CPF/CNPJ, limpo e sem máscara
   email           String? @unique // email em minúsculas
@@ -524,12 +565,14 @@ model Person {
   updated_at DateTime @updatedAt
 
   // Relacionamentos
-  user              User?               @relation("UserPerson")
-  businessLinks     BusinessCustomer[]
-  Appointment       Appointment[]
-  InAppNotification InAppNotification[]
-  favorites         Favorite[]
-  ReminderJob       ReminderJob[]
+  user                       User?                        @relation("UserPerson")
+  businessLinks              BusinessCustomer[]
+  Appointment                Appointment[]
+  InAppNotification          InAppNotification[]
+  favorites                  Favorite[]
+  ReminderJob                ReminderJob[]
+  customerPlanSubscriptions  CustomerPlanSubscription[]
+  recurringAppointmentSeries RecurringAppointmentSeries[]
 
   @@index([email], name: "idx_person_email")
 }
@@ -550,6 +593,7 @@ model Favorite {
 
 model BusinessCustomer {
   id         String @id @default(cuid())
+  waitlistEntries WaitlistEntry[]
   businessId String
   personId   String
 
@@ -565,13 +609,230 @@ model BusinessCustomer {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  business Business @relation(fields: [businessId], references: [id])
-  person   Person   @relation(fields: [personId], references: [id])
+  business                   Business                     @relation(fields: [businessId], references: [id])
+  person                     Person                       @relation(fields: [personId], references: [id])
+  customerPlanSubscriptions  CustomerPlanSubscription[]
+  recurringAppointmentSeries RecurringAppointmentSeries[]
 
   @@unique([businessId, personId], name: "uq_business_person")
   @@index([businessId], name: "idx_bc_business")
   @@index([personId], name: "idx_bc_person")
   @@index([businessId, created_at], name: "idx_bc_business_created_at")
+}
+
+model CustomerServicePlan {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id])
+  name        String
+  description String?
+
+  price_in_cents                 Int
+  cycle_type                     CustomerServicePlanCycleType @default(ROLLING_FROM_START)
+  cycle_interval_months          Int                          @default(1)
+  credits_per_cycle              Int
+  max_uses_per_week              Int                          @default(1)
+  allow_multiple_uses_same_week  Boolean                      @default(false)
+  min_days_between_uses          Int                          @default(0)
+  max_future_bookings            Int
+  booking_window_days            Int                          @default(31)
+  allow_client_recurring_booking Boolean                      @default(true)
+  allow_client_single_booking    Boolean                      @default(true)
+  status                         CustomerServicePlanStatus    @default(ACTIVE)
+
+  created_by_user_id String
+  updated_by_user_id String?
+  created_by         User    @relation("CustomerServicePlanCreatedBy", fields: [created_by_user_id], references: [id])
+  updated_by         User?   @relation("CustomerServicePlanUpdatedBy", fields: [updated_by_user_id], references: [id])
+
+  services      CustomerServicePlanService[]
+  combos        CustomerServicePlanCombo[]
+  subscriptions CustomerPlanSubscription[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([businessId, status], name: "idx_customer_service_plan_business_status")
+  @@index([businessId, name], name: "idx_customer_service_plan_business_name")
+  @@index([created_by_user_id], name: "idx_customer_service_plan_created_by")
+}
+
+model CustomerServicePlanService {
+  id         String   @id @default(cuid())
+  planId     String
+  serviceId  String
+  created_at DateTime @default(now())
+
+  plan    CustomerServicePlan @relation(fields: [planId], references: [id])
+  service Service             @relation(fields: [serviceId], references: [id])
+
+  @@unique([planId, serviceId], name: "uq_customer_plan_service")
+  @@index([serviceId], name: "idx_customer_plan_service_service")
+}
+
+model CustomerServicePlanCombo {
+  id             String   @id @default(cuid())
+  planId         String
+  serviceComboId String
+  created_at     DateTime @default(now())
+
+  plan         CustomerServicePlan @relation(fields: [planId], references: [id])
+  serviceCombo ServiceCombo        @relation(fields: [serviceComboId], references: [id])
+
+  @@unique([planId, serviceComboId], name: "uq_customer_plan_combo")
+  @@index([serviceComboId], name: "idx_customer_plan_combo_combo")
+}
+
+model CustomerPlanSubscription {
+  id                 String              @id @default(cuid())
+  businessId         String
+  business           Business            @relation(fields: [businessId], references: [id])
+  businessCustomerId String
+  businessCustomer   BusinessCustomer    @relation(fields: [businessCustomerId], references: [id])
+  personId           String
+  person             Person              @relation(fields: [personId], references: [id])
+  planId             String
+  plan               CustomerServicePlan @relation(fields: [planId], references: [id])
+
+  status                     CustomerPlanSubscriptionStatus @default(ACTIVE)
+  started_at                 DateTime                       @default(now())
+  current_cycle_start        DateTime
+  current_cycle_end          DateTime
+  price_in_cents_snapshot    Int
+  credits_per_cycle_snapshot Int
+  rules_snapshot             Json
+
+  sold_by_user_id String
+  sold_by         User   @relation("CustomerPlanSubscriptionSoldBy", fields: [sold_by_user_id], references: [id])
+
+  revenue_professional_profile_id String
+  revenue_professional_profile    ProfessionalProfile @relation("CustomerPlanRevenueProfessional", fields: [revenue_professional_profile_id], references: [id])
+
+  cycles          CustomerServicePlanCycle[]
+  redemptions     AppointmentPlanRedemption[]
+  recurringSeries RecurringAppointmentSeries[]
+  statements      ProfessionalStatement[]
+  reminderJobs    ReminderJob[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([businessId, status], name: "idx_customer_plan_sub_business_status")
+  @@index([businessCustomerId, status], name: "idx_customer_plan_sub_customer_status")
+  @@index([personId, status], name: "idx_customer_plan_sub_person_status")
+  @@index([planId], name: "idx_customer_plan_sub_plan")
+  @@index([current_cycle_end], name: "idx_customer_plan_sub_cycle_end")
+}
+
+model CustomerServicePlanCycle {
+  id             String                   @id @default(cuid())
+  businessId     String
+  business       Business                 @relation(fields: [businessId], references: [id])
+  subscriptionId String
+  subscription   CustomerPlanSubscription @relation(fields: [subscriptionId], references: [id])
+
+  cycle_start      DateTime
+  cycle_end        DateTime
+  credits_granted  Int
+  credits_reserved Int      @default(0)
+  credits_consumed Int      @default(0)
+  credits_refunded Int      @default(0)
+
+  redemptions  AppointmentPlanRedemption[]
+  reminderJobs ReminderJob[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([subscriptionId, cycle_start, cycle_end], name: "uq_customer_plan_cycle_subscription_range")
+  @@index([businessId, cycle_start, cycle_end], name: "idx_customer_plan_cycle_business_range")
+  @@index([subscriptionId, cycle_end], name: "idx_customer_plan_cycle_sub_end")
+}
+
+model AppointmentPlanRedemption {
+  id             String                   @id @default(cuid())
+  appointmentId  String                   @unique
+  appointment    Appointment              @relation(fields: [appointmentId], references: [id])
+  subscriptionId String
+  subscription   CustomerPlanSubscription @relation(fields: [subscriptionId], references: [id])
+  cycleId        String
+  cycle          CustomerServicePlanCycle @relation(fields: [cycleId], references: [id])
+
+  status      AppointmentPlanRedemptionStatus @default(RESERVED)
+  reserved_at DateTime                        @default(now())
+  consumed_at DateTime?
+  refunded_at DateTime?
+  metadata    Json?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([subscriptionId, status], name: "idx_plan_redemption_sub_status")
+  @@index([cycleId, status], name: "idx_plan_redemption_cycle_status")
+  @@index([status, reserved_at], name: "idx_plan_redemption_status_reserved")
+}
+
+model RecurringAppointmentSeries {
+  id                    String                    @id @default(cuid())
+  businessId            String
+  business              Business                  @relation(fields: [businessId], references: [id])
+  businessCustomerId    String
+  businessCustomer      BusinessCustomer          @relation(fields: [businessCustomerId], references: [id])
+  personId              String
+  person                Person                    @relation(fields: [personId], references: [id])
+  professionalProfileId String
+  professionalProfile   ProfessionalProfile       @relation(fields: [professionalProfileId], references: [id])
+  serviceId             String
+  service               Service                   @relation(fields: [serviceId], references: [id])
+  serviceComboId        String?
+  serviceCombo          ServiceCombo?             @relation(fields: [serviceComboId], references: [id])
+  planSubscriptionId    String?
+  planSubscription      CustomerPlanSubscription? @relation(fields: [planSubscriptionId], references: [id])
+
+  status          RecurringAppointmentSeriesStatus @default(ACTIVE)
+  frequency       RecurringAppointmentFrequency    @default(WEEKLY)
+  weekday         Int?
+  day_of_month    Int?
+  time            String
+  timezone        String                           @default("America/Sao_Paulo")
+  starts_at       DateTime
+  ends_at         DateTime?
+  max_occurrences Int?
+  generated_until DateTime?
+
+  created_by_user_id   String
+  created_by_user_type UserType
+  created_by           User     @relation("RecurringAppointmentSeriesCreatedBy", fields: [created_by_user_id], references: [id])
+
+  occurrences RecurringAppointmentOccurrence[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([businessId, status], name: "idx_recurring_series_business_status")
+  @@index([businessCustomerId, status], name: "idx_recurring_series_customer_status")
+  @@index([professionalProfileId, status], name: "idx_recurring_series_prof_status")
+  @@index([planSubscriptionId, status], name: "idx_recurring_series_plan_status")
+  @@index([status, generated_until], name: "idx_recurring_series_status_generated")
+}
+
+model RecurringAppointmentOccurrence {
+  id                     String                               @id @default(cuid())
+  seriesId               String
+  series                 RecurringAppointmentSeries           @relation(fields: [seriesId], references: [id])
+  appointmentId          String?
+  appointment            Appointment?                         @relation(fields: [appointmentId], references: [id])
+  scheduled_start_at_utc DateTime
+  status                 RecurringAppointmentOccurrenceStatus
+  reason                 String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([seriesId, scheduled_start_at_utc], name: "uq_recurring_occurrence_series_start")
+  @@index([appointmentId], name: "idx_recurring_occurrence_appointment")
+  @@index([seriesId, status], name: "idx_recurring_occurrence_series_status")
+  @@index([status, scheduled_start_at_utc], name: "idx_recurring_occurrence_status_start")
 }
 
 model BusinessCategory {
@@ -1038,6 +1299,8 @@ enum ReminderChannel {
 enum BusinessReminderType {
   APPOINTMENT_REMINDER
   APPOINTMENT_CONFIRMATION_REQUEST
+  PLAN_LAST_APPOINTMENT
+  PLAN_CYCLE_ENDING
 }
 
 enum ReminderJobStatus {
@@ -1168,6 +1431,51 @@ enum ProfessionalStatus {
   PENDING_VERIFICATION
 }
 
+enum CustomerServicePlanStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum CustomerServicePlanCycleType {
+  CALENDAR_MONTH
+  ROLLING_FROM_START
+}
+
+enum CustomerPlanSubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELED
+  EXPIRED
+}
+
+enum AppointmentPlanRedemptionStatus {
+  RESERVED
+  CONSUMED
+  REFUNDED
+}
+
+enum RecurringAppointmentSeriesStatus {
+  ACTIVE
+  PAUSED
+  CANCELED
+  COMPLETED
+}
+
+enum RecurringAppointmentFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum RecurringAppointmentOccurrenceStatus {
+  CREATED
+  SKIPPED_CONFLICT
+  SKIPPED_NO_CREDIT
+  SKIPPED_OUT_OF_CYCLE
+  CANCELED
+}
+
 enum BenefitKey {
   PROFESSIONALS // Nº de profissionais que podem ser criados
   REMINDER_CHANNELS // Canais de lembrete (APP, WPP, E-mail)
@@ -1224,4 +1532,113 @@ enum ServiceComboPricingMode {
 enum ServiceComboDurationMode {
   SUM_SERVICES
   CUSTOM
+}
+
+// ---------------------------------------------------------------------------
+// Lista de espera para dias lotados (ver PLANO_ACAO_LISTA_ESPERA.md)
+// ---------------------------------------------------------------------------
+
+enum WaitlistEntryStatus {
+  WAITING
+  CONVERTED
+  CANCELED
+  EXPIRED_DAY_PASSED
+}
+
+enum WaitlistOfferStatus {
+  PENDING
+  CONVERTED
+  EXPIRED
+  DECLINED
+  SUPERSEDED
+}
+
+enum WaitlistEventType {
+  JOINED
+  LEFT
+  OFFER_SENT
+  OFFER_EXPIRED
+  OFFER_DECLINED
+  CONVERTED
+  REMOVED_DAY_PASSED
+}
+
+// Um cliente esperando vaga num negócio, numa data.
+model WaitlistEntry {
+  id                    String              @id @default(cuid())
+  businessId            String
+  business              Business            @relation(fields: [businessId], references: [id])
+  businessCustomerId    String
+  businessCustomer      BusinessCustomer    @relation(fields: [businessCustomerId], references: [id])
+  personId              String
+  person                Person              @relation(fields: [personId], references: [id])
+  professionalProfileId String? // null = qualquer profissional serve
+  professional          ProfessionalProfile? @relation(fields: [professionalProfileId], references: [id])
+  serviceId             String? // null = qualquer serviço
+  service               Service?            @relation(fields: [serviceId], references: [id])
+  serviceComboId        String? // combo escolhido no lugar de serviço
+  serviceCombo          ServiceCombo?       @relation(fields: [serviceComboId], references: [id])
+  date                  DateTime            @db.Date // dia no fuso do negócio
+  status                WaitlistEntryStatus @default(WAITING)
+  // Define a ordem da fila. Reentrar depois de sair reinicia a posição.
+  queued_at             DateTime            @default(now())
+  converted_appointment_id String?          @unique
+  converted_appointment Appointment?        @relation(fields: [converted_appointment_id], references: [id])
+
+  offers WaitlistOffer[]
+  events WaitlistEvent[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([businessId, personId, date], name: "uq_waitlist_business_person_date")
+  @@index([businessId, professionalProfileId, date, status], name: "idx_waitlist_queue")
+  @@index([personId, status], name: "idx_waitlist_person_status")
+  @@index([date, status], name: "idx_waitlist_date_status")
+}
+
+// A vaga específica ofertada a uma entrada, com prazo para aceitar.
+model WaitlistOffer {
+  id                    String              @id @default(cuid())
+  waitlistEntryId       String
+  waitlistEntry         WaitlistEntry       @relation(fields: [waitlistEntryId], references: [id])
+  businessId            String
+  business              Business            @relation(fields: [businessId], references: [id])
+  professionalProfileId String
+  professional          ProfessionalProfile @relation(fields: [professionalProfileId], references: [id])
+  serviceId             String?
+  service               Service?            @relation(fields: [serviceId], references: [id])
+  serviceComboId        String?
+  serviceCombo          ServiceCombo?       @relation(fields: [serviceComboId], references: [id])
+  slot_start_at_utc     DateTime
+  slot_end_at_utc       DateTime
+  status                WaitlistOfferStatus @default(PENDING)
+  expires_at_utc        DateTime
+  notified_at_utc       DateTime?
+  responded_at_utc      DateTime?
+  metadata              Json?
+
+  events WaitlistEvent[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([status, expires_at_utc], name: "idx_waitlist_offer_status_expires")
+  @@index([waitlistEntryId], name: "idx_waitlist_offer_entry")
+  @@index([professionalProfileId, status, slot_start_at_utc], name: "idx_waitlist_offer_hold")
+}
+
+// Log imutável de auditoria.
+model WaitlistEvent {
+  id              String            @id @default(cuid())
+  waitlistEntryId String
+  waitlistEntry   WaitlistEntry     @relation(fields: [waitlistEntryId], references: [id])
+  offerId         String?
+  offer           WaitlistOffer?    @relation(fields: [offerId], references: [id])
+  event_type      WaitlistEventType
+  by_user_id      String? // null = sistema
+  reason          String?
+  created_at      DateTime          @default(now())
+
+  @@index([waitlistEntryId, created_at], name: "idx_waitlist_event_entry")
 }

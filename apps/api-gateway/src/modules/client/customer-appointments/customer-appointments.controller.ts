@@ -7,11 +7,13 @@ import { Response } from 'express';
 import { CancelCustomerAppointmentDto } from './dto/requests/cancel-appointment.dto';
 import { ClientConfirmAppointmentDto } from './dto/requests/confirm-appointment.dto';
 import { CreateCustomerAppointmentDto } from './dto/requests/create-customer-appointment.dto';
+import { CreateCustomerRecurringAppointmentDto } from './dto/requests/create-recurring-appointment.dto';
 import { GetCustomerAppointmentsDto } from './dto/requests/get-customer-appointments.dto';
 import {
   CancelCustomerAppointmentUseCase,
   ConfirmCustomerAppointmentUseCase,
   CreateAppointmentUseCase,
+  CreateCustomerRecurringAppointmentUseCase,
   GetCustomerAppointmentsUseCase,
   GetNextAppointmentUseCase,
   RescheduleCustomerAppointmentUseCase,
@@ -24,6 +26,7 @@ export class CustomerAppointmentsController {
   constructor(
     private readonly responseHandler: ResponseHandlerService,
     private readonly createAppointmentUseCase: CreateAppointmentUseCase,
+    private readonly createCustomerRecurringAppointmentUseCase: CreateCustomerRecurringAppointmentUseCase,
     private readonly getNextAppointmentUseCase: GetNextAppointmentUseCase,
     private readonly getCustomerAppointmentsUseCase: GetCustomerAppointmentsUseCase,
     private readonly confirmCustomerAppointmentUseCase: ConfirmCustomerAppointmentUseCase,
@@ -40,6 +43,21 @@ export class CustomerAppointmentsController {
   ) {
     return await this.responseHandler.handle({
       method: () => this.createAppointmentUseCase.execute(payload, req),
+      res,
+      successStatus: 201,
+    });
+  }
+
+  @Post('create-recurring-appointment')
+  @ApiOperation({ summary: 'Create recurring appointments for the customer' })
+  async createRecurringAppointment(
+    @Res() res: Response,
+    @Body() payload: CreateCustomerRecurringAppointmentDto,
+    @Req() req: AppRequest,
+  ) {
+    return await this.responseHandler.handle({
+      method: () =>
+        this.createCustomerRecurringAppointmentUseCase.execute(payload, req),
       res,
       successStatus: 201,
     });

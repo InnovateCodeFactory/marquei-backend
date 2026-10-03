@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
 
 export class GetAvailableTimesForServiceAndProfessionalDto {
   @IsString()
@@ -27,9 +27,10 @@ export class GetAvailableTimesForServiceAndProfessionalDto {
   professional_id: string;
 
   @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
   @IsNotEmpty()
   @ApiProperty({
-    description: 'Date to check availability for, in yyyy/MM/dd format',
+    description: 'Date to check availability for, in yyyy-MM-dd format',
     example: '2025-08-17',
   })
   day: string; // yyyy-MM-dd

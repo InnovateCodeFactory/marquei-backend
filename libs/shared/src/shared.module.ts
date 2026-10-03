@@ -9,12 +9,18 @@ import { RedisModule } from './modules/redis/redis.module';
 import { RmqModule } from './modules/rmq/rmq.module';
 import {
   AppointmentEventsStreamService,
+  CustomerPlanCreditService,
+  CustomerPlanSummaryService,
   EncryptionService,
   FileSystemService,
   HashingService,
+  RecurringAppointmentsService,
+  RedisLockService,
   ResponseHandlerService,
   TokenService,
   TypedConfigService,
+  WaitlistEventsService,
+  WaitlistHoldService,
 } from './services';
 
 @Global()
@@ -49,6 +55,12 @@ import {
     TokenService,
     EncryptionService,
     AppointmentEventsStreamService,
+    CustomerPlanCreditService,
+    CustomerPlanSummaryService,
+    RecurringAppointmentsService,
+    RedisLockService,
+    WaitlistEventsService,
+    WaitlistHoldService,
   ],
   exports: [
     ConfigModule,
@@ -63,6 +75,12 @@ import {
     TokenService,
     EncryptionService,
     AppointmentEventsStreamService,
+    CustomerPlanCreditService,
+    CustomerPlanSummaryService,
+    RecurringAppointmentsService,
+    RedisLockService,
+    WaitlistEventsService,
+    WaitlistHoldService,
     ScheduleModule,
     GoogleCalendarModule,
   ],

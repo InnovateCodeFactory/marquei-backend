@@ -202,6 +202,7 @@ export * from './prohibited-terms';
 export * from './validate-opening-hours';
 export * from './business-notification-templates';
 export * from './phone';
+export * from './customer-plan-summary';
 
 export function codeGenerator({
   length,

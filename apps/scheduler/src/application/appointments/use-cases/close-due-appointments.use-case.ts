@@ -5,6 +5,7 @@ import {
   RABBIT_EXCHANGE,
   RmqService,
 } from '@app/shared/modules/rmq/rmq.service';
+import { CustomerPlanCreditService } from '@app/shared/services';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -19,6 +20,7 @@ export class CloseDueAppointmentsUseCase implements OnApplicationBootstrap {
     private readonly redisLockService: RedisLockService,
     private readonly prismaService: PrismaService,
     private readonly configService: ConfigService<EnvSchemaType>,
+    private readonly customerPlanCreditService: CustomerPlanCreditService,
   ) {}
 
   async onApplicationBootstrap() {
@@ -105,6 +107,12 @@ export class CloseDueAppointmentsUseCase implements OnApplicationBootstrap {
                 },
               },
             },
+            planRedemption: {
+              select: {
+                id: true,
+                status: true,
+              },
+            },
           },
           orderBy: { end_at_utc: 'asc' },
           take: BATCH,
@@ -113,7 +121,7 @@ export class CloseDueAppointmentsUseCase implements OnApplicationBootstrap {
 
         if (!rows.length) break;
 
-        const statementRows = rows.map((r) => {
+        const statementRows = rows.filter((r) => !r.planRedemption).map((r) => {
           const comboSnapshot = (r.combo_snapshot || null) as {
             combo_name?: string;
             final_price_in_cents?: number;
@@ -190,9 +198,20 @@ export class CloseDueAppointmentsUseCase implements OnApplicationBootstrap {
             skipDuplicates: true,
           });
 
-          await tx.professionalStatement.createMany({
-            data: statementRows,
-          });
+          if (statementRows.length) {
+            await tx.professionalStatement.createMany({
+              data: statementRows,
+            });
+          }
+
+          for (const row of rows) {
+            if (row.planRedemption?.status === 'RESERVED') {
+              await this.customerPlanCreditService.consumeReservedCredit(
+                tx,
+                row.planRedemption.id,
+              );
+            }
+          }
         });
 
         cursor = rows[rows.length - 1].id;

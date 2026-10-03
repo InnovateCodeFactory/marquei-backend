@@ -1,68 +1,165 @@
 name: Build & Deploy
 
+# So `main` (producao). Develop nunca builda imagem, nunca migra e nunca deploya.
 on:
   push:
     branches:
-    - main
+      - main
+  workflow_dispatch:
+    inputs:
+      force_all:
+        description: Buildar e deployar os 4 apps (ignora a deteccao de mudancas)
+        type: boolean
+        default: false
+
+# Um deploy por vez: nunca duas migrations/deploys concorrentes em producao.
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_PREFIX: ghcr.io/innovatecodefactory/marquei
 
 jobs:
-  build-and-push:
+  # ---------------------------------------------------------------------
+  # Decide o que mudou. Ver .github/scripts/detect-changes.sh (regras, buckets
+  # de paths compartilhados e fail-safe) e detect-changes.test.sh (testes).
+  # ---------------------------------------------------------------------
+  changes:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      build_matrix: ${{ steps.detect.outputs.build_matrix }}
+      build_any: ${{ steps.detect.outputs.build_any }}
+      deploy_services: ${{ steps.detect.outputs.deploy_services }}
+      deploy_any: ${{ steps.detect.outputs.deploy_any }}
+      migrator_build: ${{ steps.detect.outputs.migrator_build }}
+      run_migrate: ${{ steps.detect.outputs.run_migrate }}
+    steps:
+      - name: Checkout (historico completo para o diff)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detectar apps alterados
+        id: detect
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          FORCE_ALL: ${{ inputs.force_all || 'false' }}
+        run: bash .github/scripts/detect-changes.sh
+
+  # ---------------------------------------------------------------------
+  # Build so dos apps afetados (matrix dinamica).
+  # ---------------------------------------------------------------------
+  build:
+    needs: changes
+    if: needs.changes.outputs.build_any == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write # necessário pro GHCR
-
+      packages: write # GHCR
     strategy:
-      matrix:
-        service:
-        - name: api-gateway
-          port: 3000
-        - name: messaging
-          port: 3001
-        - name: payment
-          port: 3002
-        - name: scheduler
-          port: 3003
-
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.changes.outputs.build_matrix) }}
     steps:
-    - name: Checkout do repositório
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Login no GHCR
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
 
-    - name: Build e push da imagem ${{ matrix.service.name }}
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: apps/${{ matrix.service.name }}/Dockerfile
-        push: true
-        tags: |
-          ghcr.io/innovatecodefactory/marquei-${{ matrix.service.name }}:latest
-          ghcr.io/innovatecodefactory/marquei-${{ matrix.service.name }}:${{ github.sha }}
-        build-args: |
-          APP_NAME=${{ matrix.service.name }}
-          APP_PORT=${{ matrix.service.port }}
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-  deploy:
+      - name: Build e push (${{ matrix.name }})
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: runner
+          push: true
+          provenance: false
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.name }}:latest
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.name }}:${{ github.sha }}
+          build-args: |
+            APP_NAME=${{ matrix.name }}
+            APP_PORT=${{ matrix.port }}
+          # cache de camadas no proprio GHCR: dependencias nao sao reinstaladas
+          # quando so o codigo mudou
+          cache-from: type=registry,ref=${{ env.IMAGE_PREFIX }}-${{ matrix.name }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_PREFIX }}-${{ matrix.name }}:buildcache,mode=max
+
+  # ---------------------------------------------------------------------
+  # Imagem do migrator (`prisma migrate deploy`). So e reconstruida quando
+  # schema/migrations, versao do Prisma, Dockerfile ou pipeline mudaram.
+  # ---------------------------------------------------------------------
+  migrator:
+    needs: changes
+    if: needs.changes.outputs.migrator_build == 'true'
     runs-on: ubuntu-latest
-    needs: build-and-push
-
+    permissions:
+      contents: read
+      packages: write
     steps:
-    - name: Checkout do repositório
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Instalar sshpass
-      run: sudo apt-get update && sudo apt-get install -y sshpass
+      - uses: docker/setup-buildx-action@v3
 
-    - name: Conectar na VPS e rodar deploy
-      run: |
-        sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-          cd /var/www/marquei/backend
-          git pull
-          sh run/prod-up.sh
-        EOF
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build e push (migrator)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: migrator
+          push: true
+          provenance: false
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-migrator:latest
+            ${{ env.IMAGE_PREFIX }}-migrator:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.IMAGE_PREFIX }}-migrator:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_PREFIX }}-migrator:buildcache,mode=max
+
+  # ---------------------------------------------------------------------
+  # Deploy na VPS. Ordem garantida em run/prod-up.sh:
+  #   1. `prisma migrate deploy` (se falhar, NADA e reiniciado)
+  #   2. pull + up so dos servicos afetados
+  # ---------------------------------------------------------------------
+  deploy:
+    needs: [changes, build, migrator]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      !cancelled() &&
+      needs.changes.result == 'success' &&
+      contains(fromJSON('["success","skipped"]'), needs.build.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.migrator.result) &&
+      (needs.changes.outputs.deploy_any == 'true' || needs.changes.outputs.run_migrate == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Instalar sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Migrar e subir na VPS
+        env:
+          SSHPASS: ${{ secrets.VPS_PASSWORD }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          SERVICES: ${{ needs.changes.outputs.deploy_services }}
+          RUN_MIGRATE: ${{ needs.changes.outputs.run_migrate }}
+          MIGRATOR_TAG: ${{ needs.changes.outputs.migrator_build == 'true' && github.sha || 'latest' }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=no "$VPS_USER@$VPS_HOST" \
+            "cd /var/www/marquei/backend && git pull --ff-only && SERVICES='$SERVICES' RUN_MIGRATE='$RUN_MIGRATE' MIGRATOR_TAG='$MIGRATOR_TAG' sh run/prod-up.sh"

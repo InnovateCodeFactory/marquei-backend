@@ -52,6 +52,14 @@ export class CreateAppointmentDto {
   combo_id?: string;
 
   @IsString()
+  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'ID da assinatura de plano do cliente usada no agendamento',
+    example: 'customer-plan-subscription-id-123',
+  })
+  plan_subscription_id?: string;
+
+  @IsString()
   @MaxLength(255)
   @IsOptional()
   @ApiProperty({

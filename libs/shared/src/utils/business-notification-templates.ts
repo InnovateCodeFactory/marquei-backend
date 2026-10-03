@@ -6,6 +6,13 @@ export const DEFAULT_REMINDER_MESSAGE_TEMPLATE =
 export const DEFAULT_CONFIRMATION_REQUEST_MESSAGE_TEMPLATE =
   '{{business_name}}\n\nOlá! Tudo bem? 😊\n\nO profissional {{professional_name}} solicita a confirmação do seu agendamento de *{{service_name}}* para {{day_with_preposition}}, às {{time}}.';
 
+// Lembretes de plano do cliente. Ainda sem tela de edição no app do profissional,
+// por isso ficam fora de BUSINESS_REMINDER_TYPES (lista exposta em /profile/notifications).
+export const PLAN_REMINDER_TYPES = [
+  BusinessReminderType.PLAN_LAST_APPOINTMENT,
+  BusinessReminderType.PLAN_CYCLE_ENDING,
+] as const;
+
 export const BUSINESS_REMINDER_TYPES = [
   BusinessReminderType.APPOINTMENT_REMINDER,
   BusinessReminderType.APPOINTMENT_CONFIRMATION_REQUEST,
@@ -43,6 +50,28 @@ export const BUSINESS_REMINDER_TYPE_DEFAULTS: Record<
     offsets_min_before: [],
     timezone: 'America/Sao_Paulo',
     message_template: DEFAULT_CONFIRMATION_REQUEST_MESSAGE_TEMPLATE,
+  },
+  [BusinessReminderType.PLAN_LAST_APPOINTMENT]: {
+    title: 'Último agendamento do plano',
+    description:
+      'Aviso ao cliente antes do último agendamento coberto pelos créditos do plano.',
+    is_active: true,
+    channels: [ReminderChannel.PUSH, ReminderChannel.WHATSAPP],
+    // 1 dia antes do último agendamento
+    offsets_min_before: [1440],
+    timezone: 'America/Sao_Paulo',
+    message_template: '',
+  },
+  [BusinessReminderType.PLAN_CYCLE_ENDING]: {
+    title: 'Ciclo do plano acabando',
+    description:
+      'Aviso ao cliente alguns dias antes do fim do ciclo do plano, que não renova sozinho.',
+    is_active: true,
+    channels: [ReminderChannel.PUSH, ReminderChannel.WHATSAPP],
+    // 3 dias antes do fim do ciclo
+    offsets_min_before: [4320],
+    timezone: 'America/Sao_Paulo',
+    message_template: '',
   },
 };
 

@@ -37,5 +37,6 @@ import {
     GetBusinessCategoriesUseCase,
     FilterBusinessesUseCase,
   ],
+  exports: [GetAvailableTimesForServiceAndProfessionalUseCase],
 })
 export class BusinessModule {}

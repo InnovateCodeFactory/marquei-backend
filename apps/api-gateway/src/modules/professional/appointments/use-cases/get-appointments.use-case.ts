@@ -131,6 +131,16 @@ export class GetAppointmentsUseCase {
             color: true,
           },
         },
+        planRedemption: {
+          select: {
+            status: true,
+            subscription: {
+              select: {
+                plan: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
       },
       orderBy: { start_at_utc: 'asc' },
     });
@@ -229,6 +239,13 @@ export class GetAppointmentsUseCase {
           ).toCurrency(),
           color: a.serviceCombo?.color ?? a.service.color,
         },
+        plan: a.planRedemption
+          ? {
+              status: a.planRedemption.status,
+              id: a.planRedemption.subscription.plan.id,
+              name: a.planRedemption.subscription.plan.name,
+            }
+          : null,
         status: formatAppointmentStatus(a.status),
         reminder_sent_by_professional: reminderByAppointment.has(a.id),
       };

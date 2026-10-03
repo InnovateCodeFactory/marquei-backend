@@ -1,5 +1,7 @@
 import { PrismaService } from '@app/shared';
+import { WaitlistHoldService } from '@app/shared/services';
 import { AppointmentStatusEnum } from '@app/shared/enum';
+import { parseYmdToTZDate } from '@app/shared/utils';
 import { TZDate, tz } from '@date-fns/tz';
 import {
   BadRequestException,
@@ -23,12 +25,22 @@ type OpeningHours = {
   times?: { startTime: string; endTime: string }[]; // 'HH:mm'
 }[];
 
+/**
+ * CLOSED: negócio fechado no dia (ou dia já encerrado/passado), sem fila de espera.
+ * FULL: dia aberto, mas todos os horários estão ocupados: elegível à lista de espera.
+ * AVAILABLE: há horário livre.
+ */
+export type AvailabilityStatus = 'CLOSED' | 'FULL' | 'AVAILABLE';
+
 const BUSINESS_TZ_ID = 'America/Sao_Paulo';
 const Z = tz(BUSINESS_TZ_ID);
 
 @Injectable()
 export class GetAvailableTimesForServiceAndProfessionalUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly waitlistHoldService: WaitlistHoldService,
+  ) {}
 
   private appendSlotsFromFreeWindow(params: {
     freeStart: TZDate;
@@ -49,13 +61,18 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
 
     let slotStart = freeStart;
     while (
-      isBefore(addMinutes(slotStart, appointmentDuration, { in: Z }), freeEnd) ||
+      isBefore(
+        addMinutes(slotStart, appointmentDuration, { in: Z }),
+        freeEnd,
+      ) ||
       isEqual(addMinutes(slotStart, appointmentDuration, { in: Z }), freeEnd)
     ) {
       if (!isTodayInTZ || isBefore(nowLocal, slotStart)) {
         slots.add(format(slotStart, 'HH:mm', { in: Z }));
       }
-      slotStart = addMinutes(slotStart, appointmentDuration, { in: Z }) as TZDate;
+      slotStart = addMinutes(slotStart, appointmentDuration, {
+        in: Z,
+      }) as TZDate;
     }
   }
 
@@ -81,96 +98,92 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
       );
     }
 
-    // --- valida 'day' (yyyy-MM-dd) e cria um TZDate no fuso do negócio ---
-    // Não usamos parse() aqui pra evitar ambiguidade de fuso; fazemos split manual.
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
-    if (!m) {
-      throw new BadRequestException(
-        'Parâmetro "day" inválido. Use yyyy-MM-dd.',
-      );
-    }
-    const [_, y, mo, d] = m;
-    const year = Number(y);
-    const monthIndex = Number(mo) - 1; // 0-11
-    const dayNum = Number(d);
-
-    const selectedDateLocal = new TZDate(
-      year,
-      monthIndex,
-      dayNum,
-      BUSINESS_TZ_ID,
-    );
+    const selectedDateLocal = parseYmdToTZDate({
+      ymd: day,
+      tzId: BUSINESS_TZ_ID,
+    });
+    const year = selectedDateLocal.getFullYear();
+    const monthIndex = selectedDateLocal.getMonth();
+    const dayNum = selectedDateLocal.getDate();
 
     // --- carrega dados em paralelo ---
-    const [business, professional, service, combo, professionalHasService, professionalHasCombo] =
-      await Promise.all([
-        this.prisma.business.findUnique({
-          where: { slug: business_slug },
-          select: { opening_hours: true, id: true },
-        }),
-        this.prisma.professionalProfile.findFirst({
-          where: {
-            id: professional_id,
-            business: { slug: business_slug },
-            status: 'ACTIVE',
-          },
-          select: { id: true },
-        }),
-        hasServiceId
-          ? this.prisma.service.findFirst({
-              where: {
-                id: service_id!,
-                business: { slug: business_slug },
-                is_active: true,
-              },
-              select: { id: true, duration: true },
-            })
-          : Promise.resolve(null),
-        hasComboId
-          ? this.prisma.serviceCombo.findFirst({
-              where: {
-                id: combo_id!,
-                business: { slug: business_slug },
-                is_active: true,
-                deleted_at: null,
-              },
-              select: {
-                id: true,
-                final_duration_minutes: true,
-                items: {
-                  where: {
-                    service: {
-                      is_active: true,
-                    },
+    const [
+      business,
+      professional,
+      service,
+      combo,
+      professionalHasService,
+      professionalHasCombo,
+    ] = await Promise.all([
+      this.prisma.business.findUnique({
+        where: { slug: business_slug },
+        select: { opening_hours: true, id: true },
+      }),
+      this.prisma.professionalProfile.findFirst({
+        where: {
+          id: professional_id,
+          business: { slug: business_slug },
+          status: 'ACTIVE',
+        },
+        select: { id: true },
+      }),
+      hasServiceId
+        ? this.prisma.service.findFirst({
+            where: {
+              id: service_id!,
+              business: { slug: business_slug },
+              is_active: true,
+            },
+            select: { id: true, duration: true },
+          })
+        : Promise.resolve(null),
+      hasComboId
+        ? this.prisma.serviceCombo.findFirst({
+            where: {
+              id: combo_id!,
+              business: { slug: business_slug },
+              is_active: true,
+              deleted_at: null,
+            },
+            select: {
+              id: true,
+              final_duration_minutes: true,
+              items: {
+                where: {
+                  service: {
+                    is_active: true,
                   },
-                  select: { id: true },
                 },
+                select: { id: true },
               },
-            })
-          : Promise.resolve(null),
-        hasServiceId
-          ? this.prisma.professionalService.count({
-              where: {
-                professional_profile_id: professional_id,
-                service_id: service_id!,
-                active: true,
-              },
-            })
-          : Promise.resolve(0),
-        hasComboId
-          ? this.prisma.professionalServiceCombo.count({
-              where: {
-                professional_profile_id: professional_id,
-                service_combo_id: combo_id!,
-                active: true,
-              },
-            })
-          : Promise.resolve(0),
-      ]);
+            },
+          })
+        : Promise.resolve(null),
+      hasServiceId
+        ? this.prisma.professionalService.count({
+            where: {
+              professional_profile_id: professional_id,
+              service_id: service_id!,
+              active: true,
+            },
+          })
+        : Promise.resolve(0),
+      hasComboId
+        ? this.prisma.professionalServiceCombo.count({
+            where: {
+              professional_profile_id: professional_id,
+              service_combo_id: combo_id!,
+              active: true,
+            },
+          })
+        : Promise.resolve(0),
+    ]);
 
     if (!business) throw new NotFoundException('Negócio não encontrado');
     if (!professional) {
-      throw new NotFoundException('Profissional não encontrado para este negócio');
+      throw new NotFoundException(
+        'Profissional não encontrado para este negócio',
+      );
     }
 
     if (hasServiceId && !service) {
@@ -200,7 +213,9 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
     const appointmentDuration =
       service?.duration ?? combo?.final_duration_minutes ?? 0;
     if (appointmentDuration <= 0) {
-      throw new BadRequestException('Duração inválida para cálculo de horários');
+      throw new BadRequestException(
+        'Duração inválida para cálculo de horários',
+      );
     }
 
     // --- normaliza opening_hours ---
@@ -218,6 +233,7 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
     if (!dayConfig || dayConfig.closed || !dayConfig.times?.length) {
       return {
         date: format(selectedDateLocal, 'yyyy-MM-dd', { in: Z }),
+        status: 'CLOSED' as AvailabilityStatus,
         availableSlots: [] as string[],
       };
     }
@@ -262,16 +278,29 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
     // --- também busca bloqueios que INTERSECTAM o dia ---
     const blocks = await this.prisma.professionalTimesBlock.findMany({
       where: {
+        businessId: business.id,
         professionalProfileId: professional_id,
-        start_at_utc: { lt: dayEndUtc },
-        end_at_utc: { gt: dayStartUtc },
+        start_at_utc: { not: null, lt: dayEndUtc },
+        end_at_utc: { not: null, gt: dayStartUtc },
       },
       select: { start_at_utc: true, end_at_utc: true, timezone: true },
       orderBy: { start_at_utc: 'asc' },
     });
 
+    // --- ofertas ativas da lista de espera seguram o horário ---
+    const holds = await this.waitlistHoldService.listHolds({
+      professionalProfileId: professional_id,
+      fromUtc: dayStartUtc,
+      toUtc: dayEndUtc,
+    });
+
     // --- ranges ocupados em HORÁRIO LOCAL (TZDate) ---
     const busyRanges = [
+      // Vagas seguradas por oferta da lista de espera
+      ...holds.map((hold) => ({
+        start: new TZDate(hold.slot_start_at_utc, BUSINESS_TZ_ID),
+        end: new TZDate(hold.slot_end_at_utc, BUSINESS_TZ_ID),
+      })),
       // Appointments
       ...appointments.map((appt) => {
         const startLocal = new TZDate(appt.start_at_utc, BUSINESS_TZ_ID);
@@ -287,19 +316,81 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
         return { start: startLocal, end: endLocal };
       }),
       // Blocks
-      ...blocks.map((b) => {
-        const zone = b.timezone || BUSINESS_TZ_ID;
-        return {
-          start: new TZDate(b.start_at_utc, zone),
-          end: new TZDate(b.end_at_utc, zone),
-        };
-      }),
+      ...blocks
+        .filter(
+          (
+            b,
+          ): b is {
+            start_at_utc: Date;
+            end_at_utc: Date;
+            timezone: string;
+          } => Boolean(b.start_at_utc && b.end_at_utc),
+        )
+        .map((b) => {
+          const zone = b.timezone || BUSINESS_TZ_ID;
+          return {
+            start: new TZDate(b.start_at_utc, zone),
+            end: new TZDate(b.end_at_utc, zone),
+          };
+        }),
     ];
+
+    const slotParams = {
+      times: dayConfig.times,
+      year,
+      monthIndex,
+      dayNum,
+      appointmentDuration,
+      isTodayInTZ,
+      nowLocal,
+    };
+    const availableSlots = this.buildSlots({ ...slotParams, busyRanges });
+
+    // Dia sem vaga: distingue "lotado" (havia horário possível) de "encerrado"
+    // (hoje já passou do expediente, ou a duração não cabe em nenhuma janela).
+    const isPastDay =
+      format(selectedDateLocal, 'yyyy-MM-dd', { in: Z }) <
+      format(nowLocal, 'yyyy-MM-dd', { in: Z });
+    let status: AvailabilityStatus = 'AVAILABLE';
+    if (!availableSlots.length) {
+      const potentialSlots = isPastDay
+        ? []
+        : this.buildSlots({ ...slotParams, busyRanges: [] });
+      status = potentialSlots.length ? 'FULL' : 'CLOSED';
+    }
+
+    return {
+      date: format(selectedDateLocal, 'yyyy-MM-dd', { in: Z }),
+      status,
+      availableSlots,
+    };
+  }
+
+  private buildSlots(params: {
+    times: { startTime: string; endTime: string }[];
+    year: number;
+    monthIndex: number;
+    dayNum: number;
+    appointmentDuration: number;
+    isTodayInTZ: boolean;
+    nowLocal: TZDate;
+    busyRanges: { start: TZDate; end: TZDate }[];
+  }) {
+    const {
+      times,
+      year,
+      monthIndex,
+      dayNum,
+      appointmentDuration,
+      isTodayInTZ,
+      nowLocal,
+      busyRanges,
+    } = params;
 
     // --- gera slots nas janelas livres, no passo da duração do atendimento ---
     const slots = new Set<string>();
 
-    for (const t of dayConfig.times) {
+    for (const t of times) {
       const [sh, sm] = t.startTime.split(':').map(Number);
       const [eh, em] = t.endTime.split(':').map(Number);
 
@@ -374,11 +465,6 @@ export class GetAvailableTimesForServiceAndProfessionalUseCase {
       }
     }
 
-    const availableSlots = Array.from(slots).sort();
-
-    return {
-      date: format(selectedDateLocal, 'yyyy-MM-dd', { in: Z }),
-      availableSlots,
-    };
+    return Array.from(slots).sort();
   }
 }

@@ -5,6 +5,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Post,
   Query,
   Req,
@@ -179,6 +180,9 @@ export class BusinessController {
 
   @Get('available-times-for-service-and-professional')
   @IsPublic()
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   @ApiOperation({
     summary: 'Get available times for a service and professional',
   })

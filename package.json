@@ -28,6 +28,7 @@
     "@faker-js/faker": "^9.9.0",
     "@golevelup/nestjs-rabbitmq": "^6.0.1",
     "@google-cloud/local-auth": "3.0.1",
+    "@googleapis/calendar": "^20.0.1",
     "@nestjs/axios": "^4.0.0",
     "@nestjs/common": "^11.1.2",
     "@nestjs/config": "^4.0.2",
@@ -38,7 +39,7 @@
     "@nestjs/schedule": "^6.0.0",
     "@nestjs/swagger": "^11.2.0",
     "@nestjs/throttler": "^6.5.0",
-    "@prisma/client": "^6.8.2",
+    "@prisma/client": "6.8.2",
     "@prisma/extension-read-replicas": "^0.4.1",
     "@scalar/nestjs-api-reference": "^1.0.5",
     "amqp-connection-manager": "^4.1.14",
@@ -51,7 +52,6 @@
     "dotenv": "^17.2.3",
     "expo-server-sdk": "^3.15.0",
     "express": "^5.1.0",
-    "googleapis": "^167.0.0",
     "ioredis": "^5.6.1",
     "joi": "^17.13.3",
     "mime-types": "^3.0.1",
@@ -90,6 +90,7 @@
     "typescript": "^5.8.3"
   },
   "jest": {
+    "maxWorkers": 2,
     "moduleFileExtensions": [
       "js",
       "json",
@@ -112,5 +113,6 @@
     "moduleNameMapper": {
       "^@app/shared(|/.*)$": "<rootDir>/libs/shared/src/$1"
     }
-  }
+  },
+  "packageManager": "pnpm@11.21.0+sha512.521705bce689924eac72f5a3587122f362689ef6571e55ba80076fd637c11132ecffada26fad4ea79c485bfddbfd3d5a2a5b05805a77e893de71ec8a6cca3bb1"
 }

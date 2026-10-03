@@ -4,6 +4,7 @@ import { AppointmentsController } from './appointments.controller';
 import {
   ConfirmAppointmentUseCase,
   CreateAppointmentUseCase,
+  CreateRecurringAppointmentUseCase,
   GetAppointmentsUseCase,
   GetAvailableTimesUseCase,
   RequestAppointmentConfirmationUseCase,
@@ -21,6 +22,7 @@ import { RescheduleAppointmentUseCase } from './use-cases/reschedule-appointment
     ConfirmAppointmentUseCase,
     GetAvailableTimesUseCase,
     CreateAppointmentUseCase,
+    CreateRecurringAppointmentUseCase,
     GetAppointmentsUseCase,
     RequestAppointmentConfirmationUseCase,
     CancelAppointmentUseCase,

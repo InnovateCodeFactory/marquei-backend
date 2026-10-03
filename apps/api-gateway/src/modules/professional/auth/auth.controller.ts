@@ -13,7 +13,7 @@ import {
   REFRESH_TOKEN_COOKIE,
   getCookieValue,
 } from '@app/shared/utils/cookies';
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { MailValidationService } from 'apps/api-gateway/src/shared/services';
@@ -21,6 +21,7 @@ import { randomBytes } from 'crypto';
 import { CookieOptions, Request, Response } from 'express';
 import { RegisterPushTokenDto } from '../../client/auth/dto/requests/register-push-token.dto';
 import { CreateAccountDto } from './dto/requests/create-account';
+import { CreateWebSsoLinkDto } from './dto/requests/create-web-sso-link.dto';
 import { FirstAccessDto } from './dto/requests/firts-access.dto';
 import { ProfessionalForgotPasswordRequestDto } from './dto/requests/forgot-password-request.dto';
 import { ForgotPasswordResetDto } from './dto/requests/forgot-password-reset.dto';
@@ -31,7 +32,9 @@ import { UpdatePasswordConfirmCodeDto } from './dto/requests/update-password-con
 import { UpdatePasswordDto } from './dto/requests/update-password.dto';
 import { ValidateMailCodeDto } from './dto/requests/validate-mail-code.dto';
 import {
+  ConsumeWebSsoLinkUseCase,
   CreateAccountUseCase,
+  CreateWebSsoLinkUseCase,
   FirstAccessUseCase,
   LoginUseCase,
   LogoutUseCase,
@@ -43,6 +46,7 @@ import {
   UpdatePasswordUseCase,
   ValidatePasswordResetCodeUseCase,
 } from './use-cases';
+import { getDefaultWebPortalUrl } from './use-cases/web-sso.utils';
 
 @Controller('professional/auth')
 @ApiTags('Professional - Auth')
@@ -55,6 +59,8 @@ export class AuthController {
     private readonly createAccountUseCase: CreateAccountUseCase,
     private readonly firstAccessUseCase: FirstAccessUseCase,
     private readonly loginUseCase: LoginUseCase,
+    private readonly createWebSsoLinkUseCase: CreateWebSsoLinkUseCase,
+    private readonly consumeWebSsoLinkUseCase: ConsumeWebSsoLinkUseCase,
     private readonly registerPushTokenUseCase: RegisterPushTokenUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly logoutUseCase: LogoutUseCase,
@@ -184,6 +190,58 @@ export class AuthController {
         }),
       res,
     });
+  }
+
+  @Post('web-sso-link')
+  @ApiOperation({
+    summary:
+      'Generate a one-time link to start a web session using the current professional login',
+  })
+  async createWebSsoLink(
+    @Res() res: Response,
+    @Req() req: Request,
+    @Body() body: CreateWebSsoLinkDto,
+    @CurrentUserDecorator() currentUser: CurrentUser,
+  ) {
+    const consumeUrl = this.buildWebSsoConsumeUrl(req);
+
+    return this.responseHandler.handle({
+      method: () =>
+        this.createWebSsoLinkUseCase.execute({
+          userId: currentUser.id,
+          consumeUrl,
+          returnTo: body?.return_to,
+        }),
+      res,
+    });
+  }
+
+  @Get('web-sso/consume')
+  @ApiOperation({
+    summary:
+      'Consume one-time web SSO code, set web cookies, and redirect to web app',
+  })
+  @IsPublic()
+  async consumeWebSsoCode(
+    @Res() res: Response,
+    @Query('code') code?: string,
+  ) {
+    const fallbackLoginUrl = this.buildWebLoginUrl({
+      ssoStatus: 'invalid_or_expired',
+    });
+
+    try {
+      const data = await this.consumeWebSsoLinkUseCase.execute({
+        code: code || '',
+      });
+      this.setAuthCookies(res, data.accessToken, data.refreshToken);
+      res.redirect(302, data.returnTo);
+      return;
+    } catch {
+      this.clearAuthCookies(res);
+      res.redirect(302, fallbackLoginUrl);
+      return;
+    }
   }
 
   @Post('first-access')
@@ -345,6 +403,49 @@ export class AuthController {
       method: () => this.updatePasswordConfirmCodeUseCase.execute(body, req),
       res,
     });
+  }
+
+  private buildWebSsoConsumeUrl(req: Request): string {
+    const requestOrigin = this.getRequestOrigin(req);
+    return `${requestOrigin}/api/professional/auth/web-sso/consume`;
+  }
+
+  private buildWebLoginUrl({
+    ssoStatus,
+  }: {
+    ssoStatus: 'invalid_or_expired';
+  }): string {
+    const defaultPortalUrl = getDefaultWebPortalUrl(this.configService);
+
+    try {
+      const loginUrl = new URL('/login', defaultPortalUrl);
+      loginUrl.searchParams.set('sso', ssoStatus);
+      return loginUrl.toString();
+    } catch {
+      return `${defaultPortalUrl.replace(/\/$/, '')}/login?sso=${ssoStatus}`;
+    }
+  }
+
+  private getRequestOrigin(req: Request): string {
+    const forwardedProto = this.getForwardedHeaderValue(
+      req.headers['x-forwarded-proto'],
+    );
+    const forwardedHost = this.getForwardedHeaderValue(
+      req.headers['x-forwarded-host'],
+    );
+    const protocol = forwardedProto || req.protocol || 'https';
+    const host = forwardedHost || req.get('host');
+
+    return host ? `${protocol}://${host}` : 'https://api.marquei.app.br';
+  }
+
+  private getForwardedHeaderValue(
+    headerValue?: string | string[],
+  ): string | undefined {
+    const rawValue = Array.isArray(headerValue) ? headerValue[0] : headerValue;
+    if (!rawValue) return undefined;
+    const firstValue = rawValue.split(',')[0]?.trim();
+    return firstValue || undefined;
   }
 
   private isWebClient(req: Request): boolean {

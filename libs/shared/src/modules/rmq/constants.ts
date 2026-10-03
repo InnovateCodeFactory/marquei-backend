@@ -62,4 +62,11 @@ export const SCHEDULER_QUEUES = {
     CLOSE_DUE_APPOINTMENTS_QUEUE:
       'scheduler.appointments.close_due_appointments_queue',
   },
+  WAITLIST: {
+    SLOT_FREED_QUEUE: 'scheduler.waitlist.slot_freed_queue',
+    SLOT_FREED_DLQ: 'scheduler.waitlist.slot_freed_queue.dlq',
+  },
 };
+
+// Exchange de dead-letter (contrato de filas: toda fila nova declara DLQ).
+export const RABBIT_DLX_EXCHANGE = 'amqp.dlx';

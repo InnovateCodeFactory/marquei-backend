@@ -7,7 +7,11 @@ import {
   RABBIT_EXCHANGE,
   RmqService,
 } from '@app/shared/modules/rmq/rmq.service';
-import { AppointmentEventsStreamService } from '@app/shared/services';
+import {
+  AppointmentEventsStreamService,
+  CustomerPlanCreditService,
+  WaitlistHoldService,
+} from '@app/shared/services';
 import { AppRequest } from '@app/shared/types/app-request';
 import { getClientIp, getTwoNames } from '@app/shared/utils';
 import { NotificationMessageBuilder } from '@app/shared/utils/notification-message-builder';
@@ -34,6 +38,8 @@ export class CreateAppointmentUseCase {
     private readonly rmqService: RmqService,
     private readonly googleCalendarService: GoogleCalendarService,
     private readonly appointmentEventsStreamService: AppointmentEventsStreamService,
+    private readonly customerPlanCreditService: CustomerPlanCreditService,
+    private readonly waitlistHoldService: WaitlistHoldService,
   ) {}
 
   async execute(payload: CreateAppointmentDto, req: AppRequest) {
@@ -50,6 +56,7 @@ export class CreateAppointmentUseCase {
       service_id,
       combo_id,
       notes,
+      plan_subscription_id,
     } = payload;
 
     const hasServiceId = Boolean(service_id?.trim());
@@ -270,6 +277,34 @@ export class CreateAppointmentUseCase {
       );
     }
 
+    const overlappingBlock = await this.prisma.professionalTimesBlock.findFirst({
+      where: {
+        professionalProfileId: professional_id,
+        businessId: professional.business_id,
+        start_at_utc: { lt: endUtc },
+        end_at_utc: { gt: startUtc },
+      },
+      select: { id: true },
+    });
+
+    if (overlappingBlock) {
+      throw new BadRequestException(
+        'Este horário está bloqueado na agenda do profissional.',
+      );
+    }
+
+    const waitlistHold = await this.waitlistHoldService.findBlockingHold({
+      professionalProfileId: professional_id,
+      startUtc: startUtc,
+      endUtc: endUtc,
+    });
+
+    if (waitlistHold) {
+      throw new BadRequestException(
+        'Este horário está reservado para a lista de espera. Tente outro horário.',
+      );
+    }
+
     // 4) Buscar configurações de lembretes do negócio e preparar jobs
     const reminderJobSettings =
       await this.prisma.businessReminderSettings.findFirst({
@@ -308,43 +343,71 @@ export class CreateAppointmentUseCase {
       }
     }
 
-    // 5) Criar o agendamento no novo formato
-    const appointment = await this.prisma.appointment.create({
-      data: {
-        status: 'PENDING',
-        start_at_utc: startUtc,
-        end_at_utc: endUtc,
-        duration_minutes: targetDuration,
-        timezone: BUSINESS_TZ_ID,
-        start_offset_minutes: startLocal.getTimezoneOffset(),
-        professional: { connect: { id: professional_id } },
-        service: { connect: { id: targetServiceId } },
-        ...(targetComboId
-          ? {
-              serviceCombo: { connect: { id: targetComboId } },
-              combo_snapshot: comboSnapshot,
-            }
-          : {}),
-        customerPerson: { connect: { id: bc.personId } },
-        notes: notes || null,
-        ...(reminderJobs.length > 0 && {
-          ReminderJob: {
-            createMany: { skipDuplicates: true, data: reminderJobs as any },
-          },
-        }),
-        events: {
-          create: {
-            event_type: 'CREATED',
-            by_professional: true,
-            by_user_id: user.id,
-            ip: getClientIp(req),
-            user_agent: headers['user-agent'],
+    // 5) Criar o agendamento no novo formato e reservar crédito em transação.
+    const appointment = await this.prisma.$transaction(async (tx) => {
+      const preparedPlan = plan_subscription_id
+        ? await this.customerPlanCreditService.prepareReservation({
+            tx,
+            subscriptionId: plan_subscription_id,
+            businessId: professional.business_id,
+            personId: bc.personId,
+            serviceId: targetServiceId,
+            comboId: targetComboId,
+            appointmentStartUtc: startUtc,
+          })
+        : null;
+
+      const created = await tx.appointment.create({
+        data: {
+          status: 'PENDING',
+          start_at_utc: startUtc,
+          end_at_utc: endUtc,
+          duration_minutes: targetDuration,
+          timezone: BUSINESS_TZ_ID,
+          start_offset_minutes: startLocal.getTimezoneOffset(),
+          professional: { connect: { id: professional_id } },
+          service: { connect: { id: targetServiceId } },
+          ...(targetComboId
+            ? {
+                serviceCombo: { connect: { id: targetComboId } },
+                combo_snapshot: comboSnapshot,
+              }
+            : {}),
+          customerPerson: { connect: { id: bc.personId } },
+          notes: notes || null,
+          ...(reminderJobs.length > 0 && {
+            ReminderJob: {
+              createMany: { skipDuplicates: true, data: reminderJobs as any },
+            },
+          }),
+          events: {
+            create: {
+              event_type: 'CREATED',
+              by_professional: true,
+              by_user_id: user.id,
+              ip: getClientIp(req),
+              user_agent: headers['user-agent'],
+            },
           },
         },
-      },
-      select: {
-        id: true,
-      },
+        select: { id: true },
+      });
+
+      if (preparedPlan) {
+        await this.customerPlanCreditService.reservePreparedCredit({
+          tx,
+          appointmentId: created.id,
+          subscriptionId: preparedPlan.subscription.id,
+          cycleId: preparedPlan.cycle.id,
+          metadata: {
+            origin: 'PROFESSIONAL_APP',
+            service_id: targetServiceId,
+            combo_id: targetComboId,
+          },
+        });
+      }
+
+      return created;
     });
 
     this.appointmentEventsStreamService.publishAppointmentCreated({
